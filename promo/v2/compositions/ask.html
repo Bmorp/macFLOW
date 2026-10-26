@@ -1,0 +1,166 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+
+    .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 960px 540px; }
+    .cam-c { position: absolute; left: 960px; top: 540px; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-r { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-s { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-f { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+    .cam-z { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; zoom: 3; }
+    .scr { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; overflow: hidden; border-radius: 10px;
+           background: #0a0710; box-shadow: 0 0 0 14px #050506, 0 0 0 15.5px #2a2b30; }
+    .scr img.wall { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; }
+    .mb { position: absolute; top: 0; height: 32px; line-height: 32px; color: rgba(255,255,255,0.9); font-size: 13px;
+          font-weight: 500; white-space: nowrap; letter-spacing: -0.005em; }
+    .mb b { font-weight: 700; margin-right: 12px; }
+    .mb span { margin-right: 12px; }
+    .isl { position: absolute; }
+    .cur { position: absolute; left: 0; top: 0; }
+    .cur img { position: absolute; }
+    .dof { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+           -webkit-mask-image: radial-gradient(ellipse 52% 46% at 50% 34%, transparent 55%, #000 100%);
+           mask-image: radial-gradient(ellipse 52% 46% at 50% 34%, transparent 55%, #000 100%); }
+
+  </style>
+  <div id="root" data-composition-id="ask" data-width="1920" data-height="1080" data-duration="7.2">
+        <div class="stage" id="ask-stage"><div class="cam-c" id="ask-c"><div class="cam-r" id="ask-r"><div class="cam-s" id="ask-s"><div class="cam-f" id="ask-f"><div class="cam-z">
+      <div class="scr"><img class="wall" src="assets/img/wallpaper-dark.jpg" alt="" />
+        <img src="assets/ui/sym-apple.logo-white.png" alt="" style="position:absolute;left:6px;top:5px;width:30px;height:22px" />
+        <div class="mb" style="left:38px"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+        <div class="mb" style="left:1338px">Fri 23 Oct&nbsp;&nbsp;10:30</div>
+      </div>
+      <img id="ask-i0" class="clip isl" data-start="1.1917" data-duration="0.0333" src="assets/frames/openFlow/0000.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i1" class="clip isl" data-start="1.225" data-duration="0.0333" src="assets/frames/openFlow/0001.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i2" class="clip isl" data-start="1.2583" data-duration="0.0333" src="assets/frames/openFlow/0002.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i3" class="clip isl" data-start="1.2917" data-duration="0.0333" src="assets/frames/openFlow/0003.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i4" class="clip isl" data-start="1.325" data-duration="0.0333" src="assets/frames/openFlow/0004.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i5" class="clip isl" data-start="1.3583" data-duration="0.0333" src="assets/frames/openFlow/0005.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i6" class="clip isl" data-start="1.3917" data-duration="0.0333" src="assets/frames/openFlow/0006.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i7" class="clip isl" data-start="1.425" data-duration="0.0333" src="assets/frames/openFlow/0007.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i8" class="clip isl" data-start="1.4583" data-duration="0.0333" src="assets/frames/openFlow/0008.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i9" class="clip isl" data-start="1.4917" data-duration="0.0333" src="assets/frames/openFlow/0009.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i10" class="clip isl" data-start="1.525" data-duration="0.0333" src="assets/frames/openFlow/0010.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i11" class="clip isl" data-start="1.5583" data-duration="0.0333" src="assets/frames/openFlow/0011.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i12" class="clip isl" data-start="1.5917" data-duration="0.0333" src="assets/frames/openFlow/0012.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i13" class="clip isl" data-start="1.625" data-duration="0.0333" src="assets/frames/openFlow/0013.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i14" class="clip isl" data-start="1.6583" data-duration="0.0333" src="assets/frames/openFlow/0014.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i15" class="clip isl" data-start="1.6917" data-duration="0.0333" src="assets/frames/openFlow/0015.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i16" class="clip isl" data-start="1.725" data-duration="0.0333" src="assets/frames/openFlow/0016.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i17" class="clip isl" data-start="1.7583" data-duration="0.0333" src="assets/frames/openFlow/0017.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i18" class="clip isl" data-start="1.7917" data-duration="0.0333" src="assets/frames/openFlow/0018.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="ask-i19" class="clip isl" data-start="1.825" data-duration="0.0333" src="assets/frames/flowType/0000.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i20" class="clip isl" data-start="1.8583" data-duration="0.0333" src="assets/frames/flowType/0001.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i21" class="clip isl" data-start="1.8917" data-duration="0.0333" src="assets/frames/flowType/0002.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i22" class="clip isl" data-start="1.925" data-duration="0.0333" src="assets/frames/flowType/0003.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i23" class="clip isl" data-start="1.9583" data-duration="0.0333" src="assets/frames/flowType/0004.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i24" class="clip isl" data-start="1.9917" data-duration="0.0333" src="assets/frames/flowType/0005.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i25" class="clip isl" data-start="2.025" data-duration="0.0333" src="assets/frames/flowType/0006.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i26" class="clip isl" data-start="2.0583" data-duration="0.0333" src="assets/frames/flowType/0007.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i27" class="clip isl" data-start="2.0917" data-duration="0.0333" src="assets/frames/flowType/0008.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i28" class="clip isl" data-start="2.125" data-duration="0.0333" src="assets/frames/flowType/0009.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i29" class="clip isl" data-start="2.1583" data-duration="0.0333" src="assets/frames/flowType/0010.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i30" class="clip isl" data-start="2.1917" data-duration="0.0333" src="assets/frames/flowType/0011.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i31" class="clip isl" data-start="2.225" data-duration="0.0333" src="assets/frames/flowType/0012.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i32" class="clip isl" data-start="2.2583" data-duration="0.0333" src="assets/frames/flowType/0013.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i33" class="clip isl" data-start="2.2917" data-duration="0.0333" src="assets/frames/flowType/0014.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i34" class="clip isl" data-start="2.325" data-duration="0.0333" src="assets/frames/flowType/0015.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i35" class="clip isl" data-start="2.3583" data-duration="0.0333" src="assets/frames/flowType/0016.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i36" class="clip isl" data-start="2.3917" data-duration="0.0333" src="assets/frames/flowType/0017.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i37" class="clip isl" data-start="2.425" data-duration="0.0333" src="assets/frames/flowType/0018.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i38" class="clip isl" data-start="2.4583" data-duration="0.0333" src="assets/frames/flowType/0019.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i39" class="clip isl" data-start="2.4917" data-duration="0.0333" src="assets/frames/flowType/0020.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i40" class="clip isl" data-start="2.525" data-duration="0.0333" src="assets/frames/flowType/0021.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i41" class="clip isl" data-start="2.5583" data-duration="0.4333" src="assets/frames/flowChat/0000.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i42" class="clip isl" data-start="2.9917" data-duration="0.4" src="assets/frames/flowChat/0001.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i43" class="clip isl" data-start="3.3917" data-duration="0.2" src="assets/frames/flowChat/0002.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i44" class="clip isl" data-start="3.5917" data-duration="0.0667" src="assets/frames/flowChat/0003.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i45" class="clip isl" data-start="3.6583" data-duration="0.0667" src="assets/frames/flowChat/0004.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i46" class="clip isl" data-start="3.725" data-duration="0.0667" src="assets/frames/flowChat/0005.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i47" class="clip isl" data-start="3.7917" data-duration="0.0667" src="assets/frames/flowChat/0006.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i48" class="clip isl" data-start="3.8583" data-duration="0.0667" src="assets/frames/flowChat/0007.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i49" class="clip isl" data-start="3.925" data-duration="0.0667" src="assets/frames/flowChat/0008.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i50" class="clip isl" data-start="3.9917" data-duration="0.0667" src="assets/frames/flowChat/0009.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i51" class="clip isl" data-start="4.0583" data-duration="0.0667" src="assets/frames/flowChat/0010.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i52" class="clip isl" data-start="4.125" data-duration="0.0667" src="assets/frames/flowChat/0011.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i53" class="clip isl" data-start="4.1917" data-duration="0.6" src="assets/frames/flowChat/0012.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="ask-i54" class="clip isl" data-start="4.7917" data-duration="0.0333" src="assets/frames/aOpen/0000.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i55" class="clip isl" data-start="4.825" data-duration="0.0333" src="assets/frames/aOpen/0001.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i56" class="clip isl" data-start="4.8583" data-duration="0.0333" src="assets/frames/aOpen/0002.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i57" class="clip isl" data-start="4.8917" data-duration="0.0333" src="assets/frames/aOpen/0003.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i58" class="clip isl" data-start="4.925" data-duration="0.0333" src="assets/frames/aOpen/0004.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i59" class="clip isl" data-start="4.9583" data-duration="0.0333" src="assets/frames/aOpen/0005.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i60" class="clip isl" data-start="4.9917" data-duration="0.0333" src="assets/frames/aOpen/0006.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i61" class="clip isl" data-start="5.025" data-duration="0.0333" src="assets/frames/aOpen/0007.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i62" class="clip isl" data-start="5.0583" data-duration="0.0333" src="assets/frames/aOpen/0008.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i63" class="clip isl" data-start="5.0917" data-duration="0.0333" src="assets/frames/aOpen/0009.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i64" class="clip isl" data-start="5.125" data-duration="0.0333" src="assets/frames/aOpen/0010.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i65" class="clip isl" data-start="5.1583" data-duration="0.0333" src="assets/frames/aOpen/0011.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i66" class="clip isl" data-start="5.1917" data-duration="0.0333" src="assets/frames/aOpen/0012.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i67" class="clip isl" data-start="5.225" data-duration="0.0333" src="assets/frames/aOpen/0013.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i68" class="clip isl" data-start="5.2583" data-duration="0.0333" src="assets/frames/aOpen/0014.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i69" class="clip isl" data-start="5.2917" data-duration="0.0333" src="assets/frames/aOpen/0015.png" alt="" style="left:412px;top:0px;width:646px;height:335px" />
+      <img id="ask-i70" class="clip isl" data-start="5.325" data-duration="0.2667" src="assets/frames/aStream/0000.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i71" class="clip isl" data-start="5.5917" data-duration="0.0667" src="assets/frames/aStream/0001.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i72" class="clip isl" data-start="5.6583" data-duration="0.0667" src="assets/frames/aStream/0002.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i73" class="clip isl" data-start="5.725" data-duration="0.0667" src="assets/frames/aStream/0003.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i74" class="clip isl" data-start="5.7917" data-duration="0.0667" src="assets/frames/aStream/0004.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i75" class="clip isl" data-start="5.8583" data-duration="0.0667" src="assets/frames/aStream/0005.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i76" class="clip isl" data-start="5.925" data-duration="0.0667" src="assets/frames/aStream/0006.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i77" class="clip isl" data-start="5.9917" data-duration="0.0667" src="assets/frames/aStream/0007.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i78" class="clip isl" data-start="6.0583" data-duration="0.0667" src="assets/frames/aStream/0008.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i79" class="clip isl" data-start="6.125" data-duration="0.0667" src="assets/frames/aStream/0009.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i80" class="clip isl" data-start="6.1917" data-duration="0.0667" src="assets/frames/aStream/0010.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i81" class="clip isl" data-start="6.2583" data-duration="0.0667" src="assets/frames/aStream/0011.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i82" class="clip isl" data-start="6.325" data-duration="0.0667" src="assets/frames/aStream/0012.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i83" class="clip isl" data-start="6.3917" data-duration="0.0667" src="assets/frames/aStream/0013.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i84" class="clip isl" data-start="6.4583" data-duration="0.0667" src="assets/frames/aStream/0014.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i85" class="clip isl" data-start="6.525" data-duration="0.0667" src="assets/frames/aStream/0015.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      <img id="ask-i86" class="clip isl" data-start="6.5917" data-duration="0.6" src="assets/frames/aStream/0016.png" alt="" style="left:412px;top:0px;width:646px;height:334px" />
+      
+    </div></div></div></div></div></div>
+    <div class="dof" id="ask-dof"></div>
+    <div id="ask-black" style="position:absolute;inset:0;background:#000"></div>
+    <div class="h" id="ask-t1" style="top:540px;font-size:150px;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="ask-t1-in" style="display:inline-block"><span class="c" id="ask-t1-0">J</span><span class="c" id="ask-t1-1">u</span><span class="c" id="ask-t1-2">s</span><span class="c" id="ask-t1-3">t</span><span class="c" id="ask-t1-4"> </span><span class="c" id="ask-t1-5">a</span><span class="c" id="ask-t1-6">s</span><span class="c" id="ask-t1-7">k</span><span class="c" id="ask-t1-8">.</span></span></div>
+    <div class="h" id="ask-w2" style="top:935px;font-size:64px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="ask-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="ask-w2-0">Ask </span><span class="w" id="ask-w2-1">about </span><span class="w" id="ask-w2-2">your </span><span class="w" id="ask-w2-3">day. </span></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        gsap.set("#ask-s", {scale: 0.6667, transformOrigin: "0 0"}); gsap.set("#ask-r", {rotationX: 10, rotationY: 12, transformOrigin: "0 0"}); gsap.set("#ask-f", {x: -2205.00, y: -495.00});
+    tl.set("#ask-t1-0", {opacity: 1}, 0.12);
+    tl.set("#ask-t1-1", {opacity: 1}, 0.19);
+    tl.set("#ask-t1-2", {opacity: 1}, 0.26);
+    tl.set("#ask-t1-3", {opacity: 1}, 0.33);
+    tl.set("#ask-t1-4", {opacity: 1}, 0.4);
+    tl.set("#ask-t1-5", {opacity: 1}, 0.47);
+    tl.set("#ask-t1-6", {opacity: 1}, 0.54);
+    tl.set("#ask-t1-7", {opacity: 1}, 0.61);
+    tl.set("#ask-t1-8", {opacity: 1}, 0.68);
+    tl.fromTo("#ask-t1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 0.95);
+    tl.set("#ask-black", {opacity: 0}, 1.2);
+    tl.to("#ask-r", {rotationX: 8, rotationY: 6, duration: 3.6, ease: "power1.inOut"}, 1.2);
+    tl.to("#ask-s", {scale: 0.7333, duration: 3.6, ease: "power1.inOut"}, 1.2);
+    tl.to("#ask-f", {x: -2205.00, y: -474.00, duration: 3.6, ease: "power1.inOut"}, 1.2);
+    tl.set("#ask-r", {rotationX: 10, rotationY: -11}, 4.8);
+    tl.set("#ask-s", {scale: 0.6167}, 4.8);
+    tl.set("#ask-f", {x: -2205.00, y: -546.00}, 4.8);
+    tl.to("#ask-r", {rotationX: 7, rotationY: -6, duration: 2.38, ease: "power1.inOut"}, 4.82);
+    tl.to("#ask-s", {scale: 0.6600, duration: 2.38, ease: "power1.inOut"}, 4.82);
+    tl.to("#ask-f", {x: -2205.00, y: -534.00, duration: 2.38, ease: "power1.inOut"}, 4.82);
+    tl.fromTo("#ask-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 4.95);
+    tl.fromTo("#ask-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 5.02);
+    tl.fromTo("#ask-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 5.09);
+    tl.fromTo("#ask-w2-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 5.16);
+    tl.fromTo("#ask-w2-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 6.95);
+    tl.set({}, {}, 7.2);
+    window.__timelines["ask"] = tl;
+  </script>
+</template>

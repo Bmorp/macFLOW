@@ -1,0 +1,95 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+
+    .chips { position: absolute; inset: 0; perspective: 1300px; perspective-origin: 960px 330px; }
+    .chip { position: absolute; left: 0; top: 0; height: 64px; padding: 0 26px 0 20px; border-radius: 32px; display: flex; align-items: center;
+            gap: 12px; background: rgba(255,255,255,0.08); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16); color: #fff;
+            font-size: 28px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; opacity: 0; }
+    .chip img { width: 38px; height: 28px; object-fit: contain; }
+    .lvl { position: absolute; top: 620px; height: 84px; line-height: 84px; font-size: 54px; font-weight: 600; color: #5d5d63; letter-spacing: -0.02em; }
+    #learns-cap { position: absolute; top: 595px; height: 134px; border-radius: 67px; opacity: 0;
+                  background: linear-gradient(100deg, rgba(158,133,255,0.32), rgba(229,138,208,0.26)); box-shadow: inset 0 0 0 1.5px rgba(185,166,255,0.6); }
+
+  </style>
+  <div id="root" data-composition-id="learns" data-width="1920" data-height="1080" data-duration="4.8">
+        <svg width="1920" height="1080" style="position:absolute;left:0;top:0">
+      <defs><filter id="learns-b" x="-30%" y="-90%" width="160%" height="280%"><feGaussianBlur stdDeviation="20"/></filter>
+            <linearGradient id="learns-rim" x1="0" x2="1"><stop offset="0" stop-color="#6f5cff"/><stop offset="0.5" stop-color="#9E85FF"/><stop offset="1" stop-color="#e58ad0"/></linearGradient></defs>
+      <g id="learns-halo" opacity="0.45" filter="url(#learns-b)"><rect x="700" y="248" width="520" height="165" rx="82.5" fill="none" stroke="url(#learns-rim)" stroke-width="14"/></g>
+      <rect id="learns-pill" x="700" y="248" width="520" height="165" rx="82.5" fill="#000" stroke="url(#learns-rim)" stroke-width="2"/>
+    </svg>
+    <svg width="1920" height="1080" viewBox="0 0 1920 1080" style="position:absolute;left:0;top:0;overflow:visible">
+      <defs><filter id="learns-star-b1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+            <filter id="learns-star-b2" x="-80%" y="-120%" width="260%" height="340%"><feGaussianBlur stdDeviation="46"/></filter></defs>
+      
+      <g id="learns-star-core-g"><path id="learns-star-core" d="M166.40 64.24C166.40 113.12 209.04 115.20 263.12 115.20C209.04 115.20 166.40 117.28 166.40 166.16C166.40 117.28 123.76 115.20 69.68 115.20C123.76 115.20 166.40 113.12 166.40 64.24Z" fill="#fff" transform="translate(830.97 241.17) scale(0.7754)"/></g>
+    </svg>
+    <div class="chips"><div class="chip" id="learns-chip0"><img src="assets/ui/sym-chevron.left.forwardslash.chevron.right-white.png" alt="" />Coding</div><div class="chip" id="learns-chip1"><img src="assets/ui/sym-pencil.line-white.png" alt="" />Writing</div><div class="chip" id="learns-chip2"><img src="assets/ui/sym-paintbrush.pointed.fill-white.png" alt="" />Designing</div><div class="chip" id="learns-chip3"><img src="assets/ui/sym-video.fill-white.png" alt="" />In a meeting</div><div class="chip" id="learns-chip4"><img src="assets/ui/sym-bubble.left.and.bubble.right.fill-white.png" alt="" />Messages & mail</div><div class="chip" id="learns-chip5"><img src="assets/ui/sym-magnifyingglass-white.png" alt="" />Researching</div><div class="chip" id="learns-chip6"><img src="assets/ui/sym-calendar-white.png" alt="" />Planning</div><div class="chip" id="learns-chip7"><img src="assets/ui/sym-play.rectangle.fill-white.png" alt="" />Watching & listening</div><div class="chip" id="learns-chip8"><img src="assets/ui/sym-book.fill-white.png" alt="" />Reading</div></div>
+    <div class="h" id="learns-w1" style="top:880px;font-size:92px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="learns-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="learns-w1-0">It </span><span class="w" id="learns-w1-1">learns </span><span class="w" id="learns-w1-2">how </span><span class="w" id="learns-w1-3">you </span><span class="w" id="learns-w1-4">work. </span></span></div>
+    <div id="learns-cap"></div>
+    <div class="lvl" id="learns-l0" style="left:470px;opacity:0">Essentials</div>
+    <div class="lvl" id="learns-l1" style="left:860px;opacity:0">Context</div>
+    <div class="lvl" id="learns-l2" style="left:1190px;opacity:0">Everything</div>
+    <div class="h" id="learns-w2" style="top:790px;font-size:44px;font-weight:500;text-align:center;left:0px;width:1920px;color:#a1a1a6;transform:translateY(-50%)"><span id="learns-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="learns-w2-0">You </span><span class="w" id="learns-w2-1">choose </span><span class="w" id="learns-w2-2">how </span><span class="w" id="learns-w2-3">much </span><span class="w" id="learns-w2-4">it </span><span class="w" id="learns-w2-5">sees. </span></span></div>
+    <div id="learns-black" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.fromTo("#learns-chip0", {x: 220, y: 290, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.15);
+    tl.to("#learns-chip0", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 0.9);
+    tl.fromTo("#learns-chip1", {x: 1400, y: 180, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.28);
+    tl.to("#learns-chip1", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.03);
+    tl.fromTo("#learns-chip2", {x: 410, y: 540, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.41);
+    tl.to("#learns-chip2", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.16);
+    tl.fromTo("#learns-chip3", {x: 1480, y: 500, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.54);
+    tl.to("#learns-chip3", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.29);
+    tl.fromTo("#learns-chip4", {x: 140, y: 450, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.67);
+    tl.to("#learns-chip4", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.42);
+    tl.fromTo("#learns-chip5", {x: 1100, y: 630, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.8);
+    tl.to("#learns-chip5", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.55);
+    tl.fromTo("#learns-chip6", {x: 630, y: 70, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 0.93);
+    tl.to("#learns-chip6", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.68);
+    tl.fromTo("#learns-chip7", {x: 1270, y: 30, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 1.06);
+    tl.to("#learns-chip7", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.81);
+    tl.fromTo("#learns-chip8", {x: 780, y: 670, z: -1500, opacity: 0}, {z: 0, opacity: 1, duration: 0.55, ease: "power3.out"}, 1.19);
+    tl.to("#learns-chip8", {x: 840, y: 300, z: -80, scale: 0.15, opacity: 0, duration: 0.42, ease: "power3.in"}, 1.94);
+    tl.to("#learns-halo", {opacity: 1, duration: 1.1, ease: "power1.in"}, 1.15);
+    tl.to("#learns-halo", {opacity: 0.5, duration: 0.5, ease: "power2.out"}, 2.3);
+    tl.fromTo("#learns-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.35);
+    tl.fromTo("#learns-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.425);
+    tl.fromTo("#learns-w1-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.5);
+    tl.fromTo("#learns-w1-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.575);
+    tl.fromTo("#learns-w1-4", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.65);
+    tl.fromTo("#learns-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 2.15);
+    tl.fromTo("#learns-l0", {opacity: 0, filter: "blur(10px)"}, {opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out"}, 2.45);
+    tl.fromTo("#learns-l1", {opacity: 0, filter: "blur(10px)"}, {opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out"}, 2.53);
+    tl.fromTo("#learns-l2", {opacity: 0, filter: "blur(10px)"}, {opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out"}, 2.61);
+    tl.fromTo("#learns-cap", {opacity: 0, x: 440, width: 330}, {opacity: 1, duration: 0.2}, 2.7);
+    tl.set("#learns-l0", {color: "#ffffff"}, 2.7);
+    tl.to("#learns-cap", {x: 830, width: 270, duration: 0.42, ease: "expo.out"}, 3.3);
+    tl.set("#learns-l0", {color: "#5d5d63"}, 3.35);
+    tl.set("#learns-l1", {color: "#ffffff"}, 3.35);
+    tl.to("#learns-cap", {x: 1160, width: 330, duration: 0.42, ease: "expo.out"}, 3.9);
+    tl.set("#learns-l1", {color: "#5d5d63"}, 3.95);
+    tl.set("#learns-l2", {color: "#ffffff"}, 3.95);
+    tl.fromTo("#learns-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.85);
+    tl.fromTo("#learns-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.91);
+    tl.fromTo("#learns-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.97);
+    tl.fromTo("#learns-w2-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 3.03);
+    tl.fromTo("#learns-w2-4", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 3.09);
+    tl.fromTo("#learns-w2-5", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 3.15);
+    tl.fromTo("#learns-black", {opacity: 0}, {opacity: 1, duration: 0.3, ease: "power1.in"}, 4.5);
+    tl.to(["#learns-pill", "#learns-halo"], {scale: 2.6, y: -330, svgOrigin: "960 330", duration: 0.32, ease: "power3.in"}, 4.48);
+    tl.set({}, {}, 4.8);
+    window.__timelines["learns"] = tl;
+  </script>
+</template>

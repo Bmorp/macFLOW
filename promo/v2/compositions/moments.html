@@ -1,0 +1,263 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+
+    .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 960px 540px; }
+    .cam-c { position: absolute; left: 960px; top: 540px; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-r { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-s { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-f { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+    .cam-z { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; zoom: 3; }
+    .scr { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; overflow: hidden; border-radius: 10px;
+           background: #0a0710; box-shadow: 0 0 0 14px #050506, 0 0 0 15.5px #2a2b30; }
+    .scr img.wall { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; }
+    .mb { position: absolute; top: 0; height: 32px; line-height: 32px; color: rgba(255,255,255,0.9); font-size: 13px;
+          font-weight: 500; white-space: nowrap; letter-spacing: -0.005em; }
+    .mb b { font-weight: 700; margin-right: 12px; }
+    .mb span { margin-right: 12px; }
+    .isl { position: absolute; }
+    .cur { position: absolute; left: 0; top: 0; }
+    .cur img { position: absolute; }
+    .dof { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+           -webkit-mask-image: radial-gradient(ellipse 52% 46% at 50% 34%, transparent 55%, #000 100%);
+           mask-image: radial-gradient(ellipse 52% 46% at 50% 34%, transparent 55%, #000 100%); }
+
+  </style>
+  <div id="root" data-composition-id="moments" data-width="1920" data-height="1080" data-duration="9.6">
+        <div class="stage" id="moments-stage"><div class="cam-c" id="moments-c"><div class="cam-r" id="moments-r"><div class="cam-s" id="moments-s"><div class="cam-f" id="moments-f"><div class="cam-z">
+      <div class="scr"><img class="wall" src="assets/img/wallpaper-dark.jpg" alt="" />
+        <img src="assets/ui/sym-apple.logo-white.png" alt="" style="position:absolute;left:6px;top:5px;width:30px;height:22px" />
+        <div class="mb" style="left:38px"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+        <div class="mb" style="left:1338px">Fri 23 Oct&nbsp;&nbsp;10:30</div>
+      </div>
+      <img id="moments-i0" class="clip isl" data-start="0" data-duration="-0.0082" src="assets/frames/v2notch/0000.png" alt="" style="left:637px;top:0px;width:197px;height:33px" />
+      <img id="moments-i1" class="clip isl" data-start="0" data-duration="0.025" src="assets/frames/sMeeting/0000.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i2" class="clip isl" data-start="0.025" data-duration="0.0333" src="assets/frames/sMeeting/0001.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i3" class="clip isl" data-start="0.0583" data-duration="0.0333" src="assets/frames/sMeeting/0002.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i4" class="clip isl" data-start="0.0917" data-duration="0.0333" src="assets/frames/sMeeting/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i5" class="clip isl" data-start="0.125" data-duration="0.0333" src="assets/frames/sMeeting/0004.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i6" class="clip isl" data-start="0.1583" data-duration="0.0333" src="assets/frames/sMeeting/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i7" class="clip isl" data-start="0.1917" data-duration="0.0333" src="assets/frames/sMeeting/0006.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i8" class="clip isl" data-start="0.225" data-duration="0.0333" src="assets/frames/sMeeting/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i9" class="clip isl" data-start="0.2583" data-duration="0.0333" src="assets/frames/sMeeting/0008.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i10" class="clip isl" data-start="0.2917" data-duration="0.0333" src="assets/frames/sMeeting/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i11" class="clip isl" data-start="0.325" data-duration="0.0333" src="assets/frames/sMeeting/0010.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i12" class="clip isl" data-start="0.3583" data-duration="0.0333" src="assets/frames/sMeeting/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i13" class="clip isl" data-start="0.3917" data-duration="0.0333" src="assets/frames/sMeeting/0012.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i14" class="clip isl" data-start="0.425" data-duration="0.0333" src="assets/frames/sMeeting/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i15" class="clip isl" data-start="0.4583" data-duration="0.0333" src="assets/frames/sMeeting/0014.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i16" class="clip isl" data-start="0.4917" data-duration="0.0333" src="assets/frames/sMeeting/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i17" class="clip isl" data-start="0.525" data-duration="0.0333" src="assets/frames/sMeeting/0016.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i18" class="clip isl" data-start="0.5583" data-duration="0.0333" src="assets/frames/sMeeting/0017.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i19" class="clip isl" data-start="0.5917" data-duration="1.2" src="assets/frames/sMeeting/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i20" class="clip isl" data-start="1.7917" data-duration="0.0333" src="assets/frames/sAccept/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i21" class="clip isl" data-start="1.825" data-duration="0.0333" src="assets/frames/sAccept/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i22" class="clip isl" data-start="1.8583" data-duration="0.0333" src="assets/frames/sAccept/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i23" class="clip isl" data-start="1.8917" data-duration="0.0333" src="assets/frames/sAccept/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i24" class="clip isl" data-start="1.925" data-duration="0.0333" src="assets/frames/sAccept/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i25" class="clip isl" data-start="1.9583" data-duration="0.0333" src="assets/frames/sAccept/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i26" class="clip isl" data-start="1.9917" data-duration="0.0333" src="assets/frames/sAccept/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i27" class="clip isl" data-start="2.025" data-duration="0.0333" src="assets/frames/sAccept/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i28" class="clip isl" data-start="2.0583" data-duration="0.0333" src="assets/frames/sAccept/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i29" class="clip isl" data-start="2.0917" data-duration="0.0333" src="assets/frames/sAccept/0009.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i30" class="clip isl" data-start="2.125" data-duration="0.0333" src="assets/frames/sAccept/0010.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i31" class="clip isl" data-start="2.1583" data-duration="0.0333" src="assets/frames/sAccept/0011.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i32" class="clip isl" data-start="2.1917" data-duration="0.0333" src="assets/frames/sAccept/0012.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i33" class="clip isl" data-start="2.225" data-duration="0.0333" src="assets/frames/sAccept/0013.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i34" class="clip isl" data-start="2.2583" data-duration="0.0333" src="assets/frames/sAccept/0014.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i35" class="clip isl" data-start="2.2917" data-duration="0.0333" src="assets/frames/sAccept/0015.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="moments-i36" class="clip isl" data-start="2.325" data-duration="0.0667" src="assets/frames/sWrapTick/0000.png" alt="" style="left:583px;top:0px;width:305px;height:33px" />
+      <img id="moments-i37" class="clip isl" data-start="2.3917" data-duration="2.4" src="assets/frames/sWrapTick/0001.png" alt="" style="left:583px;top:0px;width:305px;height:33px" />
+      <img id="moments-i38" class="clip isl" data-start="4.7917" data-duration="0.0333" src="assets/frames/sFocus/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i39" class="clip isl" data-start="4.825" data-duration="0.0333" src="assets/frames/sFocus/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i40" class="clip isl" data-start="4.8583" data-duration="0.0333" src="assets/frames/sFocus/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i41" class="clip isl" data-start="4.8917" data-duration="0.0333" src="assets/frames/sFocus/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i42" class="clip isl" data-start="4.925" data-duration="0.0333" src="assets/frames/sFocus/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i43" class="clip isl" data-start="4.9583" data-duration="0.0333" src="assets/frames/sFocus/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i44" class="clip isl" data-start="4.9917" data-duration="0.0333" src="assets/frames/sFocus/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i45" class="clip isl" data-start="5.025" data-duration="0.3667" src="assets/frames/sFocus/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i46" class="clip isl" data-start="5.3917" data-duration="0.0333" src="assets/frames/sError/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i47" class="clip isl" data-start="5.425" data-duration="0.0333" src="assets/frames/sError/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i48" class="clip isl" data-start="5.4583" data-duration="0.0333" src="assets/frames/sError/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i49" class="clip isl" data-start="5.4917" data-duration="0.0333" src="assets/frames/sError/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i50" class="clip isl" data-start="5.525" data-duration="0.0333" src="assets/frames/sError/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i51" class="clip isl" data-start="5.5583" data-duration="0.0333" src="assets/frames/sError/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i52" class="clip isl" data-start="5.5917" data-duration="0.0333" src="assets/frames/sError/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i53" class="clip isl" data-start="5.625" data-duration="0.3667" src="assets/frames/sError/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i54" class="clip isl" data-start="5.9917" data-duration="0.0333" src="assets/frames/sRoutine/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i55" class="clip isl" data-start="6.025" data-duration="0.0333" src="assets/frames/sRoutine/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i56" class="clip isl" data-start="6.0583" data-duration="0.0333" src="assets/frames/sRoutine/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i57" class="clip isl" data-start="6.0917" data-duration="0.0333" src="assets/frames/sRoutine/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i58" class="clip isl" data-start="6.125" data-duration="0.0333" src="assets/frames/sRoutine/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i59" class="clip isl" data-start="6.1583" data-duration="0.0333" src="assets/frames/sRoutine/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i60" class="clip isl" data-start="6.1917" data-duration="0.0333" src="assets/frames/sRoutine/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i61" class="clip isl" data-start="6.225" data-duration="0.3667" src="assets/frames/sRoutine/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i62" class="clip isl" data-start="6.5917" data-duration="0.0333" src="assets/frames/sMusic/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i63" class="clip isl" data-start="6.625" data-duration="0.0333" src="assets/frames/sMusic/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i64" class="clip isl" data-start="6.6583" data-duration="0.0333" src="assets/frames/sMusic/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i65" class="clip isl" data-start="6.6917" data-duration="0.0333" src="assets/frames/sMusic/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i66" class="clip isl" data-start="6.725" data-duration="0.0333" src="assets/frames/sMusic/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i67" class="clip isl" data-start="6.7583" data-duration="0.0333" src="assets/frames/sMusic/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i68" class="clip isl" data-start="6.7917" data-duration="0.0333" src="assets/frames/sMusic/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i69" class="clip isl" data-start="6.825" data-duration="0.3667" src="assets/frames/sMusic/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i70" class="clip isl" data-start="7.1917" data-duration="0.0333" src="assets/frames/sBreak/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i71" class="clip isl" data-start="7.225" data-duration="0.0333" src="assets/frames/sBreak/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i72" class="clip isl" data-start="7.2583" data-duration="0.0333" src="assets/frames/sBreak/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i73" class="clip isl" data-start="7.2917" data-duration="0.0333" src="assets/frames/sBreak/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i74" class="clip isl" data-start="7.325" data-duration="0.0333" src="assets/frames/sBreak/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i75" class="clip isl" data-start="7.3583" data-duration="0.0333" src="assets/frames/sBreak/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i76" class="clip isl" data-start="7.3917" data-duration="0.0333" src="assets/frames/sBreak/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i77" class="clip isl" data-start="7.425" data-duration="0.3667" src="assets/frames/sBreak/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i78" class="clip isl" data-start="7.7917" data-duration="0.0333" src="assets/frames/sResume/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i79" class="clip isl" data-start="7.825" data-duration="0.0333" src="assets/frames/sResume/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i80" class="clip isl" data-start="7.8583" data-duration="0.0333" src="assets/frames/sResume/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i81" class="clip isl" data-start="7.8917" data-duration="0.0333" src="assets/frames/sResume/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i82" class="clip isl" data-start="7.925" data-duration="0.0333" src="assets/frames/sResume/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i83" class="clip isl" data-start="7.9583" data-duration="0.0333" src="assets/frames/sResume/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i84" class="clip isl" data-start="7.9917" data-duration="0.0333" src="assets/frames/sResume/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i85" class="clip isl" data-start="8.025" data-duration="0.3667" src="assets/frames/sResume/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i86" class="clip isl" data-start="8.3917" data-duration="0.0333" src="assets/frames/sRecap/0003.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i87" class="clip isl" data-start="8.425" data-duration="0.0333" src="assets/frames/sRecap/0005.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i88" class="clip isl" data-start="8.4583" data-duration="0.0333" src="assets/frames/sRecap/0007.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i89" class="clip isl" data-start="8.4917" data-duration="0.0333" src="assets/frames/sRecap/0009.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i90" class="clip isl" data-start="8.525" data-duration="0.0333" src="assets/frames/sRecap/0011.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i91" class="clip isl" data-start="8.5583" data-duration="0.0333" src="assets/frames/sRecap/0013.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i92" class="clip isl" data-start="8.5917" data-duration="0.0333" src="assets/frames/sRecap/0015.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i93" class="clip isl" data-start="8.625" data-duration="0.3667" src="assets/frames/sRecap/0018.png" alt="" style="left:480px;top:0px;width:510px;height:98px" />
+      <img id="moments-i94" class="clip isl" data-start="8.9917" data-duration="0.0333" src="assets/frames/sQuestion/0003.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i95" class="clip isl" data-start="9.025" data-duration="0.0333" src="assets/frames/sQuestion/0005.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i96" class="clip isl" data-start="9.0583" data-duration="0.0333" src="assets/frames/sQuestion/0007.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i97" class="clip isl" data-start="9.0917" data-duration="0.0333" src="assets/frames/sQuestion/0009.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i98" class="clip isl" data-start="9.125" data-duration="0.0333" src="assets/frames/sQuestion/0011.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i99" class="clip isl" data-start="9.1583" data-duration="0.0333" src="assets/frames/sQuestion/0013.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i100" class="clip isl" data-start="9.1917" data-duration="0.0333" src="assets/frames/sQuestion/0015.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <img id="moments-i101" class="clip isl" data-start="9.225" data-duration="0.3667" src="assets/frames/sQuestion/0018.png" alt="" style="left:480px;top:0px;width:510px;height:137px" />
+      <div class="cur" id="moments-cur" style="opacity:0">
+        <img id="moments-arrow" src="assets/ui/cursor-arrow.png" alt="" style="left:-5px;top:-5px;width:28px;height:40px" />
+        <img id="moments-hand" src="assets/ui/cursor-hand.png" alt="" style="left:-12px;top:-8px;width:32px;height:32px;opacity:0" />
+      </div>
+    </div></div></div></div></div></div>
+    <div class="dof" id="moments-dof"></div>
+    <div class="h" id="moments-t1" style="top:820px;font-size:64px;text-align:left;left:200px;width:1600px;transform:translateY(-50%)"><span id="moments-t1-in" style="display:inline-block"><span class="c" id="moments-t1-0">Y</span><span class="c" id="moments-t1-1">o</span><span class="c" id="moments-t1-2">u</span><span class="c" id="moments-t1-3">’</span><span class="c" id="moments-t1-4">v</span><span class="c" id="moments-t1-5">e</span><span class="c" id="moments-t1-6"> </span><span class="c" id="moments-t1-7">b</span><span class="c" id="moments-t1-8">e</span><span class="c" id="moments-t1-9">e</span><span class="c" id="moments-t1-10">n</span><span class="c" id="moments-t1-11"> </span><span class="c" id="moments-t1-12">c</span><span class="c" id="moments-t1-13">o</span><span class="c" id="moments-t1-14">d</span><span class="c" id="moments-t1-15">i</span><span class="c" id="moments-t1-16">n</span><span class="c" id="moments-t1-17">g</span><span class="c" id="moments-t1-18"> </span><span class="c" id="moments-t1-19">f</span><span class="c" id="moments-t1-20">o</span><span class="c" id="moments-t1-21">r</span><span class="c" id="moments-t1-22"> </span><span class="c" id="moments-t1-23">5</span><span class="c" id="moments-t1-24">2</span><span class="c" id="moments-t1-25"> </span><span class="c" id="moments-t1-26">m</span><span class="c" id="moments-t1-27">i</span><span class="c" id="moments-t1-28">n</span><span class="c" id="moments-t1-29">u</span><span class="c" id="moments-t1-30">t</span><span class="c" id="moments-t1-31">e</span><span class="c" id="moments-t1-32">s</span><span class="c" id="moments-t1-33">.</span></span></div>
+    <div class="h" id="moments-w2" style="top:470px;font-size:132px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="moments-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="moments-w2-0">It </span><span class="w" id="moments-w2-1">speaks </span><span class="w" id="moments-w2-2">up </span></span></div>
+    <div class="h" id="moments-w3" style="top:620px;font-size:132px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="moments-w3-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="moments-w3-0">at </span><span class="w" id="moments-w3-1">the </span><span class="w gw" id="moments-w3-2">right </span><span class="w gw" id="moments-w3-3">moment. </span></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        gsap.set("#moments-s", {scale: 0.8833, transformOrigin: "0 0"}); gsap.set("#moments-r", {rotationX: 12, rotationY: -14, transformOrigin: "0 0"}); gsap.set("#moments-f", {x: -2205.00, y: -396.00});
+    tl.to("#moments-r", {rotationX: 9, rotationY: -8, duration: 1.8, ease: "power1.inOut"}, 0);
+    tl.to("#moments-s", {scale: 0.9500, duration: 1.8, ease: "power1.inOut"}, 0);
+    tl.to("#moments-f", {x: -2280.00, y: -384.00, duration: 1.8, ease: "power1.inOut"}, 0);
+    tl.set("#moments-t1-0", {opacity: 1}, 0.42);
+    tl.set("#moments-t1-1", {opacity: 1}, 0.444);
+    tl.set("#moments-t1-2", {opacity: 1}, 0.468);
+    tl.set("#moments-t1-3", {opacity: 1}, 0.492);
+    tl.set("#moments-t1-4", {opacity: 1}, 0.516);
+    tl.set("#moments-t1-5", {opacity: 1}, 0.54);
+    tl.set("#moments-t1-6", {opacity: 1}, 0.564);
+    tl.set("#moments-t1-7", {opacity: 1}, 0.588);
+    tl.set("#moments-t1-8", {opacity: 1}, 0.612);
+    tl.set("#moments-t1-9", {opacity: 1}, 0.636);
+    tl.set("#moments-t1-10", {opacity: 1}, 0.66);
+    tl.set("#moments-t1-11", {opacity: 1}, 0.684);
+    tl.set("#moments-t1-12", {opacity: 1}, 0.708);
+    tl.set("#moments-t1-13", {opacity: 1}, 0.732);
+    tl.set("#moments-t1-14", {opacity: 1}, 0.756);
+    tl.set("#moments-t1-15", {opacity: 1}, 0.78);
+    tl.set("#moments-t1-16", {opacity: 1}, 0.804);
+    tl.set("#moments-t1-17", {opacity: 1}, 0.828);
+    tl.set("#moments-t1-18", {opacity: 1}, 0.852);
+    tl.set("#moments-t1-19", {opacity: 1}, 0.876);
+    tl.set("#moments-t1-20", {opacity: 1}, 0.9);
+    tl.set("#moments-t1-21", {opacity: 1}, 0.924);
+    tl.set("#moments-t1-22", {opacity: 1}, 0.948);
+    tl.set("#moments-t1-23", {opacity: 1}, 0.972);
+    tl.set("#moments-t1-24", {opacity: 1}, 0.996);
+    tl.set("#moments-t1-25", {opacity: 1}, 1.02);
+    tl.set("#moments-t1-26", {opacity: 1}, 1.044);
+    tl.set("#moments-t1-27", {opacity: 1}, 1.068);
+    tl.set("#moments-t1-28", {opacity: 1}, 1.092);
+    tl.set("#moments-t1-29", {opacity: 1}, 1.116);
+    tl.set("#moments-t1-30", {opacity: 1}, 1.14);
+    tl.set("#moments-t1-31", {opacity: 1}, 1.164);
+    tl.set("#moments-t1-32", {opacity: 1}, 1.188);
+    tl.set("#moments-t1-33", {opacity: 1}, 1.212);
+    tl.fromTo("#moments-t1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 2.05);
+    tl.set("#moments-cur", {opacity: 1}, 0.7);
+    tl.fromTo("#moments-cur", {x: 1180, y: 420}, {x: 881, y: 58, duration: 0.85, ease: "power3.inOut"}, 0.7);
+    tl.set("#moments-arrow", {opacity: 0}, 1.52); tl.set("#moments-hand", {opacity: 1}, 1.52);
+    tl.to("#moments-hand", {scale: 0.86, duration: 0.05, ease: "none", transformOrigin: "12px 8px"}, 1.74);
+    tl.to("#moments-hand", {scale: 1, duration: 0.12, ease: "power2.out"}, 1.8);
+    tl.to("#moments-cur", {x: 1150, y: 360, duration: 0.5, ease: "power3.in"}, 2.0);
+    tl.set("#moments-cur", {opacity: 0}, 2.5);
+    tl.to("#moments-stage", {filter: "blur(16px) brightness(0.45)", duration: 0.35, ease: "power2.inOut"}, 2.35);
+    tl.fromTo("#moments-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.5);
+    tl.fromTo("#moments-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.59);
+    tl.fromTo("#moments-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.68);
+    tl.fromTo("#moments-w2-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 4.55);
+    tl.fromTo("#moments-w3-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.85);
+    tl.fromTo("#moments-w3-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.94);
+    tl.fromTo("#moments-w3-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 3.03);
+    tl.fromTo("#moments-w3-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 3.12);
+    tl.fromTo("#moments-w3-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 4.55);
+    tl.set("#moments-stage", {filter: "blur(0px) brightness(1)"}, 4.8);
+    tl.set("#moments-r", {rotationX: 10, rotationY: -16}, 4.8);
+    tl.set("#moments-s", {scale: 0.9667}, 4.8);
+    tl.set("#moments-f", {x: -2205.00, y: -312.00}, 4.8);
+    tl.to("#moments-r", {rotationX: 8.0, rotationY: -12.8, duration: 0.56, ease: "power1.out"}, 4.82);
+    tl.to("#moments-s", {scale: 0.9933, duration: 0.56, ease: "power1.out"}, 4.82);
+    tl.to("#moments-f", {x: -2205.00, y: -312.00, duration: 0.56, ease: "power1.out"}, 4.82);
+    tl.set("#moments-r", {rotationX: 6, rotationY: 14}, 5.4);
+    tl.set("#moments-s", {scale: 0.9167}, 5.4);
+    tl.set("#moments-f", {x: -2280.00, y: -294.00}, 5.4);
+    tl.to("#moments-r", {rotationX: 4.800000000000001, rotationY: 11.200000000000001, duration: 0.56, ease: "power1.out"}, 5.42);
+    tl.to("#moments-s", {scale: 0.9433, duration: 0.56, ease: "power1.out"}, 5.42);
+    tl.to("#moments-f", {x: -2280.00, y: -294.00, duration: 0.56, ease: "power1.out"}, 5.42);
+    tl.set("#moments-r", {rotationX: 14, rotationY: -6}, 6);
+    tl.set("#moments-s", {scale: 1.0333}, 6);
+    tl.set("#moments-f", {x: -2100.00, y: -330.00}, 6);
+    tl.to("#moments-r", {rotationX: 11.200000000000001, rotationY: -4.800000000000001, duration: 0.56, ease: "power1.out"}, 6.02);
+    tl.to("#moments-s", {scale: 1.0600, duration: 0.56, ease: "power1.out"}, 6.02);
+    tl.to("#moments-f", {x: -2100.00, y: -330.00, duration: 0.56, ease: "power1.out"}, 6.02);
+    tl.set("#moments-r", {rotationX: 8, rotationY: 18}, 6.6);
+    tl.set("#moments-s", {scale: 0.9333}, 6.6);
+    tl.set("#moments-f", {x: -2205.00, y: -300.00}, 6.6);
+    tl.to("#moments-r", {rotationX: 6.4, rotationY: 14.4, duration: 0.56, ease: "power1.out"}, 6.62);
+    tl.to("#moments-s", {scale: 0.9600, duration: 0.56, ease: "power1.out"}, 6.62);
+    tl.to("#moments-f", {x: -2205.00, y: -300.00, duration: 0.56, ease: "power1.out"}, 6.62);
+    tl.set("#moments-r", {rotationX: 12, rotationY: -14}, 7.2);
+    tl.set("#moments-s", {scale: 1.0000}, 7.2);
+    tl.set("#moments-f", {x: -2310.00, y: -318.00}, 7.2);
+    tl.to("#moments-r", {rotationX: 9.600000000000001, rotationY: -11.200000000000001, duration: 0.56, ease: "power1.out"}, 7.22);
+    tl.to("#moments-s", {scale: 1.0267, duration: 0.56, ease: "power1.out"}, 7.22);
+    tl.to("#moments-f", {x: -2310.00, y: -318.00, duration: 0.56, ease: "power1.out"}, 7.22);
+    tl.set("#moments-r", {rotationX: 4, rotationY: 10}, 7.8);
+    tl.set("#moments-s", {scale: 0.9000}, 7.8);
+    tl.set("#moments-f", {x: -2205.00, y: -288.00}, 7.8);
+    tl.to("#moments-r", {rotationX: 3.2, rotationY: 8.0, duration: 0.56, ease: "power1.out"}, 7.82);
+    tl.to("#moments-s", {scale: 0.9267, duration: 0.56, ease: "power1.out"}, 7.82);
+    tl.to("#moments-f", {x: -2205.00, y: -288.00, duration: 0.56, ease: "power1.out"}, 7.82);
+    tl.set("#moments-r", {rotationX: 10, rotationY: -18}, 8.4);
+    tl.set("#moments-s", {scale: 0.9667}, 8.4);
+    tl.set("#moments-f", {x: -2136.00, y: -312.00}, 8.4);
+    tl.to("#moments-r", {rotationX: 8.0, rotationY: -14.4, duration: 0.56, ease: "power1.out"}, 8.42);
+    tl.to("#moments-s", {scale: 0.9933, duration: 0.56, ease: "power1.out"}, 8.42);
+    tl.to("#moments-f", {x: -2136.00, y: -312.00, duration: 0.56, ease: "power1.out"}, 8.42);
+    tl.set("#moments-r", {rotationX: 8, rotationY: 8}, 9);
+    tl.set("#moments-s", {scale: 0.8667}, 9);
+    tl.set("#moments-f", {x: -2205.00, y: -384.00}, 9);
+    tl.to("#moments-r", {rotationX: 6.4, rotationY: 6.4, duration: 0.56, ease: "power1.out"}, 9.02);
+    tl.to("#moments-s", {scale: 0.8933, duration: 0.56, ease: "power1.out"}, 9.02);
+    tl.to("#moments-f", {x: -2205.00, y: -384.00, duration: 0.56, ease: "power1.out"}, 9.02);
+    tl.set({}, {}, 9.6);
+    window.__timelines["moments"] = tl;
+  </script>
+</template>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Example configuration profile: sets Atoll's defaults on managed Macs. Edit the values,
+     change the UUIDs, then deploy with your MDM. Remove any key you want people to choose themselves. -->
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>PayloadType</key>
+            <string>com.apple.ManagedClient.preferences</string>
+            <key>PayloadIdentifier</key>
+            <string>app.atoll.Atoll.settings</string>
+            <key>PayloadUUID</key>
+            <string>6A1E2E7C-4C11-4D7B-9E0B-6F1A2B3C4D5E</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>PayloadContent</key>
+            <dict>
+                <key>app.atoll.Atoll</key>
+                <dict>
+                    <key>Forced</key>
+                    <array>
+                        <dict>
+                            <key>mcx_preference_settings</key>
+                            <dict>
+                                <key>expandOnHover</key><true/>
+                                <key>la.calls</key><true/>
+                                <key>la.nowPlaying</key><true/>
+                                <key>la.meetings</key><true/>
+                                <key>la.downloads</key><false/>
+                                <key>fileSearch</key><true/>
+                                <key>clipboardEnabled</key><false/>
+                                <key>onlineCurrency</key><false/>
+                                <key>weatherEnabled</key><false/>
+                                <key>widgetsEnabled</key><false/>
+                                <key>standByEnabled</key><false/>
+                                <key>dockCompanion</key><false/>
+                                <key>showMenuBarIcon</key><true/>
+                            </dict>
+                        </dict>
+                    </array>
+                </dict>
+            </dict>
+        </dict>
+    </array>
+    <key>PayloadDisplayName</key>
+    <string>Atoll Settings</string>
+    <key>PayloadIdentifier</key>
+    <string>app.atoll.Atoll.profile</string>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>0F9E8D7C-6B5A-4938-8271-605F4E3D2C1B</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>

@@ -1,0 +1,42 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+
+  </style>
+  <div id="root" data-composition-id="meet" data-width="1920" data-height="1080" data-duration="4.8">
+        <svg width="1920" height="1080" viewBox="0 0 1920 1080" style="position:absolute;left:0;top:0;overflow:visible">
+      <defs><filter id="meet-star-b1" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+            <filter id="meet-star-b2" x="-80%" y="-120%" width="260%" height="340%"><feGaussianBlur stdDeviation="46"/></filter></defs>
+      <g id="meet-star-g2" opacity="0" filter="url(#meet-star-b2)"><path d="M166.40 64.24C166.40 113.12 209.04 115.20 263.12 115.20C209.04 115.20 166.40 117.28 166.40 166.16C166.40 117.28 123.76 115.20 69.68 115.20C123.76 115.20 166.40 113.12 166.40 64.24Z" fill="#9E85FF" transform="translate(443.87 72.68) scale(3.1017)"/></g><g id="meet-star-g1" opacity="0" filter="url(#meet-star-b1)"><path d="M166.40 64.24C166.40 113.12 209.04 115.20 263.12 115.20C209.04 115.20 166.40 117.28 166.40 166.16C166.40 117.28 123.76 115.20 69.68 115.20C123.76 115.20 166.40 113.12 166.40 64.24Z" fill="#efe9ff" transform="translate(443.87 72.68) scale(3.1017)"/></g>
+      <g id="meet-star-core-g"><path id="meet-star-core" d="M166.40 64.24C166.40 113.12 209.04 115.20 263.12 115.20C209.04 115.20 166.40 117.28 166.40 166.16C166.40 117.28 123.76 115.20 69.68 115.20C123.76 115.20 166.40 113.12 166.40 64.24Z" fill="#fff" transform="translate(443.87 72.68) scale(3.1017)"/></g>
+    </svg>
+    <div id="meet-streak" style="position:absolute;left:0;top:429px;width:1920px;height:2px;opacity:0;background:linear-gradient(90deg,transparent,#e9e3ff 30%,#fff 50%,#e9e3ff 70%,transparent);filter:drop-shadow(0 0 6px #9E85FF);transform-origin:960px 1px"></div>
+    <div class="h" id="meet-w1" style="top:760px;font-size:132px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="meet-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="meet-w1-0">Meet </span><span class="w gw" id="meet-w1-1">Flow. </span></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        gsap.set("#meet-star-core-g", {scaleX: 0.02, scaleY: 0, svgOrigin: "960 430"});
+    tl.fromTo("#meet-streak", {scaleX: 0, opacity: 1}, {scaleX: 1, opacity: 1, duration: 0.42, ease: "expo.out"}, 0);
+    tl.to("#meet-streak", {opacity: 0, duration: 0.8, ease: "power2.out"}, 0.18);
+    tl.to("#meet-star-core-g", {scaleY: 1, duration: 0.24, ease: "back.out(2.4)", svgOrigin: "960 430"}, 0);
+    tl.to("#meet-star-core-g", {scaleX: 1, duration: 0.62, ease: "expo.out", svgOrigin: "960 430"}, 0.03);
+    tl.fromTo("#meet-star-g1", {opacity: 0}, {opacity: 1, duration: 0.08}, 0);
+    tl.to("#meet-star-g1", {opacity: 0.5, duration: 0.9, ease: "power2.out"}, 0.1);
+    tl.fromTo("#meet-star-g2", {opacity: 0}, {opacity: 0.95, duration: 0.1}, 0);
+    tl.to("#meet-star-g2", {opacity: 0.42, duration: 1.4, ease: "power2.out"}, 0.12);
+    tl.fromTo("#meet-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.55);
+    tl.fromTo("#meet-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.71);
+    tl.fromTo("#meet-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 4.2);
+    tl.to(["#meet-star-core-g", "#meet-star-g1", "#meet-star-g2"], {y: -560, scale: 0.2, svgOrigin: "960 430", duration: 0.42, ease: "power3.in"}, 4.38);
+    tl.set({}, {}, 4.8);
+    window.__timelines["meet"] = tl;
+  </script>
+</template>

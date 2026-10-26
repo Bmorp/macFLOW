@@ -1,0 +1,41 @@
+#!/bin/bash
+# Show progress from your own tools in Atoll's island.
+#
+#   atoll progress "Building" --detail "Atoll" --progress 24 [--symbol hammer.fill] [--tint blue]
+#   atoll done "Build succeeded"        atoll fail "Tests failed"        atoll clear
+#
+# Link it once:  ln -s /Applications/Atoll.app/Contents/Resources/atoll /usr/local/bin/atoll
+set -euo pipefail
+
+urlencode() {
+  local s="$1" out="" c i
+  for (( i = 0; i < ${#s}; i++ )); do
+    c="${s:i:1}"
+    case "$c" in
+      [a-zA-Z0-9.~_-]) out+="$c" ;;
+      *) out+=$(printf '%%%02X' "'$c") ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+cmd="${1:-}"; shift || true
+case "$cmd" in
+  progress|start|update|done|fail|clear) ;;
+  *) echo "usage: atoll progress|done|fail|clear [title] [--detail text] [--progress 0-100] [--symbol sf.symbol] [--tint name|hex]" >&2; exit 2 ;;
+esac
+
+query=""
+add() { query+="${query:+&}$1=$(urlencode "$2")"; }
+if [[ $# -gt 0 && "$1" != --* ]]; then add title "$1"; shift; fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --detail) add detail "$2"; shift 2 ;;
+    --progress) add progress "$2"; shift 2 ;;
+    --symbol) add symbol "$2"; shift 2 ;;
+    --tint) add tint "$2"; shift 2 ;;
+    *) echo "atoll: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+
+open -g "atoll://$cmd${query:+?$query}"

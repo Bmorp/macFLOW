@@ -1,0 +1,75 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+
+    #open-svg { position: absolute; left: 0; top: 0; }
+
+  </style>
+  <div id="root" data-composition-id="open" data-width="1920" data-height="1080" data-duration="7.2">
+        <svg id="open-svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+      <defs>
+        <linearGradient id="open-rim" gradientUnits="userSpaceOnUse" x1="600" y1="0" x2="1320" y2="0">
+          <stop offset="0" stop-color="#6f5cff"/><stop offset="0.35" stop-color="#9E85FF"/><stop offset="0.7" stop-color="#e58ad0"/><stop offset="1" stop-color="#8fb6ff"/>
+        </linearGradient>
+        <filter id="open-b1" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="7"/></filter>
+        <filter id="open-b2" x="-30%" y="-90%" width="160%" height="280%"><feGaussianBlur stdDeviation="26"/></filter>
+      </defs>
+      <g id="open-halo" opacity="0" filter="url(#open-b2)"><rect x="600" y="300" width="720" height="228" rx="114.0" fill="none" stroke="url(#open-rim)" stroke-width="16"/></g>
+      <g id="open-soft" filter="url(#open-b1)">
+        <path id="open-rs" d="M960.0 300 L1206.0 300 A114.0 114.0 0 0 1 1206.0 528 L960.0 528" fill="none" stroke="url(#open-rim)" stroke-width="6" stroke-dasharray="850.1" stroke-dashoffset="850.1"/>
+        <path id="open-ls" d="M960.0 300 L714.0 300 A114.0 114.0 0 0 0 714.0 528 L960.0 528" fill="none" stroke="url(#open-rim)" stroke-width="6" stroke-dasharray="850.1" stroke-dashoffset="850.1"/>
+      </g>
+      <path id="open-r" d="M960.0 300 L1206.0 300 A114.0 114.0 0 0 1 1206.0 528 L960.0 528" fill="none" stroke="url(#open-rim)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="850.1" stroke-dashoffset="850.1"/>
+      <path id="open-l" d="M960.0 300 L714.0 300 A114.0 114.0 0 0 0 714.0 528 L960.0 528" fill="none" stroke="url(#open-rim)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="850.1" stroke-dashoffset="850.1"/>
+    </svg>
+    <div class="h" id="open-t1" style="top:690px;font-size:96px;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="open-t1-in" style="display:inline-block"><span class="c" id="open-t1-0">Y</span><span class="c" id="open-t1-1">o</span><span class="c" id="open-t1-2">u</span><span class="c" id="open-t1-3">r</span><span class="c" id="open-t1-4"> </span><span class="c" id="open-t1-5">n</span><span class="c" id="open-t1-6">o</span><span class="c" id="open-t1-7">t</span><span class="c" id="open-t1-8">c</span><span class="c" id="open-t1-9">h</span></span></div>
+    <div class="h" id="open-t2" style="top:800px;font-size:96px;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="open-t2-in" style="display:inline-block"><span class="c" id="open-t2-0">j</span><span class="c" id="open-t2-1">u</span><span class="c" id="open-t2-2">s</span><span class="c" id="open-t2-3">t</span><span class="c" id="open-t2-4"> </span><span class="c" id="open-t2-5">g</span><span class="c" id="open-t2-6">o</span><span class="c" id="open-t2-7">t</span><span class="c" id="open-t2-8"> </span><span class="grad" id="open-t2-g0" style="clip-path:inset(-20% 100% -20% 0)">smart.</span></span></div>
+    <div id="open-black" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.to("#open-rs", {attr: {"stroke-dashoffset": 0}, duration: 1.5, ease: "power2.inOut"}, 0.5);
+    tl.to("#open-ls", {attr: {"stroke-dashoffset": 0}, duration: 1.5, ease: "power2.inOut"}, 0.5);
+    tl.to("#open-r", {attr: {"stroke-dashoffset": 0}, duration: 1.5, ease: "power2.inOut"}, 0.5);
+    tl.to("#open-l", {attr: {"stroke-dashoffset": 0}, duration: 1.5, ease: "power2.inOut"}, 0.5);
+    tl.fromTo("#open-halo", {opacity: 0}, {opacity: 0.85, duration: 0.5, ease: "power2.out"}, 2.4);
+    tl.to("#open-halo", {opacity: 0.5, duration: 2.0, ease: "power1.inOut"}, 2.9);
+    tl.fromTo("#open-rim", {attr: {gradientTransform: "rotate(0 960 414)"}}, {attr: {gradientTransform: "rotate(160 960 414)"}, duration: 4.6, ease: "none"}, 2.4);
+    tl.set("#open-t1-0", {opacity: 1}, 2.6);
+    tl.set("#open-t1-1", {opacity: 1}, 2.65);
+    tl.set("#open-t1-2", {opacity: 1}, 2.7);
+    tl.set("#open-t1-3", {opacity: 1}, 2.75);
+    tl.set("#open-t1-4", {opacity: 1}, 2.8);
+    tl.set("#open-t1-5", {opacity: 1}, 2.85);
+    tl.set("#open-t1-6", {opacity: 1}, 2.9);
+    tl.set("#open-t1-7", {opacity: 1}, 2.95);
+    tl.set("#open-t1-8", {opacity: 1}, 3);
+    tl.set("#open-t1-9", {opacity: 1}, 3.05);
+    tl.set("#open-t2-0", {opacity: 1}, 4.8);
+    tl.set("#open-t2-1", {opacity: 1}, 4.845);
+    tl.set("#open-t2-2", {opacity: 1}, 4.89);
+    tl.set("#open-t2-3", {opacity: 1}, 4.935);
+    tl.set("#open-t2-4", {opacity: 1}, 4.98);
+    tl.set("#open-t2-5", {opacity: 1}, 5.025);
+    tl.set("#open-t2-6", {opacity: 1}, 5.07);
+    tl.set("#open-t2-7", {opacity: 1}, 5.115);
+    tl.set("#open-t2-8", {opacity: 1}, 5.16);
+    tl.set("#open-t2-g0", {clipPath: "inset(-20% 83.33% -20% 0%)"}, 5.205);
+    tl.set("#open-t2-g0", {clipPath: "inset(-20% 66.67% -20% 0%)"}, 5.25);
+    tl.set("#open-t2-g0", {clipPath: "inset(-20% 50.00% -20% 0%)"}, 5.295);
+    tl.set("#open-t2-g0", {clipPath: "inset(-20% 33.33% -20% 0%)"}, 5.34);
+    tl.set("#open-t2-g0", {clipPath: "inset(-20% 16.67% -20% 0%)"}, 5.385);
+    tl.set("#open-t2-g0", {clipPath: "inset(-20% 0.00% -20% 0%)"}, 5.43);
+    tl.fromTo("#open-black", {opacity: 0}, {opacity: 1, duration: 0.25, ease: "power1.in"}, 6.95);
+    tl.set({}, {}, 7.2);
+    window.__timelines["open"] = tl;
+  </script>
+</template>

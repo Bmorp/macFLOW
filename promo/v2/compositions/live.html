@@ -1,0 +1,213 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+
+    .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 960px 540px; }
+    .cam-c { position: absolute; left: 960px; top: 540px; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-r { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-s { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-f { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+    .cam-z { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; zoom: 3; }
+    .scr { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; overflow: hidden; border-radius: 10px;
+           background: #0a0710; box-shadow: 0 0 0 14px #050506, 0 0 0 15.5px #2a2b30; }
+    .scr img.wall { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; }
+    .mb { position: absolute; top: 0; height: 32px; line-height: 32px; color: rgba(255,255,255,0.9); font-size: 13px;
+          font-weight: 500; white-space: nowrap; letter-spacing: -0.005em; }
+    .mb b { font-weight: 700; margin-right: 12px; }
+    .mb span { margin-right: 12px; }
+    .isl { position: absolute; }
+    .cur { position: absolute; left: 0; top: 0; }
+    .cur img { position: absolute; }
+    .dof { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+           -webkit-mask-image: radial-gradient(ellipse 52% 46% at 50% 34%, transparent 55%, #000 100%);
+           mask-image: radial-gradient(ellipse 52% 46% at 50% 34%, transparent 55%, #000 100%); }
+
+  </style>
+  <div id="root" data-composition-id="live" data-width="1920" data-height="1080" data-duration="4.8">
+        <div class="stage" id="live-stage"><div class="cam-c" id="live-c"><div class="cam-r" id="live-r"><div class="cam-s" id="live-s"><div class="cam-f" id="live-f"><div class="cam-z">
+      <div class="scr"><img class="wall" src="assets/img/wallpaper-dark.jpg" alt="" />
+        <img src="assets/ui/sym-apple.logo-white.png" alt="" style="position:absolute;left:6px;top:5px;width:30px;height:22px" />
+        <div class="mb" style="left:38px"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+        <div class="mb" style="left:1338px">Fri 23 Oct&nbsp;&nbsp;10:30</div>
+      </div>
+      <img id="live-i0" class="clip isl" data-start="0" data-duration="0.025" src="assets/frames/m5_00/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i1" class="clip isl" data-start="0.025" data-duration="0.0333" src="assets/frames/m5_00/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i2" class="clip isl" data-start="0.0583" data-duration="0.0333" src="assets/frames/m5_00/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i3" class="clip isl" data-start="0.0917" data-duration="0.0333" src="assets/frames/m5_00/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i4" class="clip isl" data-start="0.125" data-duration="0.0333" src="assets/frames/m5_00/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i5" class="clip isl" data-start="0.1583" data-duration="0.0333" src="assets/frames/m5_00/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i6" class="clip isl" data-start="0.1917" data-duration="0.0333" src="assets/frames/m5_00/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i7" class="clip isl" data-start="0.225" data-duration="0.0333" src="assets/frames/m5_00/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i8" class="clip isl" data-start="0.2583" data-duration="0.0333" src="assets/frames/m5_00/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i9" class="clip isl" data-start="0.2917" data-duration="0.0333" src="assets/frames/m5_01/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i10" class="clip isl" data-start="0.325" data-duration="0.0333" src="assets/frames/m5_01/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i11" class="clip isl" data-start="0.3583" data-duration="0.0333" src="assets/frames/m5_01/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i12" class="clip isl" data-start="0.3917" data-duration="0.0333" src="assets/frames/m5_01/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i13" class="clip isl" data-start="0.425" data-duration="0.0333" src="assets/frames/m5_01/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i14" class="clip isl" data-start="0.4583" data-duration="0.0333" src="assets/frames/m5_01/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i15" class="clip isl" data-start="0.4917" data-duration="0.0333" src="assets/frames/m5_01/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i16" class="clip isl" data-start="0.525" data-duration="0.0333" src="assets/frames/m5_01/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i17" class="clip isl" data-start="0.5583" data-duration="0.0333" src="assets/frames/m5_01/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i18" class="clip isl" data-start="0.5917" data-duration="0.0333" src="assets/frames/m5_02/0000.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i19" class="clip isl" data-start="0.625" data-duration="0.0333" src="assets/frames/m5_02/0001.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i20" class="clip isl" data-start="0.6583" data-duration="0.0333" src="assets/frames/m5_02/0002.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i21" class="clip isl" data-start="0.6917" data-duration="0.0333" src="assets/frames/m5_02/0003.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i22" class="clip isl" data-start="0.725" data-duration="0.0333" src="assets/frames/m5_02/0004.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i23" class="clip isl" data-start="0.7583" data-duration="0.0333" src="assets/frames/m5_02/0005.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i24" class="clip isl" data-start="0.7917" data-duration="0.0333" src="assets/frames/m5_02/0006.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i25" class="clip isl" data-start="0.825" data-duration="0.0333" src="assets/frames/m5_02/0007.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i26" class="clip isl" data-start="0.8583" data-duration="0.0333" src="assets/frames/m5_02/0008.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i27" class="clip isl" data-start="0.8917" data-duration="0.0333" src="assets/frames/m5_03/0000.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i28" class="clip isl" data-start="0.925" data-duration="0.0333" src="assets/frames/m5_03/0001.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i29" class="clip isl" data-start="0.9583" data-duration="0.0333" src="assets/frames/m5_03/0002.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i30" class="clip isl" data-start="0.9917" data-duration="0.0333" src="assets/frames/m5_03/0003.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i31" class="clip isl" data-start="1.025" data-duration="0.0333" src="assets/frames/m5_03/0004.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i32" class="clip isl" data-start="1.0583" data-duration="0.0333" src="assets/frames/m5_03/0005.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i33" class="clip isl" data-start="1.0917" data-duration="0.0333" src="assets/frames/m5_03/0006.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i34" class="clip isl" data-start="1.125" data-duration="0.0333" src="assets/frames/m5_03/0007.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i35" class="clip isl" data-start="1.1583" data-duration="0.0333" src="assets/frames/m5_03/0008.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="live-i36" class="clip isl" data-start="1.1917" data-duration="0.0333" src="assets/frames/m5_04/0000.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i37" class="clip isl" data-start="1.225" data-duration="0.0333" src="assets/frames/m5_04/0001.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i38" class="clip isl" data-start="1.2583" data-duration="0.0333" src="assets/frames/m5_04/0002.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i39" class="clip isl" data-start="1.2917" data-duration="0.0333" src="assets/frames/m5_04/0003.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i40" class="clip isl" data-start="1.325" data-duration="0.0333" src="assets/frames/m5_04/0004.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i41" class="clip isl" data-start="1.3583" data-duration="0.0333" src="assets/frames/m5_04/0005.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i42" class="clip isl" data-start="1.3917" data-duration="0.0333" src="assets/frames/m5_04/0006.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i43" class="clip isl" data-start="1.425" data-duration="0.0333" src="assets/frames/m5_04/0007.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i44" class="clip isl" data-start="1.4583" data-duration="0.0333" src="assets/frames/m5_04/0008.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="live-i45" class="clip isl" data-start="1.4917" data-duration="0.0333" src="assets/frames/m5_05/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i46" class="clip isl" data-start="1.525" data-duration="0.0333" src="assets/frames/m5_05/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i47" class="clip isl" data-start="1.5583" data-duration="0.0333" src="assets/frames/m5_05/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i48" class="clip isl" data-start="1.5917" data-duration="0.0333" src="assets/frames/m5_05/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i49" class="clip isl" data-start="1.625" data-duration="0.0333" src="assets/frames/m5_05/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i50" class="clip isl" data-start="1.6583" data-duration="0.0333" src="assets/frames/m5_05/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i51" class="clip isl" data-start="1.6917" data-duration="0.0333" src="assets/frames/m5_05/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i52" class="clip isl" data-start="1.725" data-duration="0.0333" src="assets/frames/m5_05/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i53" class="clip isl" data-start="1.7583" data-duration="0.0333" src="assets/frames/m5_05/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i54" class="clip isl" data-start="1.7917" data-duration="0.0333" src="assets/frames/m5_06/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i55" class="clip isl" data-start="1.825" data-duration="0.0333" src="assets/frames/m5_06/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i56" class="clip isl" data-start="1.8583" data-duration="0.0333" src="assets/frames/m5_06/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i57" class="clip isl" data-start="1.8917" data-duration="0.0333" src="assets/frames/m5_06/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i58" class="clip isl" data-start="1.925" data-duration="0.0333" src="assets/frames/m5_06/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i59" class="clip isl" data-start="1.9583" data-duration="0.0333" src="assets/frames/m5_06/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i60" class="clip isl" data-start="1.9917" data-duration="0.0333" src="assets/frames/m5_06/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i61" class="clip isl" data-start="2.025" data-duration="0.0333" src="assets/frames/m5_06/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i62" class="clip isl" data-start="2.0583" data-duration="0.0333" src="assets/frames/m5_06/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i63" class="clip isl" data-start="2.0917" data-duration="0.0333" src="assets/frames/m5_07/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i64" class="clip isl" data-start="2.125" data-duration="0.0333" src="assets/frames/m5_07/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i65" class="clip isl" data-start="2.1583" data-duration="0.0333" src="assets/frames/m5_07/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i66" class="clip isl" data-start="2.1917" data-duration="0.0333" src="assets/frames/m5_07/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i67" class="clip isl" data-start="2.225" data-duration="0.0333" src="assets/frames/m5_07/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i68" class="clip isl" data-start="2.2583" data-duration="0.0333" src="assets/frames/m5_07/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i69" class="clip isl" data-start="2.2917" data-duration="0.0333" src="assets/frames/m5_07/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i70" class="clip isl" data-start="2.325" data-duration="0.0333" src="assets/frames/m5_07/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i71" class="clip isl" data-start="2.3583" data-duration="0.0333" src="assets/frames/m5_07/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i72" class="clip isl" data-start="2.3917" data-duration="0.0333" src="assets/frames/m5_08/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i73" class="clip isl" data-start="2.425" data-duration="0.0333" src="assets/frames/m5_08/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i74" class="clip isl" data-start="2.4583" data-duration="0.0333" src="assets/frames/m5_08/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i75" class="clip isl" data-start="2.4917" data-duration="0.0333" src="assets/frames/m5_08/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i76" class="clip isl" data-start="2.525" data-duration="0.0333" src="assets/frames/m5_08/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i77" class="clip isl" data-start="2.5583" data-duration="0.0333" src="assets/frames/m5_08/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i78" class="clip isl" data-start="2.5917" data-duration="0.0333" src="assets/frames/m5_08/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i79" class="clip isl" data-start="2.625" data-duration="0.0333" src="assets/frames/m5_08/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i80" class="clip isl" data-start="2.6583" data-duration="0.0333" src="assets/frames/m5_08/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i81" class="clip isl" data-start="2.6917" data-duration="0.0333" src="assets/frames/m5_09/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i82" class="clip isl" data-start="2.725" data-duration="0.0333" src="assets/frames/m5_09/0001.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i83" class="clip isl" data-start="2.7583" data-duration="0.0333" src="assets/frames/m5_09/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i84" class="clip isl" data-start="2.7917" data-duration="0.0333" src="assets/frames/m5_09/0003.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i85" class="clip isl" data-start="2.825" data-duration="0.0333" src="assets/frames/m5_09/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i86" class="clip isl" data-start="2.8583" data-duration="0.0333" src="assets/frames/m5_09/0005.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i87" class="clip isl" data-start="2.8917" data-duration="0.0333" src="assets/frames/m5_09/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i88" class="clip isl" data-start="2.925" data-duration="0.0333" src="assets/frames/m5_09/0007.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i89" class="clip isl" data-start="2.9583" data-duration="0.0333" src="assets/frames/m5_09/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="live-i90" class="clip isl" data-start="2.9917" data-duration="0.0333" src="assets/frames/home5/0000.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i91" class="clip isl" data-start="3.025" data-duration="0.0333" src="assets/frames/home5/0001.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i92" class="clip isl" data-start="3.0583" data-duration="0.0333" src="assets/frames/home5/0002.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i93" class="clip isl" data-start="3.0917" data-duration="0.0333" src="assets/frames/home5/0003.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i94" class="clip isl" data-start="3.125" data-duration="0.0333" src="assets/frames/home5/0004.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i95" class="clip isl" data-start="3.1583" data-duration="0.0333" src="assets/frames/home5/0005.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i96" class="clip isl" data-start="3.1917" data-duration="0.0333" src="assets/frames/home5/0006.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i97" class="clip isl" data-start="3.225" data-duration="0.0333" src="assets/frames/home5/0007.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i98" class="clip isl" data-start="3.2583" data-duration="0.0333" src="assets/frames/home5/0008.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i99" class="clip isl" data-start="3.2917" data-duration="0.0333" src="assets/frames/home5/0009.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i100" class="clip isl" data-start="3.325" data-duration="0.0333" src="assets/frames/home5/0010.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i101" class="clip isl" data-start="3.3583" data-duration="0.0333" src="assets/frames/home5/0011.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i102" class="clip isl" data-start="3.3917" data-duration="0.0333" src="assets/frames/home5/0012.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i103" class="clip isl" data-start="3.425" data-duration="0.0333" src="assets/frames/home5/0013.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i104" class="clip isl" data-start="3.4583" data-duration="0.0333" src="assets/frames/home5/0014.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i105" class="clip isl" data-start="3.4917" data-duration="0.0333" src="assets/frames/home5/0015.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i106" class="clip isl" data-start="3.525" data-duration="0.0333" src="assets/frames/home5/0016.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i107" class="clip isl" data-start="3.5583" data-duration="0.0333" src="assets/frames/home5/0017.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i108" class="clip isl" data-start="3.5917" data-duration="0.0333" src="assets/frames/home5/0018.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i109" class="clip isl" data-start="3.625" data-duration="0.0333" src="assets/frames/home5/0019.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i110" class="clip isl" data-start="3.6583" data-duration="0.0333" src="assets/frames/home5/0020.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i111" class="clip isl" data-start="3.6917" data-duration="0.0333" src="assets/frames/home5/0021.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i112" class="clip isl" data-start="3.725" data-duration="0.0333" src="assets/frames/home5/0022.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i113" class="clip isl" data-start="3.7583" data-duration="0.0333" src="assets/frames/home5/0023.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i114" class="clip isl" data-start="3.7917" data-duration="0.0333" src="assets/frames/home5/0024.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i115" class="clip isl" data-start="3.825" data-duration="0.0333" src="assets/frames/home5/0025.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i116" class="clip isl" data-start="3.8583" data-duration="0.0333" src="assets/frames/home5/0026.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i117" class="clip isl" data-start="3.8917" data-duration="0.0333" src="assets/frames/home5/0027.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i118" class="clip isl" data-start="3.925" data-duration="0.0333" src="assets/frames/home5/0028.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i119" class="clip isl" data-start="3.9583" data-duration="0.0333" src="assets/frames/home5/0029.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i120" class="clip isl" data-start="3.9917" data-duration="0.0333" src="assets/frames/home5/0030.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i121" class="clip isl" data-start="4.025" data-duration="0.0333" src="assets/frames/home5/0031.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i122" class="clip isl" data-start="4.0583" data-duration="0.0333" src="assets/frames/home5/0032.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i123" class="clip isl" data-start="4.0917" data-duration="0.0333" src="assets/frames/home5/0033.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i124" class="clip isl" data-start="4.125" data-duration="0.0333" src="assets/frames/home5/0034.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i125" class="clip isl" data-start="4.1583" data-duration="0.0333" src="assets/frames/home5/0035.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i126" class="clip isl" data-start="4.1917" data-duration="0.0333" src="assets/frames/home5/0036.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i127" class="clip isl" data-start="4.225" data-duration="0.0333" src="assets/frames/home5/0037.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i128" class="clip isl" data-start="4.2583" data-duration="0.0333" src="assets/frames/home5/0038.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i129" class="clip isl" data-start="4.2917" data-duration="0.0333" src="assets/frames/home5/0039.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i130" class="clip isl" data-start="4.325" data-duration="0.0333" src="assets/frames/home5/0040.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i131" class="clip isl" data-start="4.3583" data-duration="0.0333" src="assets/frames/home5/0041.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i132" class="clip isl" data-start="4.3917" data-duration="0.0333" src="assets/frames/home5/0042.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i133" class="clip isl" data-start="4.425" data-duration="0.0333" src="assets/frames/home5/0043.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i134" class="clip isl" data-start="4.4583" data-duration="0.0333" src="assets/frames/home5/0044.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i135" class="clip isl" data-start="4.4917" data-duration="0.0333" src="assets/frames/home5/0045.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i136" class="clip isl" data-start="4.525" data-duration="0.0333" src="assets/frames/home5/0046.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i137" class="clip isl" data-start="4.5583" data-duration="0.0333" src="assets/frames/home5/0047.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      <img id="live-i138" class="clip isl" data-start="4.5917" data-duration="0.2" src="assets/frames/home5/0048.png" alt="" style="left:430px;top:0px;width:610px;height:188px" />
+      
+    </div></div></div></div></div></div>
+    <div class="dof" id="live-dof"></div>
+    <div class="h" id="live-w1" style="top:900px;font-size:92px;font-weight:600;text-align:left;left:190px;width:1600px;transform:translateY(-50%)"><span id="live-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="live-w1-0">Plus </span><span class="w" id="live-w1-1">everything </span><span class="w gw" id="live-w1-2">live. </span></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        gsap.set("#live-s", {scale: 0.9167, transformOrigin: "0 0"}); gsap.set("#live-r", {rotationX: 8, rotationY: -12, transformOrigin: "0 0"}); gsap.set("#live-f", {x: -2205.00, y: -336.00});
+    tl.set("#live-r", {rotationX: 9, rotationY: -12}, 0);
+    tl.set("#live-s", {scale: 0.9167}, 0);
+    tl.set("#live-f", {x: -2175.00, y: -336.00}, 0);
+    tl.set("#live-r", {rotationX: 6, rotationY: 12}, 0.6);
+    tl.set("#live-s", {scale: 1.0000}, 0.6);
+    tl.set("#live-f", {x: -2235.00, y: -318.00}, 0.6);
+    tl.set("#live-r", {rotationX: 9, rotationY: -12}, 1.2);
+    tl.set("#live-s", {scale: 0.9167}, 1.2);
+    tl.set("#live-f", {x: -2175.00, y: -336.00}, 1.2);
+    tl.set("#live-r", {rotationX: 6, rotationY: 12}, 1.8);
+    tl.set("#live-s", {scale: 1.0000}, 1.8);
+    tl.set("#live-f", {x: -2235.00, y: -318.00}, 1.8);
+    tl.set("#live-r", {rotationX: 9, rotationY: -12}, 2.4);
+    tl.set("#live-s", {scale: 0.9167}, 2.4);
+    tl.set("#live-f", {x: -2175.00, y: -336.00}, 2.4);
+    tl.to("#live-r", {rotationX: 4, rotationY: 0, duration: 1.8, ease: "power2.inOut"}, 3);
+    tl.to("#live-s", {scale: 0.4400, duration: 1.8, ease: "power2.inOut"}, 3);
+    tl.to("#live-f", {x: -2205.00, y: -900.00, duration: 1.8, ease: "power2.inOut"}, 3);
+    tl.fromTo("#live-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.3);
+    tl.fromTo("#live-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.39);
+    tl.fromTo("#live-w1-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.48);
+    tl.fromTo("#live-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 2.75);
+    tl.set({}, {}, 4.8);
+    window.__timelines["live"] = tl;
+  </script>
+</template>

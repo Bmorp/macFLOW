@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>Mac Flow</string>
+    <key>CFBundleExecutable</key>
+    <string>MacFlow</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>app.atoll.Atoll.activity</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>atoll</string>
+				<string>macflow</string>
+            </array>
+        </dict>
+    </array>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>CFBundleIdentifier</key>
+    <string>app.atoll.Atoll</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Mac Flow</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>__VERSION__</string>
+    <key>CFBundleVersion</key>
+    <string>__BUILD__</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Mac Flow — your Mac’s notch, alive.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Mac Flow uses this to play, pause and skip in Music and Spotify, and to switch Dark Mode when you ask.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>Mac Flow shows your next meeting in the notch, counts down to it, and gives you a one-click Join button.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Mac Flow listens while you hold the notch to talk to Flow, and — only if you start notes — during a meeting. It’s transcribed on this Mac; audio is never saved or sent.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Mac Flow turns what you say to Flow, and meeting notes you start, into text — on this Mac only.</string>
+    <key>NSAudioCaptureUsageDescription</key>
+    <string>When you start meeting notes, Mac Flow transcribes the other people in the call from your Mac’s audio, on this Mac. Audio is never saved or sent.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Mac Flow’s Mirror shows a live camera preview in the notch so you can check yourself before a call. Video never leaves your Mac.</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>Mac Flow shows AirPods and other Bluetooth devices as they connect, with their battery levels.</string>
+    <key>NSLocationUsageDescription</key>
+    <string>Mac Flow uses your approximate location to show local weather in the notch.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Mac Flow uses your approximate location to show local weather in the notch.</string>
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Mac Flow watches your Downloads folder to show download progress and let you open finished files from the notch.</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>Mac Flow adds reminders when you type “remind me to…” in Search.</string>
+    <key>NSRemindersUsageDescription</key>
+    <string>Mac Flow adds reminders when you type “remind me to…” in Search.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>Mac Flow shows your next meeting in the notch, counts down to it, and gives you a one-click Join button.</string>
+</dict>
+</plist>

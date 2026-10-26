@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Mac Flow — The notch that thinks</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 1920px; height: 1080px; background: #000; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="70" data-width="1920" data-height="1080">
+            <div id="open" data-composition-id="open" data-composition-src="compositions/open.html" data-start="0" data-duration="7.2" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:1"></div>
+      <div id="meet" data-composition-id="meet" data-composition-src="compositions/meet.html" data-start="14.4" data-duration="4.8" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:2"></div>
+      <div id="learns" data-composition-id="learns" data-composition-src="compositions/learns.html" data-start="19.2" data-duration="4.8" data-track-index="3" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:3"></div>
+      <div id="moments" data-composition-id="moments" data-composition-src="compositions/moments.html" data-start="24" data-duration="9.6" data-track-index="4" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:4"></div>
+      <div id="ask" data-composition-id="ask" data-composition-src="compositions/ask.html" data-start="33.6" data-duration="7.2" data-track-index="5" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:5"></div>
+      <div id="build" data-composition-id="build" data-composition-src="compositions/build.html" data-start="43.2" data-duration="4.8" data-track-index="6" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:6"></div>
+      <div id="live" data-composition-id="live" data-composition-src="compositions/live.html" data-start="48" data-duration="4.8" data-track-index="7" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:7"></div>
+      <div id="end" data-composition-id="end" data-composition-src="compositions/end.html" data-start="60" data-duration="10" data-track-index="8" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:8"></div>
+      <div id="titles" data-composition-id="titles" data-composition-src="compositions/titles.html" data-start="0" data-duration="70" data-track-index="50" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:50"></div>
+      <div id="macglide" data-composition-id="macglide" data-composition-src="compositions/macglide.html" data-start="7.2" data-duration="7.2" data-track-index="10" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:10"></div>
+      <div id="macprivacy" data-composition-id="macprivacy" data-composition-src="compositions/macprivacy.html" data-start="40.8" data-duration="2.4" data-track-index="11" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:11"></div>
+      <div id="machero" data-composition-id="machero" data-composition-src="compositions/machero.html" data-start="52.8" data-duration="7.2" data-track-index="12" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:12"></div>
+            <audio id="mix" class="clip" data-start="0" data-duration="70" data-track-index="60" data-volume="1" src="assets/audio/mix.wav"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.set({}, {}, 70);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; left: 0; width: 1920px; text-align: center; color: #fff; font-family: "SF Pro";
+         font-weight: 600; letter-spacing: -0.028em; line-height: 1.04; white-space: nowrap; }
+    .h .c, .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .grad, .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+            background-clip: text; color: transparent; }
+    .grad { display: inline-block; white-space: pre; }
+#root { background: transparent !important; } .h { text-shadow: 0 2px 24px rgba(0,0,0,0.6); }
+  </style>
+  <div id="root" data-composition-id="titles" data-width="1920" data-height="1080" data-duration="70">
+        <div class="h" id="titles-w1" style="top:850px;font-size:80px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="titles-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="titles-w1-0">It </span><span class="w" id="titles-w1-1">thinks </span><span class="w" id="titles-w1-2">on </span><span class="w" id="titles-w1-3">your </span><span class="w" id="titles-w1-4">Mac. </span></span></div>
+    <div class="h" id="titles-w2" style="top:950px;font-size:80px;font-weight:600;text-align:center;left:0px;width:1920px;transform:translateY(-50%)"><span id="titles-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="titles-w2-0">Nothing </span><span class="w gw" id="titles-w2-1">leaves </span><span class="w gw" id="titles-w2-2">it. </span></span></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.fromTo("#titles-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 40.95);
+    tl.fromTo("#titles-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.025);
+    tl.fromTo("#titles-w1-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.1);
+    tl.fromTo("#titles-w1-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.175);
+    tl.fromTo("#titles-w1-4", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.25);
+    tl.fromTo("#titles-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 42.95);
+    tl.fromTo("#titles-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.6);
+    tl.fromTo("#titles-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.675);
+    tl.fromTo("#titles-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 41.75);
+    tl.fromTo("#titles-w2-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 42.95);
+    tl.set({}, {}, 70);
+    window.__timelines["titles"] = tl;
+  </script>
+</template>

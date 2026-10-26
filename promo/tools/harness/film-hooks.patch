@@ -1,0 +1,102 @@
+diff -ru -x F Sources/Atoll/App/AtollMain.swift /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/App/AtollMain.swift
+--- Sources/Atoll/App/AtollMain.swift	2026-10-23 01:32:42
++++ /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/App/AtollMain.swift	2026-10-23 02:52:13
+@@ -16,6 +16,11 @@
+             SnapshotHarness.run(outDir: CommandLine.arguments[i + 1])
+             return
+         }
++        if let i = CommandLine.arguments.firstIndex(of: "--film"), CommandLine.arguments.count > i + 1 {
++            app.setActivationPolicy(.accessory)
++            FilmHarness.run(outDir: CommandLine.arguments[i + 1])
++            return
++        }
+         if let i = CommandLine.arguments.firstIndex(of: "--motion"), CommandLine.arguments.count > i + 1 {
+             app.setActivationPolicy(.accessory)
+             MotionHarness.run(outDir: CommandLine.arguments[i + 1])
+diff -ru -x F Sources/Atoll/Services/FileSearch.swift /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Services/FileSearch.swift
+--- Sources/Atoll/Services/FileSearch.swift	2026-10-23 01:25:26
++++ /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Services/FileSearch.swift	2026-10-23 02:52:13
+@@ -66,6 +66,9 @@
+ 
+     func search(_ text: String) {
+         pending?.cancel()
++        #if DEBUG
++        if FilmHarness.active { if !hits.isEmpty { hits = [] }; return }
++        #endif
+         let t = text.trimmingCharacters(in: .whitespaces)
+         guard Prefs.shared.fileSearch, t.count >= 2, Calculator.evaluate(t) == nil else {
+             stop()
+diff -ru -x F Sources/Atoll/Services/FocusTimer.swift /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Services/FocusTimer.swift
+--- Sources/Atoll/Services/FocusTimer.swift	2026-10-22 23:53:00
++++ /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Services/FocusTimer.swift	2026-10-23 02:52:13
+@@ -71,6 +71,16 @@
+ 
+     /// One tick per displayed second, landing just after the clock's figure changes (it used to poll four
+     /// times a second to catch the change).
++    #if DEBUG
++    /// Film harness: hold the clock at one figure.
++    func debugFreeze(remaining r: TimeInterval) {
++        ticker?.invalidate()
++        ticker = nil
++        remaining = r
++        endDate = Date().addingTimeInterval(r)
++    }
++    #endif
++
+     private func startTicker() {
+         ticker?.invalidate()
+         ticker = nil
+diff -ru -x F Sources/Atoll/Services/NowPlaying.swift /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Services/NowPlaying.swift
+--- Sources/Atoll/Services/NowPlaying.swift	2026-10-23 01:40:51
++++ /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Services/NowPlaying.swift	2026-10-23 02:59:21
+@@ -102,7 +102,7 @@
+                 let richIDs = Set(MediaSource.allCases.map(\.rawValue))
+                 let other = apps.first { !richIDs.contains($0.id) }
+                 if self?.otherApp != other {
+-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { self?.otherApp = other }
++                    if !FilmHarness.isActive { withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { self?.otherApp = other } }
+                 }
+             }
+         // At launch, sync only with players Atoll is already allowed to ask (never prompting before the user has
+@@ -214,6 +214,9 @@
+ 
+     private func apply(source: MediaSource, title: String, artist: String, album: String,
+                        duration: Double, position: Double?, playing: Bool, key: String?, artworkURL: String?) {
++        #if DEBUG
++        if FilmHarness.active { return }
++        #endif
+         let current = self.position()
+         // A song is the same song whichever way we heard about it. Music's notification carries no ID for streamed
+         // songs (and a decimal one for library songs) while AppleScript reports a hex persistent ID — keying on those
+@@ -276,6 +279,9 @@
+     }
+ 
+     private func clear() {
++        #if DEBUG
++        if FilmHarness.active { return }
++        #endif
+         title = ""; artist = ""; album = ""
+         isPlaying = false; duration = 0; elapsed = 0
+         source = nil; artwork = nil; palette = nil; duo = nil; trackKey = ""
+@@ -423,6 +429,9 @@
+     }
+ 
+     private func applyArtwork(_ image: NSImage, for key: String) {
++        #if DEBUG
++        if FilmHarness.active { return }
++        #endif
+         guard key == trackKey else { return }
+         coverKey = key
+         artCache[key] = image
+diff -ru -x F Sources/Atoll/Surfaces/BrainPlace.swift /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Surfaces/BrainPlace.swift
+--- Sources/Atoll/Surfaces/BrainPlace.swift	2026-10-23 02:29:26
++++ /private/tmp/claude-501/-Users-bharatm-Downloads-MACdyna/2ac916c4-261f-4d89-8514-28a066766599/scratchpad/harness/Sources/Atoll/Surfaces/BrainPlace.swift	2026-10-23 03:00:13
+@@ -47,7 +47,7 @@
+     private func takeKeyboard() {
+         // Becoming the key window re-renders the island for the active appearance — do it after the spring, not in it.
+         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+-            guard model.mode == .expanded(.brain) else { return }
++            guard model.mode == .expanded(.brain), !FilmHarness.isActive else { return }
+             model.panel?.makeKey()
+             focused = true
+         }
