@@ -1,0 +1,39 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; color: #fff; font-family: "SF Pro"; font-weight: 600; letter-spacing: -0.028em; line-height: 1.04;
+         white-space: nowrap; text-shadow: 0 0 24px rgba(0,0,0,0.35); }
+    .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+          background-clip: text; color: transparent; text-shadow: none; }
+
+    .sb { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1249px; margin: -548px 0 0 -960px; opacity: 0; }
+
+  </style>
+  <div id="root" data-composition-id="standby" data-width="1920" data-height="1080" data-duration="9">
+        <div id="standby-flash" style="position:absolute;inset:0;background:#fff;opacity:0;z-index:5"></div>
+    <img class="sb" id="standby-0" src="assets/standby/glass-dunes.jpg" alt="" />
+    <img class="sb" id="standby-1" src="assets/standby/lyrics-0.jpg" alt="" />
+    <img class="sb" id="standby-2" src="assets/standby/lyrics-1.jpg" alt="" />
+    <img class="sb" id="standby-3" src="assets/standby/lyrics-2.jpg" alt="" />
+    <img class="sb" id="standby-4" src="assets/standby/lyrics-3.jpg" alt="" />
+  </div>
+  <script>
+    
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.fromTo("#standby-0", {opacity: 0, scale: 1.16, filter: "blur(22px) brightness(1.6)"}, {opacity: 1, scale: 1.0, filter: "blur(0px) brightness(1)", duration: 0.7, ease: "expo.out"}, 0);
+    tl.fromTo("#standby-flash", {opacity: 0.0}, {opacity: 0.32, duration: 0.05}, 0);
+    tl.to("#standby-flash", {opacity: 0, duration: 0.5, ease: "power2.out"}, 0.05);
+    tl.to("#standby-0", {scale: 1.045, duration: 3.94, ease: "sine.inOut"}, 0.7);
+    tl.fromTo("#standby-1", {opacity: 0, scale: 1.06}, {opacity: 1, scale: 1.0, duration: 0.45, ease: "expo.out"}, 4.64);
+    tl.set("#standby-0", {opacity: 0}, 5.09);
+    tl.fromTo("#standby-2", {opacity: 0}, {opacity: 1, duration: 0.32, ease: "power1.inOut"}, 5.73);
+    tl.fromTo("#standby-3", {opacity: 0}, {opacity: 1, duration: 0.32, ease: "power1.inOut"}, 6.82);
+    tl.fromTo("#standby-4", {opacity: 0}, {opacity: 1, duration: 0.32, ease: "power1.inOut"}, 7.91);
+    tl.to("#standby-4", {scale: 1.03, duration: 1.09, ease: "sine.inOut"}, 7.91);
+    tl.set({}, {}, 9);
+    window.__timelines["standby"] = tl;
+  </script>
+</template>

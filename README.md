@@ -35,6 +35,22 @@ controls you need. A thin light in the activity's colour traces its lower edge w
 It moves as one object. The content is laid out at its final size and scales with the shape, growing out of the notch
 and shrinking back into it. No blur, no fades, no reflow.
 
+## Watch: one day with Mac Flow
+
+<p align="center">
+  <a href="docs/film/macflow-one-day.mp4">
+    <img src="docs/film/poster.jpg" alt="Mac Flow, one day: a 70-second film. A MacBook at dawn, the island opening to the day's plan. Click to watch." width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <sub><b>▶ <a href="docs/film/macflow-one-day.mp4">Watch the film</a></b> · 70 s · 1080p, with sound · every frame of the UI is the real app ·
+  how it was made: <a href="promo/v3/REVIEW.md">promo/v3</a></sub>
+</p>
+
+From 7:58 AM to midnight: the plan Flow drafted overnight, the room that sets itself, what you copy and what Claude
+finishes, the meeting and its notes, your day drawn as a ring, Rewind, and StandBy singing you out.
+
 ---
 
 ## Live Activities
@@ -76,6 +92,19 @@ that into one useful suggestion at a time.
   brightness, reminders, opening your project, joining the meeting.
 - **Answers about your day** ("What did I get done today?"). Press and hold the notch to talk to it.
 - **Thinks with Apple's on-device model** (macOS 26 and later). Nothing leaves your Mac.
+
+### Flow through your day
+
+- **Plan your day.** The first time you open your Mac each morning, the island offers a plan: three priorities, drafted
+  from what you left unfinished and your meetings' action items, placed around your calendar and in your sharpest hours.
+- **Set the room.** "Up next" reopens the apps, documents and music from the last time you did that work, hides the rest,
+  and starts a quiet timer. While a focus block runs, everything but your window dims.
+- **Flow Lens.** Copy something with an obvious next step (a time and a place, a long passage, a question) and the notch
+  offers it: Add to Calendar, Summarize, Draft Reply, Translate. All on this Mac.
+- **Meeting notes.** Join from the island; if you turn on notes, it transcribes on this Mac, then writes up the call and
+  carries the action items into tomorrow's plan.
+- **Your day, and Rewind.** A ring of everything you worked on, meetings and music; and a scrubber that takes you back to
+  what you were doing at 3, with the apps and documents one click away.
 
 ## Claude, live in the notch
 

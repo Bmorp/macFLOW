@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Mac Flow — MacBook dawn</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/lights/RectAreaLightUniformsLib.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/objects/Reflector.js"></script>
+    <style>
+      @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 1920px; height: 1080px; background: #000; }
+      #dawn-gl { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="dawn" data-start="0" data-duration="8.66" data-width="1920" data-height="1080">
+      <canvas id="dawn-gl" width="1920" height="1080"></canvas>
+    </div>
+    <script>
+      function go() {
+      // A 14-inch MacBook Pro in centimetres, lit like a product film: soft key, a violet rim, a white rim, a dark floor.
+      const ID = "dawn", SHOT = "dawn", DUR = 8.66;
+      const MAN = {"p_open": {"count": 22, "x": 76.0, "y": 0.0, "w": 652.0, "h": 314.0, "cw": 804}, "p_hold": {"count": 1, "x": 79.0, "y": 0.0, "w": 646.0, "h": 310.0, "cw": 804}}, SCREEN = {"wall": "assets/img/dunes.jpg", "full": false, "clock": "Mon 26 Oct  7:58 AM", "layers": [["p_open", 0, 1, 0], ["p_open", "seq", 22, 3.2], ["p_hold", 0, 1, 3.9333333333333336]]};
+      const W = 1920, H = 1080, OX = 735 - 402;
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const THREE = window.THREE;
+      const canvas = document.getElementById(ID + "-gl");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(W, H, false);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = SHOT === "night" ? 0.92 : 1.04;
+      renderer.physicallyCorrectLights = true;
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+      THREE.RectAreaLightUniformsLib.init();
+      const camera = new THREE.PerspectiveCamera(28, W / H, 0.5, 600);
+      renderer.sortObjects = true;
+
+      const BW = 31.26, BD = 22.12, BH = 1.55, LH = 21.5, LT = 0.62, OPEN = THREE.MathUtils.degToRad(17);
+      const alu = new THREE.MeshPhysicalMaterial({ color: 0xc6c9cf, metalness: 1, roughness: 0.4, envMapIntensity: 0.55 });
+      const aluDark = new THREE.MeshPhysicalMaterial({ color: 0x8d9096, metalness: 1, roughness: 0.5, envMapIntensity: 0.4 });
+      const glass = new THREE.MeshPhysicalMaterial({ color: 0x020203, metalness: 0, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.0 });
+      const keyMat = new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 0.78, metalness: 0, envMapIntensity: 0.25 });
+      const mac = new THREE.Group();
+      scene.add(mac);
+      const base = new THREE.Mesh(new THREE.RoundedBoxGeometry(BW, BH, BD, 6, 0.55), alu);
+      base.position.set(0, BH / 2, 0);
+      mac.add(base);
+      const well = new THREE.Mesh(new THREE.PlaneGeometry(28.6, 11.6), new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 0.7 }));
+      well.rotation.x = -Math.PI / 2;
+      well.position.set(0, BH + 0.003, -4.6);
+      mac.add(well);
+      const keys = new THREE.InstancedMesh(new THREE.RoundedBoxGeometry(1.62, 0.12, 1.55, 2, 0.16), keyMat, 14 * 6);
+      let k = 0;
+      for (let r = 0; r < 6; r++) for (let c = 0; c < 14; c++) {
+        const m = new THREE.Matrix4();
+        m.setPosition(-13.2 + c * 2.03, BH + 0.06, -9.4 + r * 1.86);
+        keys.setMatrixAt(k++, m);
+      }
+      mac.add(keys);
+      const pad = new THREE.Mesh(new THREE.RoundedBoxGeometry(15.4, 0.05, 9.4, 2, 0.6), aluDark);
+      pad.position.set(0, BH + 0.01, 6.0);
+      mac.add(pad);
+      const hinge = new THREE.Group();
+      hinge.position.set(0, BH, -BD / 2 + 0.3);
+      hinge.rotation.x = -OPEN;
+      mac.add(hinge);
+      const lid = new THREE.Mesh(new THREE.RoundedBoxGeometry(BW, LH, LT, 6, 0.28), alu);
+      lid.position.set(0, LH / 2, -LT / 2);
+      hinge.add(lid);
+      const bezel = new THREE.Mesh(new THREE.PlaneGeometry(BW - 0.5, LH - 0.42), glass);
+      bezel.position.set(0, LH / 2 + 0.02, 0.03);
+      hinge.add(bezel);
+      const SW = 29.62, SH = SW * 956 / 1470, TOP = 0.62;
+      const scr = document.createElement("canvas");
+      scr.width = 2940; scr.height = 1912;
+      const g = scr.getContext("2d");
+      const tex = new THREE.CanvasTexture(scr);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(SW, SH), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+      screen.position.set(0, LH - TOP - SH / 2, 0.07);
+      screen.material.polygonOffset = true; screen.material.polygonOffsetFactor = -2; screen.material.polygonOffsetUnits = -2;
+      hinge.add(screen);
+
+      const mirror = new THREE.Reflector(new THREE.PlaneGeometry(500, 500), { textureWidth: 2048, textureHeight: 1152, color: 0x8a8a8a });
+      mirror.rotation.x = -Math.PI / 2;
+      scene.add(mirror);
+      const veil = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.84 }));
+      veil.rotation.x = -Math.PI / 2;
+      veil.position.y = 0.02;
+      scene.add(veil);
+
+      const DAWN = SHOT === "dawn";
+      const key = new THREE.RectAreaLight(DAWN ? 0xffd9b0 : 0xffffff, DAWN ? 3.4 : 2.4, 70, 24);
+      if (DAWN) { key.position.set(-58, 34, 52); } else { key.position.set(0, 70, 55); }
+      key.lookAt(0, 8, 0); scene.add(key);
+      const rimL = new THREE.RectAreaLight(DAWN ? 0xffb27a : 0xa58cff, DAWN ? 8 : 10, 40, 30);
+      rimL.position.set(-55, 30, -45); rimL.lookAt(0, 12, -8); scene.add(rimL);
+      const rimR = new THREE.RectAreaLight(DAWN ? 0xa58cff : 0xffffff, DAWN ? 5.5 : 6.5, 40, 30);
+      rimR.position.set(60, 28, -40); rimR.lookAt(0, 12, -8); scene.add(rimR);
+      const low = new THREE.RectAreaLight(DAWN ? 0xffe2c4 : 0x8fb6ff, DAWN ? 1.6 : 2.0, 60, 6);
+      low.position.set(0, 2, 60); low.lookAt(0, 6, 0); scene.add(low);
+
+      // ---- what's on the screen: the wallpaper (or StandBy, full screen), the menu bar, the real island frames ----
+      const wall = new Image();
+      wall.src = SCREEN.wall;
+      const apple = new Image();
+      apple.src = "assets/ui/sym-apple.logo-white.png";
+      const imgs = {};
+      const want = [wall, apple];
+      SCREEN.layers.forEach(([seq, idx, count]) => {
+        const list = idx === "seq" ? Array.from({ length: count }, (_, i) => i) : [idx];
+        list.forEach((i) => { const key = seq + "/" + i; if (!imgs[key]) { const im = new Image(); im.src = "assets/frames-3d/" + seq + "/" + String(i).padStart(4, "0") + ".png"; imgs[key] = im; want.push(im); } });
+      });
+      function cover(im) {
+        const k = Math.max(2940 / im.naturalWidth, 1912 / im.naturalHeight);
+        const w = im.naturalWidth * k, h = im.naturalHeight * k;
+        g.drawImage(im, (2940 - w) / 2, (1912 - h) / 2, w, h);
+      }
+      function menu() {
+        g.drawImage(apple, 12, 10, 60, 44);
+        g.fillStyle = "rgba(255,255,255,0.92)";
+        g.font = "700 26px 'SF Pro'";
+        let x = 92;
+        g.fillText("Finder", x, 42); x += g.measureText("Finder").width + 26;
+        g.font = "500 26px 'SF Pro'";
+        ["File", "Edit", "View", "Go", "Window", "Help"].forEach((w) => { g.fillText(w, x, 42); x += g.measureText(w).width + 26; });
+        g.textAlign = "right";
+        g.fillText(SCREEN.clock, 2912, 42);
+        g.textAlign = "left";
+      }
+      let drawn = "";
+      function drawScreen(t) {
+        // the layer showing now: the last whose start has passed; a sequence plays at 30 fps from its start
+        let L = null;
+        SCREEN.layers.forEach((l) => { if (t >= l[3]) L = l; });
+        let frame = -1;
+        if (L) frame = L[1] === "seq" ? Math.min(L[2] - 1, Math.max(0, Math.floor((t - L[3]) * 30 + 1e-6))) : L[1];
+        const keyNow = L ? L[0] + "/" + frame : "none";
+        if (keyNow === drawn) return;
+        drawn = keyNow;
+        cover(wall);
+        if (!SCREEN.full) menu();
+        if (L) {
+          const m = MAN[L[0]];
+          g.drawImage(imgs[L[0] + "/" + frame], (OX + m.x) * 2, m.y * 2, m.w * 2, m.h * 2);
+        }
+        tex.needsUpdate = true;
+      }
+
+      // ---- camera -----------------------------------------------------------------------------------------
+      const up = new THREE.Vector3(0, Math.cos(OPEN), -Math.sin(OPEN));     // along the screen, upward
+      const nrm = new THREE.Vector3(0, Math.sin(OPEN), Math.cos(OPEN));     // out of the screen
+      const top = new THREE.Vector3(0, BH + LH * Math.cos(OPEN), -BD / 2 + 0.3 - LH * Math.sin(OPEN));
+      const notch = top.clone().addScaledVector(up, -(TOP + SH * 16 / 956)).addScaledVector(nrm, 0.07);
+      const at = (d, h = 0) => notch.clone().addScaledVector(nrm, d).addScaledVector(up, h);
+      const V = (x, y, z) => new THREE.Vector3(x, y, z);
+      const ease = { inOut: (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2), sine: (x) => -(Math.cos(Math.PI * x) - 1) / 2, in3: (x) => x * x * x };
+      let path;
+      if (SHOT === "dawn") {
+        const focus = notch.clone().addScaledVector(up, -1.4);
+        const P = new THREE.CatmullRomCurve3([V(-40, 7, 36), V(-27, 10.5, 34), V(-13, 15.5, 30), V(-3.5, 21, 21), at(25, -1.4)]);
+        const Lk = new THREE.CatmullRomCurve3([V(-2, 9, -4), V(-1.2, 11, -7), V(-0.4, 14, -11), focus.clone().addScaledVector(up, -1.0), focus.clone()]);
+        const T1 = 6.4;
+        path = (t) => {
+          const u = t < T1 ? 0.76 * ease.sine(t / T1) : 0.76 + 0.24 * ease.in3(Math.min(1, (t - T1) / (DUR - T1)));
+          return { p: P.getPointAt(u), l: Lk.getPointAt(u), fov: 30 - 10 * u };
+        };
+      } else {
+        const P = new THREE.CatmullRomCurve3([V(-6, 15, 44), V(12, 20, 50), V(32, 27, 48)]);
+        const Lk = new THREE.CatmullRomCurve3([V(0, 18.5, -9), V(0, 16.5, -7.5), V(0, 15, -6)]);
+        path = (t) => { const u = ease.sine(Math.min(1, t / DUR)); return { p: P.getPointAt(u), l: Lk.getPointAt(u), fov: 30 - 2 * u }; };
+      }
+
+      function render() {
+        const t = tl.time();
+        const c = path(t);
+        camera.position.copy(c.p);
+        const dist = c.p.distanceTo(notch);
+        camera.near = Math.max(0.004, Math.min(0.6, dist * 0.04));
+        camera.fov = c.fov;
+        camera.updateProjectionMatrix();
+        camera.lookAt(c.l);
+        drawScreen(t);
+        renderer.render(scene, camera);
+      }
+      const loaded = (im) => new Promise((r) => { if (im.complete) return r(); im.onload = im.onerror = () => r(); });
+      console.log("mac3d: waiting for " + want.length + " images");
+      Promise.all([document.fonts.load("700 26px 'SF Pro'"), document.fonts.load("500 26px 'SF Pro'"), ...want.map(loaded)]).then(() => {
+        console.log("mac3d: loaded");
+        tl.eventCallback("onUpdate", render);
+        tl.to({}, { duration: DUR }, 0);
+        render();
+        console.log("mac3d: registered");
+        window.__timelines[ID] = tl;
+        if (typeof window.__hfForceTimelineRebind === "function") window.__hfForceTimelineRebind();
+      }).catch((e) => { document.title = "ERR " + (e && e.message); console.error("mac3d: " + (e && e.stack || e)); });
+    }
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go);
+      else go();
+    </script>
+  </body>
+</html>

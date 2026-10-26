@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Mac Flow — One day</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 1920px; height: 1080px; background: #000; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="70" data-width="1920" data-height="1080">
+      <div id="dawn" data-composition-id="dawn" data-composition-src="compositions/dawn.html" data-start="0" data-duration="8.66" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:1"></div>
+      <div id="workday" data-composition-id="workday" data-composition-src="compositions/workday.html" data-start="8.66" data-duration="19.91" data-track-index="2" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:2"></div>
+      <div id="evening" data-composition-id="evening" data-composition-src="compositions/evening.html" data-start="28.57" data-duration="17.43" data-track-index="3" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:3"></div>
+      <div id="standby" data-composition-id="standby" data-composition-src="compositions/standby.html" data-start="46" data-duration="9" data-track-index="4" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:4"></div>
+      <div id="night" data-composition-id="night" data-composition-src="compositions/night.html" data-start="55" data-duration="6.55" data-track-index="5" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:5"></div>
+      <div id="montage" data-composition-id="montage" data-composition-src="compositions/montage.html" data-start="61.55" data-duration="1.93" data-track-index="6" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:6"></div>
+      <div id="end" data-composition-id="end" data-composition-src="compositions/end.html" data-start="63.48" data-duration="6.52" data-track-index="7" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:7"></div>
+      <div id="titles" data-composition-id="titles" data-composition-src="compositions/titles.html" data-start="0" data-duration="70" data-track-index="50" data-track-kind="graphics" data-width="1920" data-height="1080" style="z-index:50"></div>
+      <audio id="mix" class="clip" data-start="0" data-duration="70" data-track-index="60" data-volume="1" src="assets/audio/mix.wav"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.set({}, {}, 70);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

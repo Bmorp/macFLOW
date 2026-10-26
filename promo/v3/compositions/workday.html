@@ -1,0 +1,376 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; color: #fff; font-family: "SF Pro"; font-weight: 600; letter-spacing: -0.028em; line-height: 1.04;
+         white-space: nowrap; text-shadow: 0 0 24px rgba(0,0,0,0.35); }
+    .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+          background-clip: text; color: transparent; text-shadow: none; }
+
+    .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 960px 540px; }
+    .cam-c { position: absolute; left: 960px; top: 540px; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-r, .cam-s { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-f { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+    .cam-z { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; zoom: 3; }
+    .scr { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; overflow: hidden; background: #000; }
+    .scr img.wall { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; object-fit: cover; }
+    .mb { position: absolute; top: 0; height: 32px; line-height: 32px; color: rgba(255,255,255,0.92); font-size: 13px;
+          font-weight: 500; white-space: nowrap; letter-spacing: -0.005em; }
+    .mb b { font-weight: 700; margin-right: 12px; }
+    .mb span { margin-right: 12px; }
+    .isl { position: absolute; }
+    .cur { position: absolute; left: 0; top: 0; }
+    .cur img { position: absolute; left: -3px; top: -3px; width: 22px; height: 31px; }
+    .dof { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+           -webkit-mask-image: radial-gradient(ellipse 54% 48% at 50% 36%, transparent 58%, #000 100%);
+           mask-image: radial-gradient(ellipse 54% 48% at 50% 36%, transparent 58%, #000 100%); }
+
+    #workday-copyw { position: absolute; left: 735px; top: 262px; transform: translate(-50%, -50%); }
+    #workday-note { position: relative; width: 520px; padding: 0 0 22px; border-radius: 16px; opacity: 0; font-family: "SF Pro";
+                    background: rgba(24,24,28,0.74); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+                    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 28px 60px rgba(0,0,0,0.38); color: #fff; }
+    #workday-note .bar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 16px; }
+    #workday-note .bar i { width: 11px; height: 11px; border-radius: 50%; background: #5a5a60; display: block; }
+    #workday-note .bar b { margin-left: 8px; font-size: 14px; font-weight: 600; color: #98989d; }
+    #workday-note .ln { padding: 7px 28px; font-size: 24px; font-weight: 500; letter-spacing: -0.01em; color: #d1d1d6; white-space: nowrap; }
+    #workday-note .ln.hd { font-size: 15px; font-weight: 700; letter-spacing: 0.06em; color: #8e8e93; padding-top: 12px; }
+    #workday-copy { position: relative; display: inline-block; color: #fff; isolation: isolate; }
+    #workday-sel { position: absolute; left: -5px; top: -3px; bottom: -3px; width: 0; background: rgba(52,120,246,0.7); border-radius: 4px; z-index: -1; }
+    .key { display: inline-block; height: 44px; min-width: 44px; padding: 0 10px; border-radius: 9px; line-height: 44px; text-align: center;
+           background: rgba(30,30,32,0.88); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18), 0 6px 18px rgba(0,0,0,0.35);
+           color: #fff; font-size: 24px; font-weight: 600; margin: 0 5px; }
+    #workday-keysw { position: absolute; left: 735px; top: 388px; transform: translate(-50%, -50%); }
+    #workday-keys { position: relative; font-family: "SF Pro"; opacity: 0; white-space: nowrap; }
+
+  </style>
+  <div id="root" data-composition-id="workday" data-width="1920" data-height="1080" data-duration="19.91">
+        <div class="stage" id="workday-stage"><div class="cam-c" id="workday-c"><div class="cam-r" id="workday-r"><div class="cam-s" id="workday-s"><div class="cam-f" id="workday-f"><div class="cam-z">
+      <div class="scr"><img class="wall" id="workday-wall0" src="assets/img/dunes.jpg" alt="" style="opacity:1" />
+        <div id="workday-night" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+        <img src="assets/ui/sym-apple.logo-white.png" alt="" style="position:absolute;left:6px;top:5px;width:30px;height:22px" />
+        <div class="mb" style="left:46px"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+        <div class="mb" id="workday-clock0" style="right:14px;text-align:right;opacity:1">Mon 26 Oct  10:22 AM</div><div class="mb" id="workday-clock1" style="right:14px;text-align:right;opacity:0">Mon 26 Oct  2:17 PM</div>
+      </div>
+      <img id="workday-i0" class="clip isl" data-start="0" data-duration="2.1817" src="assets/frames/p_hold/0000.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i1" class="clip isl" data-start="2.1817" data-duration="0.0333" src="assets/frames/p_close/0000.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i2" class="clip isl" data-start="2.215" data-duration="0.0333" src="assets/frames/p_close/0001.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i3" class="clip isl" data-start="2.2483" data-duration="0.0333" src="assets/frames/p_close/0002.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i4" class="clip isl" data-start="2.2817" data-duration="0.0333" src="assets/frames/p_close/0003.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i5" class="clip isl" data-start="2.315" data-duration="0.0333" src="assets/frames/p_close/0004.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i6" class="clip isl" data-start="2.3483" data-duration="0.0333" src="assets/frames/p_close/0005.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i7" class="clip isl" data-start="2.3817" data-duration="0.0333" src="assets/frames/p_close/0006.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i8" class="clip isl" data-start="2.415" data-duration="0.0333" src="assets/frames/p_close/0007.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i9" class="clip isl" data-start="2.4483" data-duration="0.0333" src="assets/frames/p_close/0008.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i10" class="clip isl" data-start="2.4817" data-duration="0.0333" src="assets/frames/p_close/0009.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i11" class="clip isl" data-start="2.515" data-duration="0.0333" src="assets/frames/p_close/0010.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i12" class="clip isl" data-start="2.5483" data-duration="0.0333" src="assets/frames/p_close/0011.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i13" class="clip isl" data-start="2.5817" data-duration="0.0333" src="assets/frames/p_close/0012.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i14" class="clip isl" data-start="2.615" data-duration="0.0333" src="assets/frames/p_close/0013.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i15" class="clip isl" data-start="2.6483" data-duration="0.0333" src="assets/frames/p_close/0014.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i16" class="clip isl" data-start="2.6817" data-duration="0.0333" src="assets/frames/p_close/0015.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i17" class="clip isl" data-start="2.715" data-duration="0.0867" src="assets/frames/p_close/0015.png" alt="" style="left:412px;top:0px;width:646px;height:310px" />
+      <img id="workday-i18" class="clip isl" data-start="2.8017" data-duration="0.0333" src="assets/frames/n_open/0000.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i19" class="clip isl" data-start="2.835" data-duration="0.0333" src="assets/frames/n_open/0001.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i20" class="clip isl" data-start="2.8683" data-duration="0.0333" src="assets/frames/n_open/0002.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i21" class="clip isl" data-start="2.9017" data-duration="0.0333" src="assets/frames/n_open/0003.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i22" class="clip isl" data-start="2.935" data-duration="0.0333" src="assets/frames/n_open/0004.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i23" class="clip isl" data-start="2.9683" data-duration="0.0333" src="assets/frames/n_open/0005.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i24" class="clip isl" data-start="3.0017" data-duration="0.0333" src="assets/frames/n_open/0006.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i25" class="clip isl" data-start="3.035" data-duration="0.0333" src="assets/frames/n_open/0007.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i26" class="clip isl" data-start="3.0683" data-duration="0.0333" src="assets/frames/n_open/0008.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i27" class="clip isl" data-start="3.1017" data-duration="0.0333" src="assets/frames/n_open/0009.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i28" class="clip isl" data-start="3.135" data-duration="0.0333" src="assets/frames/n_open/0010.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i29" class="clip isl" data-start="3.1683" data-duration="0.0333" src="assets/frames/n_open/0011.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i30" class="clip isl" data-start="3.2017" data-duration="0.0333" src="assets/frames/n_open/0012.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i31" class="clip isl" data-start="3.235" data-duration="0.0333" src="assets/frames/n_open/0013.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i32" class="clip isl" data-start="3.2683" data-duration="0.0333" src="assets/frames/n_open/0014.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i33" class="clip isl" data-start="3.3017" data-duration="0.0333" src="assets/frames/n_open/0015.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i34" class="clip isl" data-start="3.335" data-duration="0.0333" src="assets/frames/n_open/0016.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i35" class="clip isl" data-start="3.3683" data-duration="0.0333" src="assets/frames/n_open/0017.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i36" class="clip isl" data-start="3.4017" data-duration="0.0333" src="assets/frames/n_open/0018.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i37" class="clip isl" data-start="3.435" data-duration="0.0333" src="assets/frames/n_open/0019.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i38" class="clip isl" data-start="3.4683" data-duration="0.0333" src="assets/frames/n_open/0020.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i39" class="clip isl" data-start="3.5017" data-duration="0.0333" src="assets/frames/n_open/0021.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i40" class="clip isl" data-start="3.535" data-duration="0.8367" src="assets/frames/n_hold/0000.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i41" class="clip isl" data-start="4.3717" data-duration="0.0333" src="assets/frames/n_close/0000.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i42" class="clip isl" data-start="4.405" data-duration="0.0333" src="assets/frames/n_close/0001.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i43" class="clip isl" data-start="4.4383" data-duration="0.0333" src="assets/frames/n_close/0002.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i44" class="clip isl" data-start="4.4717" data-duration="0.0333" src="assets/frames/n_close/0003.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i45" class="clip isl" data-start="4.505" data-duration="0.0333" src="assets/frames/n_close/0004.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i46" class="clip isl" data-start="4.5383" data-duration="0.0333" src="assets/frames/n_close/0005.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i47" class="clip isl" data-start="4.5717" data-duration="0.0333" src="assets/frames/n_close/0006.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i48" class="clip isl" data-start="4.605" data-duration="0.0333" src="assets/frames/n_close/0007.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i49" class="clip isl" data-start="4.6383" data-duration="0.0333" src="assets/frames/n_close/0008.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i50" class="clip isl" data-start="4.6717" data-duration="0.0333" src="assets/frames/n_close/0009.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i51" class="clip isl" data-start="4.705" data-duration="0.0333" src="assets/frames/n_close/0010.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i52" class="clip isl" data-start="4.7383" data-duration="0.0333" src="assets/frames/n_close/0011.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i53" class="clip isl" data-start="4.7717" data-duration="0.0333" src="assets/frames/n_close/0012.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i54" class="clip isl" data-start="4.805" data-duration="0.0333" src="assets/frames/n_close/0013.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i55" class="clip isl" data-start="4.8383" data-duration="0.0333" src="assets/frames/n_close/0014.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i56" class="clip isl" data-start="4.8717" data-duration="0.0333" src="assets/frames/n_close/0015.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i57" class="clip isl" data-start="4.905" data-duration="1" src="assets/frames/n_tick/0000.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i58" class="clip isl" data-start="5.905" data-duration="1" src="assets/frames/n_tick/0001.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i59" class="clip isl" data-start="6.0317" data-duration="0.0333" src="assets/frames/l_open/0000.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i60" class="clip isl" data-start="6.065" data-duration="0.0333" src="assets/frames/l_open/0001.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i61" class="clip isl" data-start="6.0983" data-duration="0.0333" src="assets/frames/l_open/0002.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i62" class="clip isl" data-start="6.1317" data-duration="0.0333" src="assets/frames/l_open/0003.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i63" class="clip isl" data-start="6.165" data-duration="0.0333" src="assets/frames/l_open/0004.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i64" class="clip isl" data-start="6.1983" data-duration="0.0333" src="assets/frames/l_open/0005.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i65" class="clip isl" data-start="6.2317" data-duration="0.0333" src="assets/frames/l_open/0006.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i66" class="clip isl" data-start="6.265" data-duration="0.0333" src="assets/frames/l_open/0007.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i67" class="clip isl" data-start="6.2983" data-duration="0.0333" src="assets/frames/l_open/0008.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i68" class="clip isl" data-start="6.3317" data-duration="0.0333" src="assets/frames/l_open/0009.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i69" class="clip isl" data-start="6.365" data-duration="0.0333" src="assets/frames/l_open/0010.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i70" class="clip isl" data-start="6.3983" data-duration="0.0333" src="assets/frames/l_open/0011.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i71" class="clip isl" data-start="6.4317" data-duration="0.0333" src="assets/frames/l_open/0012.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i72" class="clip isl" data-start="6.465" data-duration="0.0333" src="assets/frames/l_open/0013.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i73" class="clip isl" data-start="6.4983" data-duration="0.0333" src="assets/frames/l_open/0014.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i74" class="clip isl" data-start="6.5317" data-duration="0.0333" src="assets/frames/l_open/0015.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i75" class="clip isl" data-start="6.565" data-duration="0.0333" src="assets/frames/l_open/0016.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i76" class="clip isl" data-start="6.5983" data-duration="0.0333" src="assets/frames/l_open/0017.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i77" class="clip isl" data-start="6.6317" data-duration="0.0333" src="assets/frames/l_open/0018.png" alt="" style="left:410px;top:0px;width:650px;height:107px" />
+      <img id="workday-i78" class="clip isl" data-start="6.665" data-duration="0.1367" src="assets/frames/l_hold/0000.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i79" class="clip isl" data-start="6.8017" data-duration="0.0333" src="assets/frames/l_added/0000.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i80" class="clip isl" data-start="6.835" data-duration="0.0333" src="assets/frames/l_added/0001.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i81" class="clip isl" data-start="6.8683" data-duration="0.0333" src="assets/frames/l_added/0002.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i82" class="clip isl" data-start="6.9017" data-duration="0.0333" src="assets/frames/l_added/0003.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i83" class="clip isl" data-start="6.905" data-duration="1" src="assets/frames/n_tick/0002.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i84" class="clip isl" data-start="6.935" data-duration="0.0333" src="assets/frames/l_added/0004.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i85" class="clip isl" data-start="6.9683" data-duration="0.0333" src="assets/frames/l_added/0005.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i86" class="clip isl" data-start="7.0017" data-duration="0.0333" src="assets/frames/l_added/0006.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i87" class="clip isl" data-start="7.035" data-duration="0.0333" src="assets/frames/l_added/0007.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i88" class="clip isl" data-start="7.0683" data-duration="0.0333" src="assets/frames/l_added/0008.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i89" class="clip isl" data-start="7.1017" data-duration="0.0333" src="assets/frames/l_added/0009.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i90" class="clip isl" data-start="7.135" data-duration="0.0333" src="assets/frames/l_added/0010.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i91" class="clip isl" data-start="7.1683" data-duration="0.0333" src="assets/frames/l_added/0011.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i92" class="clip isl" data-start="7.2017" data-duration="0.0333" src="assets/frames/l_added/0012.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i93" class="clip isl" data-start="7.235" data-duration="0.0333" src="assets/frames/l_added/0013.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i94" class="clip isl" data-start="7.2683" data-duration="0.0333" src="assets/frames/l_added/0014.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i95" class="clip isl" data-start="7.3017" data-duration="0.0333" src="assets/frames/l_added/0015.png" alt="" style="left:412px;top:0px;width:646px;height:106px" />
+      <img id="workday-i96" class="clip isl" data-start="7.335" data-duration="0.1667" src="assets/frames/l_addedHold/0000.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i97" class="clip isl" data-start="7.5017" data-duration="0.0333" src="assets/frames/l_close/0000.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i98" class="clip isl" data-start="7.535" data-duration="0.0333" src="assets/frames/l_close/0001.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i99" class="clip isl" data-start="7.5683" data-duration="0.0333" src="assets/frames/l_close/0002.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i100" class="clip isl" data-start="7.6017" data-duration="0.0333" src="assets/frames/l_close/0003.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i101" class="clip isl" data-start="7.635" data-duration="0.0333" src="assets/frames/l_close/0004.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i102" class="clip isl" data-start="7.6683" data-duration="0.0333" src="assets/frames/l_close/0005.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i103" class="clip isl" data-start="7.7017" data-duration="0.0333" src="assets/frames/l_close/0006.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i104" class="clip isl" data-start="7.735" data-duration="0.0333" src="assets/frames/l_close/0007.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i105" class="clip isl" data-start="7.7683" data-duration="0.0333" src="assets/frames/l_close/0008.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i106" class="clip isl" data-start="7.8017" data-duration="0.0333" src="assets/frames/l_close/0009.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i107" class="clip isl" data-start="7.835" data-duration="0.0333" src="assets/frames/l_close/0010.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i108" class="clip isl" data-start="7.8683" data-duration="0.0333" src="assets/frames/l_close/0011.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i109" class="clip isl" data-start="7.9017" data-duration="0.0333" src="assets/frames/l_close/0012.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i110" class="clip isl" data-start="7.905" data-duration="1" src="assets/frames/n_tick/0003.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i111" class="clip isl" data-start="7.935" data-duration="0.0333" src="assets/frames/l_close/0013.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i112" class="clip isl" data-start="7.9683" data-duration="0.0333" src="assets/frames/l_close/0014.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i113" class="clip isl" data-start="8.0017" data-duration="0.0333" src="assets/frames/l_close/0015.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i114" class="clip isl" data-start="8.035" data-duration="1.4567" src="assets/frames/l_close/0015.png" alt="" style="left:518px;top:0px;width:434px;height:34px" />
+      <img id="workday-i115" class="clip isl" data-start="8.905" data-duration="1" src="assets/frames/n_tick/0004.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i116" class="clip isl" data-start="9.4917" data-duration="0.0333" src="assets/frames/c_open/0000.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i117" class="clip isl" data-start="9.525" data-duration="0.0333" src="assets/frames/c_open/0001.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i118" class="clip isl" data-start="9.5583" data-duration="0.0333" src="assets/frames/c_open/0002.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i119" class="clip isl" data-start="9.5917" data-duration="0.0333" src="assets/frames/c_open/0003.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i120" class="clip isl" data-start="9.625" data-duration="0.0333" src="assets/frames/c_open/0004.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i121" class="clip isl" data-start="9.6583" data-duration="0.0333" src="assets/frames/c_open/0005.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i122" class="clip isl" data-start="9.6917" data-duration="0.0333" src="assets/frames/c_open/0006.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i123" class="clip isl" data-start="9.725" data-duration="0.0333" src="assets/frames/c_open/0007.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i124" class="clip isl" data-start="9.7583" data-duration="0.0333" src="assets/frames/c_open/0008.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i125" class="clip isl" data-start="9.7917" data-duration="0.0333" src="assets/frames/c_open/0009.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i126" class="clip isl" data-start="9.825" data-duration="0.0333" src="assets/frames/c_open/0010.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i127" class="clip isl" data-start="9.8583" data-duration="0.0333" src="assets/frames/c_open/0011.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i128" class="clip isl" data-start="9.8917" data-duration="0.0333" src="assets/frames/c_open/0012.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i129" class="clip isl" data-start="9.905" data-duration="1" src="assets/frames/n_tick/0005.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i130" class="clip isl" data-start="9.925" data-duration="0.0333" src="assets/frames/c_open/0013.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i131" class="clip isl" data-start="9.9583" data-duration="0.0333" src="assets/frames/c_open/0014.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i132" class="clip isl" data-start="9.9917" data-duration="0.0333" src="assets/frames/c_open/0015.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i133" class="clip isl" data-start="10.025" data-duration="0.0333" src="assets/frames/c_open/0016.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i134" class="clip isl" data-start="10.0583" data-duration="0.0333" src="assets/frames/c_open/0017.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i135" class="clip isl" data-start="10.0917" data-duration="0.0333" src="assets/frames/c_open/0018.png" alt="" style="left:480px;top:0px;width:510px;height:99px" />
+      <img id="workday-i136" class="clip isl" data-start="10.125" data-duration="2.4767" src="assets/frames/c_hold/0000.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i137" class="clip isl" data-start="10.905" data-duration="1" src="assets/frames/n_tick/0006.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i138" class="clip isl" data-start="11.905" data-duration="1" src="assets/frames/n_tick/0007.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i139" class="clip isl" data-start="12.6017" data-duration="0.0333" src="assets/frames/c_close/0000.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i140" class="clip isl" data-start="12.635" data-duration="0.0333" src="assets/frames/c_close/0001.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i141" class="clip isl" data-start="12.6683" data-duration="0.0333" src="assets/frames/c_close/0002.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i142" class="clip isl" data-start="12.7017" data-duration="0.0333" src="assets/frames/c_close/0003.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i143" class="clip isl" data-start="12.735" data-duration="0.0333" src="assets/frames/c_close/0004.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i144" class="clip isl" data-start="12.7683" data-duration="0.0333" src="assets/frames/c_close/0005.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i145" class="clip isl" data-start="12.8017" data-duration="0.0333" src="assets/frames/c_close/0006.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i146" class="clip isl" data-start="12.835" data-duration="0.0333" src="assets/frames/c_close/0007.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i147" class="clip isl" data-start="12.8683" data-duration="0.0333" src="assets/frames/c_close/0008.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i148" class="clip isl" data-start="12.9017" data-duration="0.0333" src="assets/frames/c_close/0009.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i149" class="clip isl" data-start="12.905" data-duration="-6.2333" src="assets/frames/n_tick/0007.png" alt="" style="left:582px;top:0px;width:306px;height:34px" />
+      <img id="workday-i150" class="clip isl" data-start="12.935" data-duration="0.0333" src="assets/frames/c_close/0010.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i151" class="clip isl" data-start="12.9683" data-duration="0.0333" src="assets/frames/c_close/0011.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i152" class="clip isl" data-start="13.0017" data-duration="0.0333" src="assets/frames/c_close/0012.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i153" class="clip isl" data-start="13.035" data-duration="0.0333" src="assets/frames/c_close/0013.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i154" class="clip isl" data-start="13.0683" data-duration="0.0333" src="assets/frames/c_close/0014.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i155" class="clip isl" data-start="13.1017" data-duration="0.0333" src="assets/frames/c_close/0015.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i156" class="clip isl" data-start="13.135" data-duration="0.2167" src="assets/frames/c_close/0015.png" alt="" style="left:482px;top:0px;width:506px;height:98px" />
+      <img id="workday-i157" class="clip isl" data-start="13.3517" data-duration="0.42" src="assets/frames/m_open/0000.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i158" class="clip isl" data-start="13.7717" data-duration="0.0333" src="assets/frames/m_open/0000.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i159" class="clip isl" data-start="13.805" data-duration="0.0333" src="assets/frames/m_open/0001.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i160" class="clip isl" data-start="13.8383" data-duration="0.0333" src="assets/frames/m_open/0002.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i161" class="clip isl" data-start="13.8717" data-duration="0.0333" src="assets/frames/m_open/0003.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i162" class="clip isl" data-start="13.905" data-duration="0.0333" src="assets/frames/m_open/0004.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i163" class="clip isl" data-start="13.9383" data-duration="0.0333" src="assets/frames/m_open/0005.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i164" class="clip isl" data-start="13.9717" data-duration="0.0333" src="assets/frames/m_open/0006.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i165" class="clip isl" data-start="14.005" data-duration="0.0333" src="assets/frames/m_open/0007.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i166" class="clip isl" data-start="14.0383" data-duration="0.0333" src="assets/frames/m_open/0008.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i167" class="clip isl" data-start="14.0717" data-duration="0.0333" src="assets/frames/m_open/0009.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i168" class="clip isl" data-start="14.105" data-duration="0.0333" src="assets/frames/m_open/0010.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i169" class="clip isl" data-start="14.1383" data-duration="0.0333" src="assets/frames/m_open/0011.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i170" class="clip isl" data-start="14.1717" data-duration="0.0333" src="assets/frames/m_open/0012.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i171" class="clip isl" data-start="14.205" data-duration="0.0333" src="assets/frames/m_open/0013.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i172" class="clip isl" data-start="14.2383" data-duration="0.0333" src="assets/frames/m_open/0014.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i173" class="clip isl" data-start="14.2717" data-duration="0.0333" src="assets/frames/m_open/0015.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i174" class="clip isl" data-start="14.305" data-duration="0.0333" src="assets/frames/m_open/0016.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i175" class="clip isl" data-start="14.3383" data-duration="0.0333" src="assets/frames/m_open/0017.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i176" class="clip isl" data-start="14.3717" data-duration="0.0333" src="assets/frames/m_open/0018.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i177" class="clip isl" data-start="14.405" data-duration="0.0333" src="assets/frames/m_open/0019.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i178" class="clip isl" data-start="14.4383" data-duration="0.0333" src="assets/frames/m_open/0020.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i179" class="clip isl" data-start="14.4717" data-duration="0.0333" src="assets/frames/m_open/0021.png" alt="" style="left:429px;top:0px;width:612px;height:255px" />
+      <img id="workday-i180" class="clip isl" data-start="14.505" data-duration="1.0267" src="assets/frames/m_hold/0000.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i181" class="clip isl" data-start="15.5317" data-duration="0.0333" src="assets/frames/m_call/0000.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i182" class="clip isl" data-start="15.565" data-duration="0.0333" src="assets/frames/m_call/0001.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i183" class="clip isl" data-start="15.5983" data-duration="0.0333" src="assets/frames/m_call/0002.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i184" class="clip isl" data-start="15.6317" data-duration="0.0333" src="assets/frames/m_call/0003.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i185" class="clip isl" data-start="15.665" data-duration="0.0333" src="assets/frames/m_call/0004.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i186" class="clip isl" data-start="15.6983" data-duration="0.0333" src="assets/frames/m_call/0005.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i187" class="clip isl" data-start="15.7317" data-duration="0.0333" src="assets/frames/m_call/0006.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i188" class="clip isl" data-start="15.765" data-duration="0.0333" src="assets/frames/m_call/0007.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i189" class="clip isl" data-start="15.7983" data-duration="0.0333" src="assets/frames/m_call/0008.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i190" class="clip isl" data-start="15.8317" data-duration="0.0333" src="assets/frames/m_call/0009.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i191" class="clip isl" data-start="15.865" data-duration="0.0333" src="assets/frames/m_call/0010.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i192" class="clip isl" data-start="15.8983" data-duration="0.0333" src="assets/frames/m_call/0011.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i193" class="clip isl" data-start="15.9317" data-duration="0.0333" src="assets/frames/m_call/0012.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i194" class="clip isl" data-start="15.965" data-duration="0.0333" src="assets/frames/m_call/0013.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i195" class="clip isl" data-start="15.9983" data-duration="0.0333" src="assets/frames/m_call/0014.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i196" class="clip isl" data-start="16.0317" data-duration="0.0333" src="assets/frames/m_call/0015.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i197" class="clip isl" data-start="16.065" data-duration="0.0333" src="assets/frames/m_call/0016.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i198" class="clip isl" data-start="16.0983" data-duration="0.0333" src="assets/frames/m_call/0017.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i199" class="clip isl" data-start="16.1317" data-duration="0.0333" src="assets/frames/m_call/0018.png" alt="" style="left:432px;top:0px;width:606px;height:252px" />
+      <img id="workday-i200" class="clip isl" data-start="16.165" data-duration="0.4567" src="assets/frames/m_consent/0000.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i201" class="clip isl" data-start="16.6217" data-duration="0.0333" src="assets/frames/m_rec/0000.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i202" class="clip isl" data-start="16.655" data-duration="0.0333" src="assets/frames/m_rec/0001.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i203" class="clip isl" data-start="16.6883" data-duration="0.0333" src="assets/frames/m_rec/0002.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i204" class="clip isl" data-start="16.7217" data-duration="0.0333" src="assets/frames/m_rec/0003.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i205" class="clip isl" data-start="16.755" data-duration="0.0333" src="assets/frames/m_rec/0004.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i206" class="clip isl" data-start="16.7883" data-duration="0.0333" src="assets/frames/m_rec/0005.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i207" class="clip isl" data-start="16.8217" data-duration="0.0333" src="assets/frames/m_rec/0006.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i208" class="clip isl" data-start="16.855" data-duration="0.0333" src="assets/frames/m_rec/0007.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i209" class="clip isl" data-start="16.8883" data-duration="0.0333" src="assets/frames/m_rec/0008.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i210" class="clip isl" data-start="16.9217" data-duration="0.0333" src="assets/frames/m_rec/0009.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i211" class="clip isl" data-start="16.955" data-duration="0.0333" src="assets/frames/m_rec/0010.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i212" class="clip isl" data-start="16.9883" data-duration="0.0333" src="assets/frames/m_rec/0011.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i213" class="clip isl" data-start="17.0217" data-duration="0.0333" src="assets/frames/m_rec/0012.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i214" class="clip isl" data-start="17.155" data-duration="0.1754" src="assets/frames/m_notes/0000.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i215" class="clip isl" data-start="17.3304" data-duration="0.1754" src="assets/frames/m_notes/0001.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i216" class="clip isl" data-start="17.5059" data-duration="0.1754" src="assets/frames/m_notes/0002.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i217" class="clip isl" data-start="17.6813" data-duration="0.1754" src="assets/frames/m_notes/0003.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i218" class="clip isl" data-start="17.8568" data-duration="0.1754" src="assets/frames/m_notes/0004.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i219" class="clip isl" data-start="18.0322" data-duration="0.1754" src="assets/frames/m_notes/0005.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i220" class="clip isl" data-start="18.2076" data-duration="0.1754" src="assets/frames/m_notes/0006.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i221" class="clip isl" data-start="18.3831" data-duration="0.1754" src="assets/frames/m_notes/0007.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i222" class="clip isl" data-start="18.5585" data-duration="0.1754" src="assets/frames/m_notes/0008.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i223" class="clip isl" data-start="18.7339" data-duration="0.1754" src="assets/frames/m_notes/0009.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i224" class="clip isl" data-start="18.9094" data-duration="0.1754" src="assets/frames/m_notes/0010.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i225" class="clip isl" data-start="19.0848" data-duration="0.1754" src="assets/frames/m_notes/0011.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <img id="workday-i226" class="clip isl" data-start="19.2603" data-duration="0.6414" src="assets/frames/m_notes/0011.png" alt="" style="left:482px;top:0px;width:506px;height:150px" />
+      <div class="cur" id="workday-cur" style="opacity:0"><div id="workday-press"><img src="assets/ui/cursor-arrow.png" alt="" /></div></div><div id="workday-copyw"><div id="workday-note"><div class="bar"><i></i><i></i><i></i><b>Notes</b></div><div class="ln hd">TODAY</div><div class="ln">Send the deck to Sam</div><div class="ln"><span id="workday-copy"><span id="workday-sel"></span>Lunch with Sam tomorrow at 1pm</span></div><div class="ln">Review Priya’s PR</div></div></div><div id="workday-keysw"><div id="workday-keys"><span class="key">⌘</span><span class="key">C</span></div></div>
+    </div></div></div></div></div></div>
+    <div class="dof" id="workday-dof"></div>
+    <div class="h" id="workday-w1" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="workday-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="workday-w1-0">Planned </span><span class="w" id="workday-w1-1">before </span><span class="w" id="workday-w1-2">you </span><span class="w" id="workday-w1-3">are. </span></span></div>
+    <div class="h" id="workday-w2" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="workday-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="workday-w2-0">It </span><span class="w" id="workday-w2-1">reads </span><span class="w" id="workday-w2-2">what </span><span class="w" id="workday-w2-3">you </span><span class="w" id="workday-w2-4">copy. </span></span></div>
+    <div class="h" id="workday-w3" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="workday-w3-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="workday-w3-0">It </span><span class="w" id="workday-w3-1">keeps </span><span class="w" id="workday-w3-2">an </span><span class="w" id="workday-w3-3">eye </span><span class="w" id="workday-w3-4">on </span><span class="w" id="workday-w3-5">Claude. </span></span></div>
+    <div class="h" id="workday-w4" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="workday-w4-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="workday-w4-0">It </span><span class="w" id="workday-w4-1">takes </span><span class="w" id="workday-w4-2">the </span><span class="w" id="workday-w4-3">notes. </span></span></div>
+  </div>
+  <script>
+        gsap.set("#workday-s", {scale: 0.8067, transformOrigin: "0 0"}); gsap.set("#workday-r", {rotationX: 7, rotationY: -5, transformOrigin: "0 0"}); gsap.set("#workday-f", {x: -2205.00, y: -615.00});
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.to("#workday-r", {rotationX: 3, rotationY: 2, duration: 2.1, ease: "power1.out"}, 0);
+    tl.to("#workday-s", {scale: 0.8333, duration: 2.1, ease: "power1.out"}, 0);
+    tl.to("#workday-f", {x: -2205.00, y: -600.00, duration: 2.1, ease: "power1.out"}, 0);
+    tl.to("#workday-r", {rotationX: 4, rotationY: -2, duration: 1, ease: "power2.inOut"}, 2.49);
+    tl.to("#workday-s", {scale: 0.8167, duration: 1, ease: "power2.inOut"}, 2.49);
+    tl.to("#workday-f", {x: -2205.00, y: -540.00, duration: 1, ease: "power2.inOut"}, 2.49);
+    tl.set("#workday-cur", {x: 1180, y: 560}, 0);
+    tl.set("#workday-cur", {opacity: 1}, 0.25);
+    tl.to("#workday-cur", {x: 952.0, y: 280.2, duration: 1.55, ease: "power3.inOut"}, 0.25);
+    tl.to("#workday-press", {scale: 0.86, duration: 0.06, ease: "power2.out", transformOrigin: "0 0"}, 2.13);
+    tl.to("#workday-press", {scale: 1, duration: 0.14, ease: "power2.out"}, 2.19);
+    tl.to("#workday-cur", {x: 939.6, y: 67.2, duration: 1.25, ease: "power3.inOut"}, 2.69);
+    tl.to("#workday-press", {scale: 0.86, duration: 0.06, ease: "power2.out", transformOrigin: "0 0"}, 4.32);
+    tl.to("#workday-press", {scale: 1, duration: 0.14, ease: "power2.out"}, 4.38);
+    tl.to("#workday-cur", {x: 1240, y: 520, duration: 0.6, ease: "power2.in"}, 4.53);
+    tl.to("#workday-cur", {opacity: 0, duration: 0.15}, 5.08);
+    tl.fromTo("#workday-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.35);
+    tl.fromTo("#workday-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.425);
+    tl.fromTo("#workday-w1-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.5);
+    tl.fromTo("#workday-w1-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.575);
+    tl.fromTo("#workday-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 1.94);
+    tl.to("#workday-r", {rotationX: 6, rotationY: 3, duration: 1, ease: "power2.inOut"}, 4.58);
+    tl.to("#workday-s", {scale: 0.6833, duration: 1, ease: "power2.inOut"}, 4.58);
+    tl.to("#workday-f", {x: -2205.00, y: -630.00, duration: 1, ease: "power2.inOut"}, 4.58);
+    tl.fromTo("#workday-note", {opacity: 0, y: 14, scale: 0.97}, {opacity: 1, y: 0, scale: 1, duration: 0.34, ease: "power2.out"}, 4.4);
+    tl.to("#workday-sel", {width: "calc(100% + 12px)", duration: 0.32, ease: "power2.inOut"}, 4.93);
+    tl.fromTo("#workday-keys", {opacity: 0, scale: 0.9}, {opacity: 1, scale: 1, duration: 0.16, ease: "back.out(2)"}, 5.43);
+    tl.to(["#workday-keys", "#workday-note"], {opacity: 0, y: 26, duration: 0.3, ease: "power2.in"}, 5.99);
+    tl.set("#workday-cur", {x: 1250, y: 520}, 6.04);
+    tl.set("#workday-cur", {opacity: 1}, 6.09);
+    tl.to("#workday-cur", {x: 823.8, y: 66.0, duration: 0.7, ease: "power3.inOut"}, 6.09);
+    tl.to("#workday-press", {scale: 0.86, duration: 0.06, ease: "power2.out", transformOrigin: "0 0"}, 6.75);
+    tl.to("#workday-press", {scale: 1, duration: 0.14, ease: "power2.out"}, 6.81);
+    tl.to("#workday-cur", {x: 1260, y: 540, duration: 0.6, ease: "power2.in"}, 7.01);
+    tl.to("#workday-cur", {opacity: 0, duration: 0.15}, 7.56);
+    tl.fromTo("#workday-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 6.46);
+    tl.fromTo("#workday-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 6.535);
+    tl.fromTo("#workday-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 6.61);
+    tl.fromTo("#workday-w2-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 6.685);
+    tl.fromTo("#workday-w2-4", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 6.76);
+    tl.fromTo("#workday-w2-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 8.75);
+    tl.to("#workday-r", {rotationX: 4, rotationY: -3, duration: 0.9, ease: "power2.inOut"}, 8.9);
+    tl.to("#workday-s", {scale: 0.8667, duration: 0.9, ease: "power2.inOut"}, 8.9);
+    tl.to("#workday-f", {x: -2205.00, y: -450.00, duration: 0.9, ease: "power2.inOut"}, 8.9);
+    tl.fromTo("#workday-w3-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 10);
+    tl.fromTo("#workday-w3-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 10.075);
+    tl.fromTo("#workday-w3-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 10.15);
+    tl.fromTo("#workday-w3-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 10.225);
+    tl.fromTo("#workday-w3-4", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 10.3);
+    tl.fromTo("#workday-w3-5", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 10.375);
+    tl.fromTo("#workday-w3-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 13.06);
+    tl.fromTo("#workday-stage", {filter: "blur(0px)"}, {filter: "blur(16px)", duration: 0.18, ease: "power2.in"}, 13.18);
+    tl.to("#workday-stage", {filter: "blur(0px)", duration: 0.18, ease: "power2.out"}, 13.36);
+    tl.set("#workday-clock0", {opacity: 0}, 13.36);
+    tl.set("#workday-clock1", {opacity: 1}, 13.36);
+    tl.to("#workday-r", {rotationX: 0, rotationY: 0, duration: 0.36, ease: "expo.inOut"}, 13.18);
+    tl.to("#workday-s", {scale: 0.4333, duration: 0.36, ease: "expo.inOut"}, 13.18);
+    tl.to("#workday-f", {x: -2280.00, y: -750.00, duration: 0.36, ease: "expo.inOut"}, 13.18);
+    tl.to("#workday-r", {rotationX: 5, rotationY: 3, duration: 1.1, ease: "power2.inOut"}, 13.81);
+    tl.to("#workday-s", {scale: 0.7833, duration: 1.1, ease: "power2.inOut"}, 13.81);
+    tl.to("#workday-f", {x: -2205.00, y: -615.00, duration: 1.1, ease: "power2.inOut"}, 13.81);
+    tl.set("#workday-cur", {x: 1230, y: 520}, 13.96);
+    tl.set("#workday-cur", {opacity: 1}, 14.06);
+    tl.to("#workday-cur", {x: 956.6, y: 67.2, duration: 1.2, ease: "power3.inOut"}, 14.06);
+    tl.to("#workday-press", {scale: 0.86, duration: 0.06, ease: "power2.out", transformOrigin: "0 0"}, 15.48);
+    tl.to("#workday-press", {scale: 1, duration: 0.14, ease: "power2.out"}, 15.54);
+    tl.to("#workday-cur", {x: 905.0, y: 126.2, duration: 0.72, ease: "power3.inOut"}, 15.79);
+    tl.to("#workday-press", {scale: 0.86, duration: 0.06, ease: "power2.out", transformOrigin: "0 0"}, 16.57);
+    tl.to("#workday-press", {scale: 1, duration: 0.14, ease: "power2.out"}, 16.63);
+    tl.to("#workday-cur", {x: 1260, y: 560, duration: 0.6, ease: "power2.in"}, 16.78);
+    tl.to("#workday-cur", {opacity: 0, duration: 0.15}, 17.33);
+    tl.to("#workday-r", {rotationX: 4, rotationY: -2, duration: 1.4, ease: "power2.inOut"}, 16.83);
+    tl.to("#workday-s", {scale: 0.8500, duration: 1.4, ease: "power2.inOut"}, 16.83);
+    tl.to("#workday-f", {x: -2205.00, y: -420.00, duration: 1.4, ease: "power2.inOut"}, 16.83);
+    tl.fromTo("#workday-w4-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 17.13);
+    tl.fromTo("#workday-w4-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 17.205);
+    tl.fromTo("#workday-w4-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 17.28);
+    tl.fromTo("#workday-w4-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 17.355);
+    tl.fromTo("#workday-w4-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 19.61);
+    tl.set({}, {}, 19.91);
+    window.__timelines["workday"] = tl;
+  </script>
+</template>

@@ -551,6 +551,7 @@ enum FilmHarness {
             transition("home5", compact, home, spring: openSpring, times: fps60(0.8))
         }
 
+        if only?.contains(where: { $0.hasPrefix("v3") }) == true { v3(want) }
         if want("extras") { extras() }
 
         if let data = try? JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted]) {

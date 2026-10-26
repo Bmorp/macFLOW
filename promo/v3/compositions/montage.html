@@ -1,0 +1,103 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; color: #fff; font-family: "SF Pro"; font-weight: 600; letter-spacing: -0.028em; line-height: 1.04;
+         white-space: nowrap; text-shadow: 0 0 24px rgba(0,0,0,0.35); }
+    .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+          background-clip: text; color: transparent; text-shadow: none; }
+
+    .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 960px 540px; }
+    .cam-c { position: absolute; left: 960px; top: 540px; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-r, .cam-s { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-f { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+    .cam-z { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; zoom: 3; }
+    .scr { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; overflow: hidden; background: #000; }
+    .scr img.wall { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; object-fit: cover; }
+    .mb { position: absolute; top: 0; height: 32px; line-height: 32px; color: rgba(255,255,255,0.92); font-size: 13px;
+          font-weight: 500; white-space: nowrap; letter-spacing: -0.005em; }
+    .mb b { font-weight: 700; margin-right: 12px; }
+    .mb span { margin-right: 12px; }
+    .isl { position: absolute; }
+    .cur { position: absolute; left: 0; top: 0; }
+    .cur img { position: absolute; left: -3px; top: -3px; width: 22px; height: 31px; }
+    .dof { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+           -webkit-mask-image: radial-gradient(ellipse 54% 48% at 50% 36%, transparent 58%, #000 100%);
+           mask-image: radial-gradient(ellipse 54% 48% at 50% 36%, transparent 58%, #000 100%); }
+
+  </style>
+  <div id="root" data-composition-id="montage" data-width="1920" data-height="1080" data-duration="1.93">
+        <div class="stage" id="montage-stage"><div class="cam-c" id="montage-c"><div class="cam-r" id="montage-r"><div class="cam-s" id="montage-s"><div class="cam-f" id="montage-f"><div class="cam-z">
+      <div class="scr"><img class="wall" id="montage-wall0" src="assets/img/silk.jpg" alt="" style="opacity:1" />
+        <div id="montage-night" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+        <img src="assets/ui/sym-apple.logo-white.png" alt="" style="position:absolute;left:6px;top:5px;width:30px;height:22px" />
+        <div class="mb" style="left:46px"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+        <div class="mb" id="montage-clock0" style="right:14px;text-align:right;opacity:1">Mon 26 Oct  11:58 PM</div>
+      </div>
+      <img id="montage-i0" class="clip isl" data-start="0" data-duration="0.025" src="assets/frames/m5_00/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i1" class="clip isl" data-start="0.025" data-duration="0.0333" src="assets/frames/m5_00/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i2" class="clip isl" data-start="0.0583" data-duration="0.0333" src="assets/frames/m5_00/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i3" class="clip isl" data-start="0.0917" data-duration="0.0333" src="assets/frames/m5_00/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i4" class="clip isl" data-start="0.125" data-duration="0.0333" src="assets/frames/m5_00/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i5" class="clip isl" data-start="0.1583" data-duration="0.0333" src="assets/frames/m5_01/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i6" class="clip isl" data-start="0.1917" data-duration="0.0333" src="assets/frames/m5_01/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i7" class="clip isl" data-start="0.225" data-duration="0.0333" src="assets/frames/m5_01/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i8" class="clip isl" data-start="0.2583" data-duration="0.0333" src="assets/frames/m5_01/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i9" class="clip isl" data-start="0.2917" data-duration="0.0333" src="assets/frames/m5_01/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i10" class="clip isl" data-start="0.325" data-duration="0.0333" src="assets/frames/m5_02/0000.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i11" class="clip isl" data-start="0.3583" data-duration="0.0333" src="assets/frames/m5_02/0002.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i12" class="clip isl" data-start="0.3917" data-duration="0.0333" src="assets/frames/m5_02/0004.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i13" class="clip isl" data-start="0.425" data-duration="0.0333" src="assets/frames/m5_02/0006.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i14" class="clip isl" data-start="0.4583" data-duration="0.0333" src="assets/frames/m5_02/0008.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i15" class="clip isl" data-start="0.4917" data-duration="0.0333" src="assets/frames/m5_03/0000.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i16" class="clip isl" data-start="0.525" data-duration="0.0333" src="assets/frames/m5_03/0002.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i17" class="clip isl" data-start="0.5583" data-duration="0.0333" src="assets/frames/m5_03/0004.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i18" class="clip isl" data-start="0.5917" data-duration="0.0333" src="assets/frames/m5_03/0006.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i19" class="clip isl" data-start="0.625" data-duration="0.0333" src="assets/frames/m5_03/0008.png" alt="" style="left:482px;top:0px;width:506px;height:107px" />
+      <img id="montage-i20" class="clip isl" data-start="0.6583" data-duration="0.0333" src="assets/frames/m5_04/0000.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="montage-i21" class="clip isl" data-start="0.6917" data-duration="0.0333" src="assets/frames/m5_04/0002.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="montage-i22" class="clip isl" data-start="0.725" data-duration="0.0333" src="assets/frames/m5_04/0004.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="montage-i23" class="clip isl" data-start="0.7583" data-duration="0.0333" src="assets/frames/m5_04/0006.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="montage-i24" class="clip isl" data-start="0.7917" data-duration="0.0333" src="assets/frames/m5_04/0008.png" alt="" style="left:519px;top:0px;width:433px;height:33px" />
+      <img id="montage-i25" class="clip isl" data-start="0.825" data-duration="0.0333" src="assets/frames/m5_05/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i26" class="clip isl" data-start="0.8583" data-duration="0.0333" src="assets/frames/m5_05/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i27" class="clip isl" data-start="0.8917" data-duration="0.0333" src="assets/frames/m5_05/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i28" class="clip isl" data-start="0.925" data-duration="0.0333" src="assets/frames/m5_05/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i29" class="clip isl" data-start="0.9583" data-duration="0.0333" src="assets/frames/m5_05/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i30" class="clip isl" data-start="0.9917" data-duration="0.0333" src="assets/frames/m5_06/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i31" class="clip isl" data-start="1.025" data-duration="0.0333" src="assets/frames/m5_06/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i32" class="clip isl" data-start="1.0583" data-duration="0.0333" src="assets/frames/m5_06/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i33" class="clip isl" data-start="1.0917" data-duration="0.0333" src="assets/frames/m5_06/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i34" class="clip isl" data-start="1.125" data-duration="0.0333" src="assets/frames/m5_06/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i35" class="clip isl" data-start="1.1583" data-duration="0.0333" src="assets/frames/m5_07/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i36" class="clip isl" data-start="1.1917" data-duration="0.0333" src="assets/frames/m5_07/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i37" class="clip isl" data-start="1.225" data-duration="0.0333" src="assets/frames/m5_07/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i38" class="clip isl" data-start="1.2583" data-duration="0.0333" src="assets/frames/m5_07/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i39" class="clip isl" data-start="1.2917" data-duration="0.0333" src="assets/frames/m5_07/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i40" class="clip isl" data-start="1.325" data-duration="0.0333" src="assets/frames/m5_08/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i41" class="clip isl" data-start="1.3583" data-duration="0.0333" src="assets/frames/m5_08/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i42" class="clip isl" data-start="1.3917" data-duration="0.0333" src="assets/frames/m5_08/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i43" class="clip isl" data-start="1.425" data-duration="0.0333" src="assets/frames/m5_08/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i44" class="clip isl" data-start="1.4583" data-duration="0.0333" src="assets/frames/m5_08/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i45" class="clip isl" data-start="1.4917" data-duration="0.0333" src="assets/frames/m5_09/0000.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i46" class="clip isl" data-start="1.525" data-duration="0.0333" src="assets/frames/m5_09/0002.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i47" class="clip isl" data-start="1.5583" data-duration="0.0333" src="assets/frames/m5_09/0004.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i48" class="clip isl" data-start="1.5917" data-duration="0.0333" src="assets/frames/m5_09/0006.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i49" class="clip isl" data-start="1.625" data-duration="0.0333" src="assets/frames/m5_09/0008.png" alt="" style="left:482px;top:0px;width:506px;height:97px" />
+      <img id="montage-i50" class="clip isl" data-start="1.6583" data-duration="0.2633" src="assets/frames/v2notch/0000.png" alt="" style="left:637px;top:0px;width:197px;height:33px" />
+      
+    </div></div></div></div></div></div>
+    <div class="dof" id="montage-dof"></div>
+  </div>
+  <script>
+        gsap.set("#montage-s", {scale: 0.8500, transformOrigin: "0 0"}); gsap.set("#montage-r", {rotationX: 3, rotationY: -2, transformOrigin: "0 0"}); gsap.set("#montage-f", {x: -2205.00, y: -186.00});
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.to("#montage-r", {rotationX: -2, rotationY: 2, duration: 1.93, ease: "sine.inOut"}, 0);
+    tl.to("#montage-s", {scale: 0.9667, duration: 1.93, ease: "sine.inOut"}, 0);
+    tl.to("#montage-f", {x: -2205.00, y: -162.00, duration: 1.93, ease: "sine.inOut"}, 0);
+    tl.set({}, {}, 1.93);
+    window.__timelines["montage"] = tl;
+  </script>
+</template>

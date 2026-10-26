@@ -1,0 +1,266 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #000; font-family: "SF Pro"; }
+    
+    .h { position: absolute; color: #fff; font-family: "SF Pro"; font-weight: 600; letter-spacing: -0.028em; line-height: 1.04;
+         white-space: nowrap; text-shadow: 0 0 24px rgba(0,0,0,0.35); }
+    .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+          background-clip: text; color: transparent; text-shadow: none; }
+
+    .stage { position: absolute; inset: 0; perspective: 2400px; perspective-origin: 960px 540px; }
+    .cam-c { position: absolute; left: 960px; top: 540px; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-r, .cam-s { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-style: preserve-3d; }
+    .cam-f { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+    .cam-z { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; zoom: 3; }
+    .scr { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; overflow: hidden; background: #000; }
+    .scr img.wall { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; object-fit: cover; }
+    .mb { position: absolute; top: 0; height: 32px; line-height: 32px; color: rgba(255,255,255,0.92); font-size: 13px;
+          font-weight: 500; white-space: nowrap; letter-spacing: -0.005em; }
+    .mb b { font-weight: 700; margin-right: 12px; }
+    .mb span { margin-right: 12px; }
+    .isl { position: absolute; }
+    .cur { position: absolute; left: 0; top: 0; }
+    .cur img { position: absolute; left: -3px; top: -3px; width: 22px; height: 31px; }
+    .dof { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+           -webkit-mask-image: radial-gradient(ellipse 54% 48% at 50% 36%, transparent 58%, #000 100%);
+           mask-image: radial-gradient(ellipse 54% 48% at 50% 36%, transparent 58%, #000 100%); }
+
+    #evening-ring { position: absolute; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; opacity: 0; }
+
+  </style>
+  <div id="root" data-composition-id="evening" data-width="1920" data-height="1080" data-duration="17.43">
+        <div class="stage" id="evening-stage"><div class="cam-c" id="evening-c"><div class="cam-r" id="evening-r"><div class="cam-s" id="evening-s"><div class="cam-f" id="evening-f"><div class="cam-z">
+      <div class="scr"><img class="wall" id="evening-wall0" src="assets/img/dunes.jpg" alt="" style="opacity:1" /><img class="wall" id="evening-wall1" src="assets/img/horizon.jpg" alt="" style="opacity:0" />
+        <div id="evening-night" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+        <img src="assets/ui/sym-apple.logo-white.png" alt="" style="position:absolute;left:6px;top:5px;width:30px;height:22px" />
+        <div class="mb" style="left:46px"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></div>
+        <div class="mb" id="evening-clock0" style="right:14px;text-align:right;opacity:1">Mon 26 Oct  7:42 PM</div><div class="mb" id="evening-clock1" style="right:14px;text-align:right;opacity:0">Mon 26 Oct  11:54 PM</div>
+      </div>
+      <img id="evening-i0" class="clip isl" data-start="0" data-duration="1.7217" src="assets/frames/v_open/0000.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i1" class="clip isl" data-start="1.7217" data-duration="0.0333" src="assets/frames/v_open/0000.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i2" class="clip isl" data-start="1.755" data-duration="0.0333" src="assets/frames/v_open/0001.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i3" class="clip isl" data-start="1.7883" data-duration="0.0333" src="assets/frames/v_open/0002.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i4" class="clip isl" data-start="1.8217" data-duration="0.0333" src="assets/frames/v_open/0003.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i5" class="clip isl" data-start="1.855" data-duration="0.0333" src="assets/frames/v_open/0004.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i6" class="clip isl" data-start="1.8883" data-duration="0.0333" src="assets/frames/v_open/0005.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i7" class="clip isl" data-start="1.9217" data-duration="0.0333" src="assets/frames/v_open/0006.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i8" class="clip isl" data-start="1.955" data-duration="0.0333" src="assets/frames/v_open/0007.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i9" class="clip isl" data-start="1.9883" data-duration="0.0333" src="assets/frames/v_open/0008.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i10" class="clip isl" data-start="2.0217" data-duration="0.0333" src="assets/frames/v_open/0009.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i11" class="clip isl" data-start="2.055" data-duration="0.0333" src="assets/frames/v_open/0010.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i12" class="clip isl" data-start="2.0883" data-duration="0.0333" src="assets/frames/v_open/0011.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i13" class="clip isl" data-start="2.1217" data-duration="0.0333" src="assets/frames/v_open/0012.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i14" class="clip isl" data-start="2.155" data-duration="0.0333" src="assets/frames/v_open/0013.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i15" class="clip isl" data-start="2.1883" data-duration="0.0333" src="assets/frames/v_open/0014.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i16" class="clip isl" data-start="2.2217" data-duration="0.0333" src="assets/frames/v_open/0015.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i17" class="clip isl" data-start="2.255" data-duration="0.0333" src="assets/frames/v_open/0016.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i18" class="clip isl" data-start="2.2883" data-duration="0.0333" src="assets/frames/v_open/0017.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i19" class="clip isl" data-start="2.3217" data-duration="0.0333" src="assets/frames/v_open/0018.png" alt="" style="left:429px;top:0px;width:612px;height:287px" />
+      <img id="evening-i20" class="clip isl" data-start="2.455" data-duration="0.1961" src="assets/frames/v_talk/0000.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i21" class="clip isl" data-start="2.6511" data-duration="0.1961" src="assets/frames/v_talk/0001.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i22" class="clip isl" data-start="2.8472" data-duration="0.1961" src="assets/frames/v_talk/0002.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i23" class="clip isl" data-start="3.0432" data-duration="0.1961" src="assets/frames/v_talk/0003.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i24" class="clip isl" data-start="3.2393" data-duration="0.1961" src="assets/frames/v_talk/0004.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i25" class="clip isl" data-start="3.4354" data-duration="0.1961" src="assets/frames/v_talk/0005.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i26" class="clip isl" data-start="3.6315" data-duration="0.1961" src="assets/frames/v_talk/0006.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i27" class="clip isl" data-start="3.8275" data-duration="0.1961" src="assets/frames/v_talk/0007.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i28" class="clip isl" data-start="4.0236" data-duration="0.1961" src="assets/frames/v_talk/0008.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i29" class="clip isl" data-start="4.2197" data-duration="0.132" src="assets/frames/v_talk/0008.png" alt="" style="left:432px;top:0px;width:606px;height:284px" />
+      <img id="evening-i30" class="clip isl" data-start="4.3517" data-duration="0.0333" src="assets/frames/d_open/0000.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i31" class="clip isl" data-start="4.385" data-duration="0.0333" src="assets/frames/d_open/0001.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i32" class="clip isl" data-start="4.4183" data-duration="0.0333" src="assets/frames/d_open/0002.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i33" class="clip isl" data-start="4.4517" data-duration="0.0333" src="assets/frames/d_open/0003.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i34" class="clip isl" data-start="4.485" data-duration="0.0333" src="assets/frames/d_open/0004.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i35" class="clip isl" data-start="4.5183" data-duration="0.0333" src="assets/frames/d_open/0005.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i36" class="clip isl" data-start="4.5517" data-duration="0.0333" src="assets/frames/d_open/0006.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i37" class="clip isl" data-start="4.585" data-duration="0.0333" src="assets/frames/d_open/0007.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i38" class="clip isl" data-start="4.6183" data-duration="0.0333" src="assets/frames/d_open/0008.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i39" class="clip isl" data-start="4.6517" data-duration="0.0333" src="assets/frames/d_open/0009.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i40" class="clip isl" data-start="4.685" data-duration="0.0333" src="assets/frames/d_open/0010.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i41" class="clip isl" data-start="4.7183" data-duration="0.0333" src="assets/frames/d_open/0011.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i42" class="clip isl" data-start="4.7517" data-duration="0.0333" src="assets/frames/d_open/0012.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i43" class="clip isl" data-start="4.785" data-duration="0.0333" src="assets/frames/d_open/0013.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i44" class="clip isl" data-start="4.8183" data-duration="0.0333" src="assets/frames/d_open/0014.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i45" class="clip isl" data-start="4.8517" data-duration="0.0333" src="assets/frames/d_open/0015.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i46" class="clip isl" data-start="4.885" data-duration="0.0333" src="assets/frames/d_open/0016.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i47" class="clip isl" data-start="4.9183" data-duration="0.0333" src="assets/frames/d_open/0017.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i48" class="clip isl" data-start="4.9517" data-duration="0.0333" src="assets/frames/d_open/0018.png" alt="" style="left:429px;top:0px;width:612px;height:300px" />
+      <img id="evening-i49" class="clip isl" data-start="4.985" data-duration="0.0333" src="assets/frames/d_draw/0000.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i50" class="clip isl" data-start="5.0183" data-duration="0.0333" src="assets/frames/d_draw/0001.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i51" class="clip isl" data-start="5.0517" data-duration="0.0333" src="assets/frames/d_draw/0002.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i52" class="clip isl" data-start="5.085" data-duration="0.0333" src="assets/frames/d_draw/0003.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i53" class="clip isl" data-start="5.1183" data-duration="0.0333" src="assets/frames/d_draw/0004.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i54" class="clip isl" data-start="5.1517" data-duration="0.0333" src="assets/frames/d_draw/0005.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i55" class="clip isl" data-start="5.185" data-duration="0.0333" src="assets/frames/d_draw/0006.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i56" class="clip isl" data-start="5.2183" data-duration="0.0333" src="assets/frames/d_draw/0007.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i57" class="clip isl" data-start="5.2517" data-duration="0.0333" src="assets/frames/d_draw/0008.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i58" class="clip isl" data-start="5.285" data-duration="0.0333" src="assets/frames/d_draw/0009.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i59" class="clip isl" data-start="5.3183" data-duration="0.0333" src="assets/frames/d_draw/0010.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i60" class="clip isl" data-start="5.3517" data-duration="0.0333" src="assets/frames/d_draw/0011.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i61" class="clip isl" data-start="5.385" data-duration="0.0333" src="assets/frames/d_draw/0012.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i62" class="clip isl" data-start="5.4183" data-duration="0.0333" src="assets/frames/d_draw/0013.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i63" class="clip isl" data-start="5.4517" data-duration="0.0333" src="assets/frames/d_draw/0014.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i64" class="clip isl" data-start="5.485" data-duration="0.0333" src="assets/frames/d_draw/0015.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i65" class="clip isl" data-start="5.5183" data-duration="0.0333" src="assets/frames/d_draw/0016.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i66" class="clip isl" data-start="5.5517" data-duration="0.0333" src="assets/frames/d_draw/0017.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i67" class="clip isl" data-start="5.585" data-duration="0.0333" src="assets/frames/d_draw/0018.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i68" class="clip isl" data-start="5.6183" data-duration="0.0333" src="assets/frames/d_draw/0019.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i69" class="clip isl" data-start="5.6517" data-duration="0.0333" src="assets/frames/d_draw/0020.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i70" class="clip isl" data-start="5.685" data-duration="0.0333" src="assets/frames/d_draw/0021.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i71" class="clip isl" data-start="5.7183" data-duration="0.0333" src="assets/frames/d_draw/0022.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i72" class="clip isl" data-start="5.7517" data-duration="0.0333" src="assets/frames/d_draw/0023.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i73" class="clip isl" data-start="5.785" data-duration="0.0333" src="assets/frames/d_draw/0024.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i74" class="clip isl" data-start="5.8183" data-duration="0.0333" src="assets/frames/d_draw/0025.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i75" class="clip isl" data-start="5.8517" data-duration="0.0333" src="assets/frames/d_draw/0026.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i76" class="clip isl" data-start="5.885" data-duration="0.0333" src="assets/frames/d_draw/0027.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i77" class="clip isl" data-start="5.9183" data-duration="0.0333" src="assets/frames/d_draw/0028.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i78" class="clip isl" data-start="5.9517" data-duration="0.0333" src="assets/frames/d_draw/0029.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i79" class="clip isl" data-start="5.985" data-duration="0.0333" src="assets/frames/d_draw/0030.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i80" class="clip isl" data-start="6.0183" data-duration="0.0333" src="assets/frames/d_draw/0031.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i81" class="clip isl" data-start="6.0517" data-duration="0.0333" src="assets/frames/d_draw/0032.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i82" class="clip isl" data-start="6.085" data-duration="0.0333" src="assets/frames/d_draw/0033.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i83" class="clip isl" data-start="6.1183" data-duration="0.0333" src="assets/frames/d_draw/0034.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i84" class="clip isl" data-start="6.1517" data-duration="0.0333" src="assets/frames/d_draw/0035.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i85" class="clip isl" data-start="6.185" data-duration="0.0333" src="assets/frames/d_draw/0036.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i86" class="clip isl" data-start="6.2183" data-duration="0.0333" src="assets/frames/d_draw/0037.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i87" class="clip isl" data-start="6.2517" data-duration="0.0333" src="assets/frames/d_draw/0038.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i88" class="clip isl" data-start="6.285" data-duration="0.0333" src="assets/frames/d_draw/0039.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i89" class="clip isl" data-start="6.3183" data-duration="0.0333" src="assets/frames/d_draw/0040.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i90" class="clip isl" data-start="6.3517" data-duration="0.0333" src="assets/frames/d_draw/0041.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i91" class="clip isl" data-start="6.385" data-duration="0.0333" src="assets/frames/d_draw/0042.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i92" class="clip isl" data-start="6.4183" data-duration="0.0333" src="assets/frames/d_draw/0043.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i93" class="clip isl" data-start="6.4517" data-duration="0.0333" src="assets/frames/d_draw/0044.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i94" class="clip isl" data-start="6.485" data-duration="2.2367" src="assets/frames/d_draw/0044.png" alt="" style="left:432px;top:0px;width:606px;height:296px" />
+      <img id="evening-i95" class="clip isl" data-start="8.7217" data-duration="0.0333" src="assets/frames/r_open/0000.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i96" class="clip isl" data-start="8.755" data-duration="0.0333" src="assets/frames/r_open/0001.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i97" class="clip isl" data-start="8.7883" data-duration="0.0333" src="assets/frames/r_open/0002.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i98" class="clip isl" data-start="8.8217" data-duration="0.0333" src="assets/frames/r_open/0003.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i99" class="clip isl" data-start="8.855" data-duration="0.0333" src="assets/frames/r_open/0004.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i100" class="clip isl" data-start="8.8883" data-duration="0.0333" src="assets/frames/r_open/0005.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i101" class="clip isl" data-start="8.9217" data-duration="0.0333" src="assets/frames/r_open/0006.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i102" class="clip isl" data-start="8.955" data-duration="0.0333" src="assets/frames/r_open/0007.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i103" class="clip isl" data-start="8.9883" data-duration="0.0333" src="assets/frames/r_open/0008.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i104" class="clip isl" data-start="9.0217" data-duration="0.0333" src="assets/frames/r_open/0009.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i105" class="clip isl" data-start="9.055" data-duration="0.0333" src="assets/frames/r_open/0010.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i106" class="clip isl" data-start="9.0883" data-duration="0.0333" src="assets/frames/r_open/0011.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i107" class="clip isl" data-start="9.1217" data-duration="0.0333" src="assets/frames/r_open/0012.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i108" class="clip isl" data-start="9.155" data-duration="0.0333" src="assets/frames/r_open/0013.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i109" class="clip isl" data-start="9.1883" data-duration="0.0333" src="assets/frames/r_open/0014.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i110" class="clip isl" data-start="9.2217" data-duration="0.0333" src="assets/frames/r_open/0015.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i111" class="clip isl" data-start="9.255" data-duration="0.0333" src="assets/frames/r_open/0016.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i112" class="clip isl" data-start="9.2883" data-duration="0.0333" src="assets/frames/r_open/0017.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i113" class="clip isl" data-start="9.3217" data-duration="0.0333" src="assets/frames/r_open/0018.png" alt="" style="left:409px;top:0px;width:652px;height:251px" />
+      <img id="evening-i114" class="clip isl" data-start="9.605" data-duration="0.1111" src="assets/frames/r_scrub/0000.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i115" class="clip isl" data-start="9.7161" data-duration="0.1111" src="assets/frames/r_scrub/0001.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i116" class="clip isl" data-start="9.8272" data-duration="0.1111" src="assets/frames/r_scrub/0002.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i117" class="clip isl" data-start="9.9383" data-duration="0.1111" src="assets/frames/r_scrub/0003.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i118" class="clip isl" data-start="10.0494" data-duration="0.1111" src="assets/frames/r_scrub/0004.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i119" class="clip isl" data-start="10.1606" data-duration="0.1111" src="assets/frames/r_scrub/0005.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i120" class="clip isl" data-start="10.2717" data-duration="0.1111" src="assets/frames/r_scrub/0006.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i121" class="clip isl" data-start="10.3828" data-duration="0.1111" src="assets/frames/r_scrub/0007.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i122" class="clip isl" data-start="10.4939" data-duration="0.1111" src="assets/frames/r_scrub/0008.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i123" class="clip isl" data-start="10.605" data-duration="0.1111" src="assets/frames/r_scrub/0009.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i124" class="clip isl" data-start="10.7161" data-duration="0.1111" src="assets/frames/r_scrub/0010.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i125" class="clip isl" data-start="10.8272" data-duration="0.1111" src="assets/frames/r_scrub/0011.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i126" class="clip isl" data-start="10.9383" data-duration="0.1111" src="assets/frames/r_scrub/0012.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i127" class="clip isl" data-start="11.0494" data-duration="0.1111" src="assets/frames/r_scrub/0013.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i128" class="clip isl" data-start="11.1606" data-duration="0.1111" src="assets/frames/r_scrub/0014.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i129" class="clip isl" data-start="11.2717" data-duration="0.1111" src="assets/frames/r_scrub/0015.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i130" class="clip isl" data-start="11.3828" data-duration="0.1111" src="assets/frames/r_scrub/0016.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i131" class="clip isl" data-start="11.4939" data-duration="0.1111" src="assets/frames/r_scrub/0017.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i132" class="clip isl" data-start="11.605" data-duration="0.1111" src="assets/frames/r_scrub/0018.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i133" class="clip isl" data-start="11.7161" data-duration="0.1111" src="assets/frames/r_scrub/0019.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i134" class="clip isl" data-start="11.8272" data-duration="0.1111" src="assets/frames/r_scrub/0020.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i135" class="clip isl" data-start="11.9383" data-duration="0.1111" src="assets/frames/r_scrub/0021.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i136" class="clip isl" data-start="12.0494" data-duration="0.1111" src="assets/frames/r_scrub/0022.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i137" class="clip isl" data-start="12.1606" data-duration="0.1111" src="assets/frames/r_scrub/0023.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i138" class="clip isl" data-start="12.2717" data-duration="0.1111" src="assets/frames/r_scrub/0024.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i139" class="clip isl" data-start="12.3828" data-duration="0.1111" src="assets/frames/r_scrub/0025.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i140" class="clip isl" data-start="12.4939" data-duration="0.1111" src="assets/frames/r_scrub/0026.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i141" class="clip isl" data-start="12.605" data-duration="0.1111" src="assets/frames/r_scrub/0027.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i142" class="clip isl" data-start="12.7161" data-duration="0.1111" src="assets/frames/r_scrub/0028.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i143" class="clip isl" data-start="12.8272" data-duration="0.1111" src="assets/frames/r_scrub/0029.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i144" class="clip isl" data-start="12.9383" data-duration="0.1111" src="assets/frames/r_scrub/0030.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i145" class="clip isl" data-start="13.0494" data-duration="0.1111" src="assets/frames/r_scrub/0031.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i146" class="clip isl" data-start="13.1606" data-duration="0.1111" src="assets/frames/r_scrub/0032.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i147" class="clip isl" data-start="13.2717" data-duration="0.1111" src="assets/frames/r_scrub/0033.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i148" class="clip isl" data-start="13.3828" data-duration="0.1111" src="assets/frames/r_scrub/0034.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i149" class="clip isl" data-start="13.4939" data-duration="0.1111" src="assets/frames/r_scrub/0035.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i150" class="clip isl" data-start="13.605" data-duration="0.1111" src="assets/frames/r_scrub/0036.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i151" class="clip isl" data-start="13.7161" data-duration="0.1111" src="assets/frames/r_scrub/0037.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i152" class="clip isl" data-start="13.8272" data-duration="0.1111" src="assets/frames/r_scrub/0038.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i153" class="clip isl" data-start="13.9383" data-duration="0.1111" src="assets/frames/r_scrub/0039.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i154" class="clip isl" data-start="14.0494" data-duration="0.6122" src="assets/frames/r_scrub/0039.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i155" class="clip isl" data-start="14.6617" data-duration="0.0333" src="assets/frames/r_close/0000.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i156" class="clip isl" data-start="14.695" data-duration="0.0333" src="assets/frames/r_close/0001.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i157" class="clip isl" data-start="14.7283" data-duration="0.0333" src="assets/frames/r_close/0002.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i158" class="clip isl" data-start="14.7617" data-duration="0.0333" src="assets/frames/r_close/0003.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i159" class="clip isl" data-start="14.795" data-duration="0.0333" src="assets/frames/r_close/0004.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i160" class="clip isl" data-start="14.8283" data-duration="0.0333" src="assets/frames/r_close/0005.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i161" class="clip isl" data-start="14.8617" data-duration="0.0333" src="assets/frames/r_close/0006.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i162" class="clip isl" data-start="14.895" data-duration="0.0333" src="assets/frames/r_close/0007.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i163" class="clip isl" data-start="14.9283" data-duration="0.0333" src="assets/frames/r_close/0008.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i164" class="clip isl" data-start="14.9617" data-duration="0.0333" src="assets/frames/r_close/0009.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i165" class="clip isl" data-start="14.995" data-duration="0.0333" src="assets/frames/r_close/0010.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i166" class="clip isl" data-start="15.0283" data-duration="0.0333" src="assets/frames/r_close/0011.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i167" class="clip isl" data-start="15.0617" data-duration="0.0333" src="assets/frames/r_close/0012.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i168" class="clip isl" data-start="15.095" data-duration="0.0333" src="assets/frames/r_close/0013.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i169" class="clip isl" data-start="15.1283" data-duration="0.0333" src="assets/frames/r_close/0014.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i170" class="clip isl" data-start="15.1617" data-duration="0.0333" src="assets/frames/r_close/0015.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <img id="evening-i171" class="clip isl" data-start="15.195" data-duration="2.2267" src="assets/frames/r_close/0015.png" alt="" style="left:412px;top:0px;width:646px;height:248px" />
+      <svg id="evening-ring" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="3"/><circle id="evening-arc" cx="22" cy="22" r="19" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray="120" stroke-dashoffset="120" transform="rotate(-90 22 22)"/></svg><div class="cur" id="evening-cur" style="opacity:0"><div id="evening-press"><img src="assets/ui/cursor-arrow.png" alt="" /></div></div>
+    </div></div></div></div></div></div>
+    <div class="dof" id="evening-dof"></div>
+    <div class="h" id="evening-w1" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="evening-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="evening-w1-0">Just </span><span class="w" id="evening-w1-1">ask. </span></span></div>
+    <div class="h" id="evening-w2" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="evening-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="evening-w2-0">Your </span><span class="w" id="evening-w2-1">day, </span><span class="w" id="evening-w2-2">drawn. </span></span></div>
+    <div class="h" id="evening-w3" style="top:820px;left:160px;width:1600px;font-size:100px;font-weight:600;text-align:left;transform:translateY(-50%)"><span id="evening-w3-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="evening-w3-0">Rewind </span><span class="w" id="evening-w3-1">any </span><span class="w" id="evening-w3-2">moment. </span></span></div>
+  </div>
+  <script>
+        gsap.set("#evening-s", {scale: 0.3933, transformOrigin: "0 0"}); gsap.set("#evening-r", {rotationX: 0, rotationY: 0, transformOrigin: "0 0"}); gsap.set("#evening-f", {x: -2205.00, y: -900.00});
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.fromTo("#evening-wall1", {opacity: 0}, {opacity: 1, duration: 0.9, ease: "power1.inOut"}, 0);
+    tl.to("#evening-r", {rotationX: 6, rotationY: 2, duration: 1.5, ease: "power2.inOut"}, 0.15);
+    tl.to("#evening-s", {scale: 0.8167, duration: 1.5, ease: "power2.inOut"}, 0.15);
+    tl.to("#evening-f", {x: -2205.00, y: -510.00, duration: 1.5, ease: "power2.inOut"}, 0.15);
+    tl.set("#evening-cur", {x: 1100, y: 470}, 0.3);
+    tl.set("#evening-cur", {opacity: 1}, 0.35);
+    tl.to("#evening-cur", {x: 742, y: 20, duration: 0.95, ease: "power3.inOut"}, 0.35);
+    tl.to("#evening-press", {scale: 0.86, duration: 0.08, ease: "power2.out", transformOrigin: "0 0"}, 1.28);
+    tl.to("#evening-press", {scale: 1, duration: 0.14}, 1.73);
+    tl.set("#evening-ring", {x: 742, y: 20, opacity: 1}, 1.28);
+    tl.fromTo("#evening-arc", {attr: {"stroke-dashoffset": 120}}, {attr: {"stroke-dashoffset": 0}, duration: 0.45, ease: "none"}, 1.28);
+    tl.to("#evening-ring", {opacity: 0, duration: 0.12}, 1.75);
+    tl.to("#evening-cur", {x: 1150, y: 520, duration: 0.6, ease: "power2.in"}, 1.78);
+    tl.to("#evening-cur", {opacity: 0, duration: 0.15}, 2.33);
+    tl.fromTo("#evening-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 1.98);
+    tl.fromTo("#evening-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.055);
+    tl.fromTo("#evening-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 4.06);
+    tl.to("#evening-r", {rotationX: 5, rotationY: -3, duration: 0.9, ease: "power2.inOut"}, 4.26);
+    tl.to("#evening-s", {scale: 0.7667, duration: 0.9, ease: "power2.inOut"}, 4.26);
+    tl.to("#evening-f", {x: -2205.00, y: -525.00, duration: 0.9, ease: "power2.inOut"}, 4.26);
+    tl.to("#evening-r", {rotationX: 3, rotationY: 2, duration: 3.2, ease: "sine.inOut"}, 5.36);
+    tl.to("#evening-s", {scale: 0.8000, duration: 3.2, ease: "sine.inOut"}, 5.36);
+    tl.to("#evening-f", {x: -2205.00, y: -510.00, duration: 3.2, ease: "sine.inOut"}, 5.36);
+    tl.fromTo("#evening-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 4.91);
+    tl.fromTo("#evening-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 4.985);
+    tl.fromTo("#evening-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 5.06);
+    tl.fromTo("#evening-w2-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 8.43);
+    tl.to("#evening-r", {rotationX: 4, rotationY: 3, duration: 0.9, ease: "power2.inOut"}, 8.63);
+    tl.to("#evening-s", {scale: 0.7833, duration: 0.9, ease: "power2.inOut"}, 8.63);
+    tl.to("#evening-f", {x: -2205.00, y: -510.00, duration: 0.9, ease: "power2.inOut"}, 8.63);
+    tl.fromTo("#evening-w3-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 9.33);
+    tl.fromTo("#evening-w3-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 9.405);
+    tl.fromTo("#evening-w3-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 9.48);
+    tl.fromTo("#evening-w3-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 14.54);
+    tl.to("#evening-r", {rotationX: 0, rotationY: 0, duration: 1.6, ease: "power2.inOut"}, 14.79);
+    tl.to("#evening-s", {scale: 0.5167, duration: 1.6, ease: "power2.inOut"}, 14.79);
+    tl.to("#evening-f", {x: -2205.00, y: -990.00, duration: 1.6, ease: "power2.inOut"}, 14.79);
+    tl.to("#evening-night", {opacity: 0.8, duration: 0.9, ease: "power2.in"}, 14.89);
+    tl.to("#evening-clock0", {opacity: 0, duration: 0.25}, 15.54);
+    tl.fromTo("#evening-clock1", {opacity: 0}, {opacity: 1, duration: 0.35}, 15.84);
+    tl.set({}, {}, 17.43);
+    window.__timelines["evening"] = tl;
+  </script>
+</template>

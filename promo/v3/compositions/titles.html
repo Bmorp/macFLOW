@@ -1,0 +1,41 @@
+<template>
+  <style>
+    @font-face { font-family: "SF Pro"; src: url("assets/fonts/SFNS.ttf"); font-weight: 1 1000; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: transparent; font-family: "SF Pro"; }
+    
+    .h { position: absolute; color: #fff; font-family: "SF Pro"; font-weight: 600; letter-spacing: -0.028em; line-height: 1.04;
+         white-space: nowrap; text-shadow: 0 0 24px rgba(0,0,0,0.35); }
+    .h .w { opacity: 0; display: inline-block; white-space: pre; }
+    .gw { background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 42%, #e58ad0 100%); -webkit-background-clip: text;
+          background-clip: text; color: transparent; text-shadow: none; }
+
+  </style>
+  <div id="root" data-composition-id="titles" data-width="1920" data-height="1080" data-duration="70">
+        <div class="h" id="titles-w1" style="top:165px;left:0px;width:1920px;font-size:104px;font-weight:600;text-align:center;transform:translateY(-50%)"><span id="titles-w1-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="titles-w1-0">Your </span><span class="w" id="titles-w1-1">day </span></span></div>
+    <div class="h" id="titles-w2" style="top:165px;left:0px;width:1920px;font-size:104px;font-weight:600;text-align:center;transform:translateY(-50%)"><span id="titles-w2-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="titles-w2-0">starts </span><span class="w" id="titles-w2-1">at </span><span class="w" id="titles-w2-2">the </span><span class="w gw" id="titles-w2-3">notch. </span></span></div>
+    <div class="h" id="titles-w3" style="top:170px;left:0px;width:1920px;font-size:108px;font-weight:600;text-align:center;transform:translateY(-50%)"><span id="titles-w3-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="titles-w3-0">Your </span><span class="w" id="titles-w3-1">whole </span><span class="w" id="titles-w3-2">day. </span></span></div>
+    <div class="h" id="titles-w4" style="top:170px;left:0px;width:1920px;font-size:108px;font-weight:600;text-align:center;transform:translateY(-50%)"><span id="titles-w4-in" style="display:inline-block;margin-right:-0.25em"><span class="w" id="titles-w4-0">In </span><span class="w" id="titles-w4-1">the </span><span class="w gw" id="titles-w4-2">notch. </span></span></div>
+  </div>
+  <script>
+    
+    const tl = gsap.timeline({ paused: true, defaults: { immediateRender: false } });
+        tl.fromTo("#titles-w1-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.55);
+    tl.fromTo("#titles-w1-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 0.67);
+    tl.fromTo("#titles-w1-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 2);
+    tl.fromTo("#titles-w2-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.3);
+    tl.fromTo("#titles-w2-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.42);
+    tl.fromTo("#titles-w2-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.54);
+    tl.fromTo("#titles-w2-3", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 2.66);
+    tl.fromTo("#titles-w2-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 3.85);
+    tl.fromTo("#titles-w3-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 55.45);
+    tl.fromTo("#titles-w3-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 55.58);
+    tl.fromTo("#titles-w3-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 55.71);
+    tl.fromTo("#titles-w3-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 58.97);
+    tl.fromTo("#titles-w4-0", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 59.42);
+    tl.fromTo("#titles-w4-1", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 59.58);
+    tl.fromTo("#titles-w4-2", {opacity: 0, filter: "blur(12px)", y: 6}, {opacity: 1, filter: "blur(0px)", y: 0, duration: 0.22, ease: "power3.out"}, 59.74);
+    tl.fromTo("#titles-w4-in", {opacity: 1, filter: "blur(0px)"}, {opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power1.in"}, 61.3);
+    tl.set({}, {}, 70);
+    window.__timelines["titles"] = tl;
+  </script>
+</template>
