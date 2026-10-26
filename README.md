@@ -38,13 +38,15 @@ and shrinking back into it. No blur, no fades, no reflow.
 ## Watch: one day with Mac Flow
 
 <p align="center">
-  <a href="docs/film/macflow-one-day.mp4">
+  <a href="https://bmorp.github.io/macFLOW/">
     <img src="docs/film/poster.jpg" alt="Mac Flow, one day: a 70-second film. A MacBook at dawn, the island opening to the day's plan. Click to watch." width="100%">
   </a>
 </p>
 
 <p align="center">
-  <sub><b>▶ <a href="docs/film/macflow-one-day.mp4">Watch the film</a></b> · 70 s · 1080p, with sound · every frame of the UI is the real app ·
+  <sub><b>▶ <a href="https://bmorp.github.io/macFLOW/">Watch the film</a></b> · 70 s, with sound · every frame of the UI is the real app ·
+  download <a href="https://github.com/Bmorp/macFLOW/raw/main/docs/film/macflow-one-day.mp4">1080p</a> or
+  <a href="https://github.com/Bmorp/macFLOW/releases/tag/film-one-day">4K</a> ·
   how it was made: <a href="promo/v3/REVIEW.md">promo/v3</a></sub>
 </p>
 

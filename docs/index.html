@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mac Flow — One day</title>
+  <meta name="description" content="A 70-second film of Mac Flow: the notch that thinks. Every frame of the UI is the real app.">
+  <meta property="og:title" content="Mac Flow — One day">
+  <meta property="og:description" content="A 70-second film of Mac Flow: the notch that thinks.">
+  <meta property="og:image" content="https://bmorp.github.io/macFLOW/film/poster.jpg">
+  <meta property="og:type" content="video.other">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='9' width='30' height='14' rx='7' fill='%230A0A0B'/%3E%3Cpath d='M16 11.5c0 3-2.4 4.5-5 4.5 2.6 0 5 1.5 5 4.5 0-3 2.4-4.5 5-4.5-2.6 0-5-1.5-5-4.5z' fill='%23fff'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --ink: #0a0a0b;
+      --paper: #ffffff;
+      --grey: #8e8e93;
+      --violet: #9e85ff;
+      --rule: rgba(255, 255, 255, 0.14);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--ink); color: var(--paper); }
+    body {
+      min-height: 100svh;
+      font: 400 17px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      display: flex; flex-direction: column; align-items: center;
+      padding: clamp(20px, 5vw, 56px) clamp(16px, 4vw, 48px) 40px;
+    }
+    header { width: min(1280px, 100%); display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: clamp(20px, 3.5vw, 40px); }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; font-weight: 600; letter-spacing: -0.02em; font-size: 20px; }
+    .brand svg { height: 26px; width: auto; display: block; }
+    .brand span b { font-weight: 600; color: var(--grey); }
+    nav { display: flex; gap: 22px; font-size: 15px; }
+    nav a { color: var(--grey); text-decoration: none; transition: color .15s; }
+    nav a:hover { color: var(--paper); }
+    main { width: min(1280px, 100%); }
+    h1 { font-weight: 600; letter-spacing: -0.035em; line-height: 1.04; font-size: clamp(34px, 6vw, 72px); margin-bottom: 10px; }
+    h1 em { font-style: normal; background: linear-gradient(100deg, #d9ccff 0%, #9e85ff 45%, #e58ad0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { color: var(--grey); font-size: clamp(16px, 1.6vw, 20px); margin-bottom: clamp(18px, 3vw, 32px); max-width: 60ch; }
+    .stage { position: relative; border-radius: clamp(10px, 1.6vw, 22px); overflow: hidden; background: #000; box-shadow: 0 0 0 1px var(--rule), 0 40px 120px rgba(158, 133, 255, 0.12); }
+    video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px 14px; margin-top: clamp(18px, 3vw, 28px); align-items: center; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 22px; font-weight: 600; font-size: 15px; letter-spacing: -0.005em; text-decoration: none; transition: transform .15s, background .15s; }
+    .btn.primary { background: var(--paper); color: var(--ink); }
+    .btn.primary:hover { background: #ececf0; }
+    .btn.ghost { color: var(--paper); box-shadow: inset 0 0 0 1px var(--rule); }
+    .btn.ghost:hover { background: rgba(255, 255, 255, 0.07); }
+    .btn:active { transform: scale(0.98); }
+    .meta { color: var(--grey); font-size: 14px; margin-left: auto; }
+    footer { width: min(1280px, 100%); margin-top: clamp(32px, 6vw, 72px); padding-top: 22px; border-top: 1px solid var(--rule); color: var(--grey); font-size: 13.5px; line-height: 1.6; }
+    footer a { color: var(--grey); text-underline-offset: 3px; }
+    footer a:hover { color: var(--paper); }
+    @media (max-width: 640px) { nav { display: none; } .meta { margin-left: 0; width: 100%; } }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="https://github.com/Bmorp/macFLOW" aria-label="Mac Flow on GitHub">
+      <svg viewBox="64 64 404 128" aria-hidden="true"><path fill="#fff" fill-rule="evenodd" d="M468 128L468 128C468 163.35 439.35 192 404 192L128 192C92.65 192 64 163.35 64 128L64 128C64 92.65 92.65 64 128 64L404 64C439.35 64 468 92.65 468 128ZM266 79C266 126 307 128 359 128C307 128 266 130 266 177C266 130 225 128 173 128C225 128 266 126 266 79Z"/></svg>
+      <span>Mac <b>Flow</b></span>
+    </a>
+    <nav>
+      <a href="https://github.com/Bmorp/macFLOW/releases">Download</a>
+      <a href="https://github.com/Bmorp/macFLOW#readme">Read more</a>
+      <a href="https://github.com/Bmorp/macFLOW">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>One day, <em>in the notch.</em></h1>
+    <p class="sub">From 7:58 AM to midnight: the plan Flow drafted overnight, what you copy, what Claude finishes, the meeting and its notes, your day drawn as a ring, Rewind, and StandBy.</p>
+
+    <div class="stage">
+      <video controls playsinline preload="metadata" poster="film/poster.jpg">
+        <source src="film/macflow-one-day.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="film/macflow-one-day.mp4">Download it</a> instead.
+      </video>
+    </div>
+
+    <div class="row">
+      <a class="btn primary" href="https://github.com/Bmorp/macFLOW/releases/latest">Get Mac Flow</a>
+      <a class="btn ghost" href="film/macflow-one-day.mp4" download>Download 1080p · 25 MB</a>
+      <a class="btn ghost" href="https://github.com/Bmorp/macFLOW/releases/tag/film-one-day">Download 4K · 61 MB</a>
+      <span class="meta">70 s · with sound · every frame of the UI is the real app</span>
+    </div>
+  </main>
+
+  <footer>
+    Music: “AMALGAM” by Rockot, and sound effects, from <a href="https://pixabay.com/">Pixabay</a> under the Pixabay Content License.
+    The film was made with <a href="https://hyperframes.heygen.com">HyperFrames</a>; how it was made is in
+    <a href="https://github.com/Bmorp/macFLOW/tree/main/promo/v3">promo/v3</a>.
+    Mac, macOS and Dynamic Island are trademarks of Apple Inc. Mac Flow is an independent project, not affiliated with or endorsed by Apple or Anthropic.
+  </footer>
+</body>
+</html>
