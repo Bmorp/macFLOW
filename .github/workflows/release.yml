@@ -1,0 +1,99 @@
+# Every push to main that changes the app tests it, builds it and publishes a GitHub Release.
+# Mac Flow asks GitHub for the latest release at launch and once a day, and offers to update
+# (Sources/Atoll/Services/Updater.swift installs the .zip; the .dmg is for people downloading by hand).
+#
+# Versions: VERSION in scripts/build.sh is the base. Its first release uses it as is; each release after
+# bumps the last number (8.1.0, 8.1.1, 8.1.2…). Raise the base for a bigger release (8.2.0, 9.0.0).
+# Put [skip ci] in a commit message to push without releasing.
+#
+# Signing: with the MACOS_CERT_P12 and MACOS_CERT_PASSWORD secrets set (see README › Releases), every build
+# is signed with the same certificate, so macOS keeps Mac Flow's permissions across updates and the updater
+# only installs builds signed with it. Without them, builds are signed ad hoc.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Resources/**"
+      - "Tests/**"
+      - "Package.swift"
+      - "scripts/build.sh"
+      - "scripts/make_art.swift"
+      - "scripts/atoll"
+      - ".github/workflows/release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.MACOS_CERT_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Choose version
+        id: version
+        run: |
+          base=$(sed -nE 's/^VERSION="\$\{VERSION:-([0-9.]+)\}".*/\1/p' scripts/build.sh)
+          [ -n "$base" ] || { echo "::error::No VERSION base in scripts/build.sh"; exit 1; }
+          if git rev-parse -q --verify "refs/tags/v$base" >/dev/null; then
+            line=${base%.*}
+            last=$(git tag -l "v$line.*" | sed "s/^v$line\.//" | grep -E '^[0-9]+$' | sort -n | tail -1)
+            version="$line.$((last + 1))"
+          else
+            version=$base
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "### Mac Flow $version" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Test
+        run: swift test
+
+      - name: Import signing certificate
+        if: env.HAS_SIGNING_CERT == 'true'
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(uuidgen)
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -p codesigning "$keychain" | sed -nE 's/^ *1\) [0-9A-F]+ "([^"]+)".*/\1/p' | head -1)
+          [ -n "$identity" ] || { echo "::error::The certificate has no code-signing identity"; exit 1; }
+          echo "SIGN_ID=$identity" >> "$GITHUB_ENV"
+
+      - name: Build
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SKIP_TESTS: "1"
+        run: ./scripts/build.sh
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd dist
+          shasum -a 256 "MacFlow-$VERSION.zip" > "MacFlow-$VERSION.zip.sha256"
+          gh release create "v$VERSION" "MacFlow-$VERSION.dmg" "MacFlow-$VERSION.zip" "MacFlow-$VERSION.zip.sha256" \
+            --title "Mac Flow $VERSION" --generate-notes --target "$GITHUB_SHA"

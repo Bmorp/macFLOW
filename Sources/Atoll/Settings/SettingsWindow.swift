@@ -377,19 +377,64 @@ private struct SearchPane: View {
 // MARK: - About
 
 private struct AboutPane: View {
+    @ObservedObject private var prefs = Prefs.shared
+    @ObservedObject private var updater = Updater.shared
+
     var body: some View {
         VStack(spacing: 10) {
             Spacer()
             FlowLogo(markHeight: 38)
                 .padding(.bottom, 8)
-            Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "3.0")")
+            Text("Version \(Updater.currentVersion)")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Text("Your Mac’s notch, alive — with Flow, an assistant that lives on this Mac.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            updates
+                .padding(.top, 18)
             Spacer()
+            Toggle("Check for Updates Automatically", isOn: $prefs.autoUpdate)
+                .toggleStyle(.checkbox)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .help("Asks GitHub for a new release at launch and once a day. Nothing about you is sent.")
+                .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder private var updates: some View {
+        switch updater.status {
+        case .checking:
+            ProgressView().controlSize(.small).frame(height: 44)
+        case .installing(let step):
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text(step).font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(height: 44)
+        case .available(let release):
+            VStack(spacing: 6) {
+                Button("Update to \(release.version)") { updater.install() }
+                    .buttonStyle(.borderedProminent)
+                Link("What’s New", destination: release.page).font(.caption)
+            }
+        case .idle, .upToDate, .failed:
+            VStack(spacing: 6) {
+                Button("Check for Updates") { Task { await updater.check(manual: true) } }
+                Text(note).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+        }
+    }
+
+    private var note: String {
+        switch updater.status {
+        case .upToDate: return "Mac Flow is up to date."
+        case .failed(let message): return message
+        default:
+            guard let last = updater.lastChecked else { return " " }
+            return "Last checked \(last.formatted(.relative(presentation: .named)))."
+        }
     }
 }

@@ -79,6 +79,8 @@ final class Prefs: ObservableObject {
     @Published var displayMode = DisplayMode(rawValue: Prefs.int("displayMode", 0)) ?? .notchScreen { didSet { Self.d.set(displayMode.rawValue, forKey: "displayMode") } }
     @Published var hotKey = HotKeyChoice(rawValue: Prefs.int("hotKey", 0)) ?? .optionSpace { didSet { Self.d.set(hotKey.rawValue, forKey: "hotKey") } }
     @Published var showMenuBarIcon = Prefs.bool("showMenuBarIcon", true) { didSet { Self.d.set(showMenuBarIcon, forKey: "showMenuBarIcon") } }
+    /// Ask GitHub for a new release at launch and once a day.
+    @Published var autoUpdate = Prefs.bool("autoUpdate", true) { didSet { Self.d.set(autoUpdate, forKey: "autoUpdate") } }
 
     // Live Activities
     @Published var nowPlaying = Prefs.bool("la.nowPlaying", true) { didSet { Self.d.set(nowPlaying, forKey: "la.nowPlaying") } }

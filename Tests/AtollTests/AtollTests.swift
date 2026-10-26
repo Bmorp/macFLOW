@@ -654,3 +654,45 @@ struct LyricsTests {
         #expect(LRCLib.best(records, title: "Lower Your Eyelids", artist: "M83", duration: 243) == nil)
     }
 }
+
+@Suite("Updates")
+struct UpdaterTests {
+    @Test func comparesVersions() {
+        #expect(Updater.isNewer("8.1.0", than: "8.0.0"))
+        #expect(Updater.isNewer("8.10.0", than: "8.9.2"))     // numeric, not alphabetical
+        #expect(Updater.isNewer("9", than: "8.9.9"))
+        #expect(!Updater.isNewer("8.1", than: "8.1.0"))       // missing parts count as zero
+        #expect(!Updater.isNewer("8.0.9", than: "8.1.0"))
+    }
+
+    @Test func readsAReleaseWithItsChecksum() throws {
+        let json = """
+        {"tag_name": "v8.1.2", "html_url": "https://github.com/Bmorp/macFLOW/releases/tag/v8.1.2", "draft": false, "prerelease": false,
+         "assets": [{"name": "MacFlow-8.1.2.zip", "browser_download_url": "https://example.com/MacFlow-8.1.2.zip"},
+                    {"name": "MacFlow-8.1.2.zip.sha256", "browser_download_url": "https://example.com/MacFlow-8.1.2.zip.sha256"}]}
+        """
+        let release = try #require(Updater.parse(Data(json.utf8)))
+        #expect(release.version == "8.1.2")
+        #expect(release.archive.lastPathComponent == "MacFlow-8.1.2.zip")
+        #expect(release.checksum.lastPathComponent == "MacFlow-8.1.2.zip.sha256")
+    }
+
+    @Test func ignoresReleasesItCantVerify() {
+        // A DMG alone, no checksum, or a pre-release: nothing to offer.
+        let dmgOnly = """
+        {"tag_name": "v8.1.2", "html_url": "https://example.com",
+         "assets": [{"name": "a.dmg", "browser_download_url": "https://example.com/a.dmg"}, {"name": "a.dmg.sha256", "browser_download_url": "https://example.com/a.dmg.sha256"}]}
+        """
+        let noChecksum = """
+        {"tag_name": "v8.1.2", "html_url": "https://example.com", "assets": [{"name": "a.zip", "browser_download_url": "https://example.com/a.zip"}]}
+        """
+        let prerelease = """
+        {"tag_name": "v9.0.0", "html_url": "https://example.com", "prerelease": true,
+         "assets": [{"name": "a.zip", "browser_download_url": "https://example.com/a.zip"}, {"name": "a.zip.sha256", "browser_download_url": "https://example.com/a.zip.sha256"}]}
+        """
+        #expect(Updater.parse(Data(dmgOnly.utf8)) == nil)
+        #expect(Updater.parse(Data(noChecksum.utf8)) == nil)
+        #expect(Updater.parse(Data(prerelease.utf8)) == nil)
+        #expect(Updater.parse(Data("{}".utf8)) == nil)
+    }
+}

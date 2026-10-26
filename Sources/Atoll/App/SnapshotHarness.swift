@@ -76,6 +76,7 @@ enum SnapshotHarness {
             Case(name: "1b-home-claude", live: false) { m in silence(); ClaudeSessions.shared.debugSet(claudeSessions); ActivityCenter.shared.debugSet([]); m.debugSetMode(.expanded(.glance)) },
             Case(name: "28-alert-claude-done", live: false) { m in m.debugSetMode(.alert, alert: .claudeFinished(id: "a", name: "Rebuild the notch island", duration: 734)) },
             Case(name: "29-alert-claude-needs", live: false) { m in m.debugSetMode(.alert, alert: .claudeNeedsYou(id: "a", name: "Rebuild the notch island", folder: "Atoll")) },
+            Case(name: "2c-alert-update", live: false) { m in m.debugSetMode(.alert, alert: .update(version: "8.1.1")) },
             Case(name: "19-expanded-build", live: false) { m in CustomActivity.shared.debugSet(build); ActivityCenter.shared.debugSet([.custom]); m.debugSetMode(.expanded(.activity(.custom))) },
             Case(name: "20-alert-volume", live: false) { m in KeepAwake.shared.debugSet(false); ActivityCenter.shared.debugSet([]); m.debugSetMode(.alert, alert: .volume(level: 0.62, muted: false)) },
             Case(name: "21-alert-charging", live: false) { m in m.debugSetMode(.alert, alert: .charging(76)) },

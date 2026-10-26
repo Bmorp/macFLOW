@@ -54,6 +54,8 @@ enum IslandAlert: Equatable {
     case learn(StudyCard)
     /// One step of the first-run tour, shown in the island itself.
     case tip(symbol: String, title: String, detail: String, step: Int, total: Int)
+    /// A new version of Mac Flow is out.
+    case update(version: String)
 
     var isWide: Bool {
         switch self {

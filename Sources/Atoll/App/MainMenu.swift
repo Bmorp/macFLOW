@@ -10,6 +10,7 @@ enum MainMenu {
         let appItem = NSMenuItem()
         let app = NSMenu()
         app.addItem(item("About Mac Flow", #selector(AppActions.about)))
+        app.addItem(item("Check for Updates…", #selector(AppActions.checkForUpdates)))
         app.addItem(.separator())
         app.addItem(item("Settings…", #selector(AppActions.settings), key: ","))
         app.addItem(.separator())
@@ -51,6 +52,14 @@ final class AppActions: NSObject {
     static let shared = AppActions()
 
     @objc func about() { WindowManager.shared.showAbout() }
+    @objc func checkForUpdates() {
+        WindowManager.shared.showAbout()
+        Task { await Updater.shared.check(manual: true) }
+    }
+    @objc func installUpdate() {
+        WindowManager.shared.showAbout()
+        Updater.shared.install()
+    }
     @objc func settings() { WindowManager.shared.showSettings() }
     @objc func search() { IslandManager.shared.openSearch() }
     @objc func clipboard() { IslandManager.shared.openSearch(scope: .clipboard) }

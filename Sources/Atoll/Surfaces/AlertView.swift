@@ -186,6 +186,24 @@ struct AlertView: View {
                 }
             }
 
+        case .update(let version):
+            Instrument(notch: model.notch, width: model.expandedWidth) {
+                HStack(spacing: 14) {
+                    FlowMark(color: DS.Ink.primary).frame(width: 34, height: 11)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Eyebrow(text: "Update available", dot: BrainStyle.tint)
+                        Text("Mac Flow \(version)").font(DS.Kit.title).foregroundStyle(DS.Ink.primary).lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Ghost(symbol: "xmark", label: "Later", size: 11, tint: DS.Ink.tertiary, hit: 28) { model.dismissAlert() }
+                    Pill(title: "Update") {
+                        Updater.shared.install()
+                        WindowManager.shared.showAbout()
+                        model.dismissAlert()
+                    }
+                }
+            }
+
         case .downloadFinished(let url):
             Instrument(notch: model.notch, width: model.expandedWidth) {
                 HStack(spacing: 14) {

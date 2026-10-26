@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NewsStore.shared.start()
         AudioDevices.shared.start()
         DisplayControl.shared.start()
+        Updater.shared.start()
 
         HotKeyCenter.shared.onTrigger = { IslandManager.shared.toggleSearch() }
         Prefs.shared.$hotKey

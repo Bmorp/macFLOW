@@ -171,6 +171,11 @@ final class IslandManager {
 
     func collapseAll() { controllers.forEach { $0.model.collapse() } }
 
+    /// A new version is out: offered once, here; the menu and Settings › About keep it after.
+    func offerUpdate(_ version: String) {
+        alert(.update(version: version), 12)
+    }
+
     func confirm(_ symbol: String, _ text: String, tint: Color = .white) {
         primary?.model.showAlert(.message(symbol: symbol, text: text, tint: tint), duration: 1.8)
     }

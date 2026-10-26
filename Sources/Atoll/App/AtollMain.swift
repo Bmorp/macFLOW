@@ -1,10 +1,14 @@
 import AppKit
+import Combine
 
 @main
 enum AtollMain {
     #if DEBUG || ATOLL_PROBE
     @MainActor static var probe: PerfProbe?
     @MainActor static var transitions: TransitionCapture?
+    #endif
+    #if DEBUG
+    @MainActor static var updateWatch: AnyCancellable?
     #endif
 
     @MainActor
@@ -29,6 +33,23 @@ enum AtollMain {
         if let i = CommandLine.arguments.firstIndex(of: "--surfaces"), CommandLine.arguments.count > i + 1 {
             app.setActivationPolicy(.accessory)
             SurfaceHarness.run(outDir: CommandLine.arguments[i + 1])
+            return
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--update-test"), CommandLine.arguments.count > i + 1,
+           let feed = URL(string: CommandLine.arguments[i + 1]) {
+            // Debug: install whatever a local release feed offers, end to end (download, verify, swap, relaunch).
+            app.setActivationPolicy(.accessory)
+            Updater.feed = feed
+            updateWatch = Updater.shared.$status.sink { status in
+                print("update test: \(status)")
+                if case .failed = status { exit(1) }
+            }
+            Task { @MainActor in
+                await Updater.shared.check(manual: true)
+                guard Updater.shared.available != nil else { exit(2) }
+                Updater.shared.install()
+            }
+            app.run()
             return
         }
         #endif

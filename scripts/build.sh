@@ -1,7 +1,9 @@
 #!/bin/bash
 # Builds Mac Flow.app (universal, Hardened Runtime) and packages a drag-to-install DMG.
-#   ./scripts/build.sh                 → dist/Mac Flow.app + dist/MacFlow-<version>.dmg
-#   SKIP_DMG=1 ./scripts/build.sh      → app bundle only
+#   ./scripts/build.sh                 → dist/Mac Flow.app + dist/MacFlow-<version>.dmg (+ .zip, what the updater installs)
+#   SKIP_DMG=1 ./scripts/build.sh      → app bundle and zip only
+#   SKIP_TESTS=1 ./scripts/build.sh    → don't run the tests first (CI runs them as their own step)
+#   VERSION=8.1.3 ./scripts/build.sh   → build as that version (CI picks it; see .github/workflows/release.yml)
 #   SIGN_ID="Developer ID Application: …" ./scripts/build.sh   → sign for notarization
 #
 # Without a Developer ID, a self-signed "Mac Flow Local" code-signing certificate in your login keychain is used if
@@ -16,7 +18,7 @@ APP_NAME="Mac Flow"
 EXEC_NAME="MacFlow"     # CFBundleExecutable
 BIN_NAME="Atoll"        # the Swift package product
 DMG_NAME="MacFlow"
-VERSION="8.0.0"
+VERSION="${VERSION:-8.1.0}"   # the release base: CI bumps the last number for each release after it
 BUILD_NUMBER="${BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"
 if [ -z "${SIGN_ID:-}" ]; then
     if security find-identity -p codesigning 2>/dev/null | grep -q '"Mac Flow Local"'; then
@@ -32,8 +34,10 @@ APP="$DIST/$APP_NAME.app"
 step() { printf "\n\033[1m▸ %s\033[0m\n" "$1"; }
 mkdir -p "$WORK" "$DIST"
 
-step "Testing"
-swift test 2>&1 | grep -E "Test run with|failed" || true
+if [[ "${SKIP_TESTS:-0}" != "1" ]]; then
+    step "Testing"
+    swift test 2>&1 | grep -E "Test run with|failed" || true
+fi
 
 step "Compiling (release, universal)"
 if swift build -c release --arch arm64 --arch x86_64 >/dev/null 2>"$WORK/build.log"; then
@@ -69,6 +73,12 @@ codesign --force --options runtime --timestamp=none \
     --entitlements "$ROOT/Resources/Atoll.entitlements" --sign "$SIGN_ID" "$APP"
 codesign --verify --deep --strict "$APP" && echo "signature ok ($([ "$SIGN_ID" = "-" ] && echo "ad-hoc: permissions reset each build" || echo "$SIGN_ID"))"
 codesign -d --entitlements - "$APP" 2>/dev/null | grep -c "com.apple.security" | xargs echo "entitlements:"
+
+step "Zipping for the updater"
+ZIP="$DIST/$DMG_NAME-$VERSION.zip"
+rm -f "$ZIP"
+ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
+ls -lh "$ZIP"
 
 if [[ "${SKIP_DMG:-0}" == "1" ]]; then
     echo "App ready: $APP"

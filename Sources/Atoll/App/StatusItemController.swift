@@ -64,6 +64,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(MainMenu.item("Settings…", #selector(AppActions.settings), key: ","))
         menu.addItem(MainMenu.item("About Mac Flow", #selector(AppActions.about)))
+        if let release = Updater.shared.available {
+            menu.addItem(MainMenu.item("Update to Mac Flow \(release.version)…", #selector(AppActions.installUpdate)))
+        } else {
+            menu.addItem(MainMenu.item("Check for Updates…", #selector(AppActions.checkForUpdates)))
+        }
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit Mac Flow", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
     }

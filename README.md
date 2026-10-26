@@ -141,6 +141,10 @@ Applications.
 The DMG is signed with Hardened Runtime but not notarized yet. The first time you open it, macOS may say it can't check
 the app: open **System Settings › Privacy & Security** and click **Open Anyway**.
 
+**Updates arrive on their own.** Mac Flow checks for a new release at launch and once a day. When one is out, the island
+offers it once, and the menu bar menu and **Settings › About** keep offering it. **Update** downloads it, verifies it,
+swaps it in place and relaunches. Turn the check off in **Settings › About**, or check any time from the menu.
+
 ### Requirements
 
 - macOS 14 Sonoma or later, on Apple silicon or Intel
@@ -159,8 +163,9 @@ cd macFLOW
 
 | Command | What it does |
 |---|---|
-| `./scripts/build.sh` | Builds `dist/Mac Flow.app` and `dist/MacFlow-<version>.dmg` |
-| `SKIP_DMG=1 ./scripts/build.sh` | App bundle only |
+| `./scripts/build.sh` | Builds `dist/Mac Flow.app`, `dist/MacFlow-<version>.dmg` and the `.zip` the updater installs |
+| `SKIP_DMG=1 ./scripts/build.sh` | App bundle and zip only |
+| `VERSION=8.1.3 ./scripts/build.sh` | Builds as that version |
 | `SIGN_ID="Developer ID Application: …" ./scripts/build.sh` | Signs for notarization |
 | `swift test` | Runs the Swift Testing suite: calculator, conversions, parsing, clipboard, search, widget layout, activity links, lyrics, Brain |
 
@@ -206,6 +211,41 @@ atoll done "Build succeeded"        # or: atoll fail "Tests failed", atoll clear
 
 Under the hood it's a URL: `open -g "atoll://progress?title=Building&progress=24"` (`macflow://` works too).
 
+## Releases
+
+Every push to `main` that changes the app runs [`.github/workflows/release.yml`](.github/workflows/release.yml): it
+tests, builds a universal app, and publishes a GitHub Release with the DMG, a zip of the app and the zip's SHA-256.
+Installed copies pick it up within a day.
+
+- **Versions.** `VERSION` in [`scripts/build.sh`](scripts/build.sh) is the base. Its first release uses it as is, and each
+  release after bumps the last number (8.1.0, 8.1.1, 8.1.2…). Raise the base for a bigger release.
+- **Skipping.** Put `[skip ci]` in a commit message to push without releasing. Changes to docs, the brand kit or the
+  promo never trigger a release.
+- **What the updater accepts.** The latest non-draft, non-prerelease release with a `.zip` and a matching
+  `.zip.sha256`. Before swapping, it checks the checksum, that the app inside is Mac Flow at the promised version, and
+  that its signature is valid and, when the installed copy is signed with a certificate, made with the same one.
+
+### Signing releases with your certificate
+
+Without a certificate, CI signs builds ad hoc, and macOS treats each update as a new app: people have to grant
+Accessibility, Microphone and the rest again. Sign every release with one certificate instead:
+
+1. In **Keychain Access › Certificate Assistant › Create a Certificate…**, make **Mac Flow Local** (Identity Type
+   *Self-Signed Root*, Certificate Type *Code Signing*). `build.sh` also uses it for your local builds.
+2. In **Keychain Access › My Certificates**, Control-click it, choose **Export**, and save `MacFlow.p12` with a password.
+3. Add it to the repository's secrets, then delete the file:
+
+   ```bash
+   base64 -i MacFlow.p12 | gh secret set MACOS_CERT_P12 --repo Bmorp/macFLOW
+   ```
+
+   ```bash
+   gh secret set MACOS_CERT_PASSWORD --repo Bmorp/macFLOW
+   ```
+
+Keep the certificate backed up. Once people run a build signed with it, the updater only installs builds signed with the
+same certificate.
+
 ## Project
 
 The Swift package and its executable are still named **Atoll**, the project's working name; the shipped app is
@@ -224,7 +264,7 @@ Sources/Atoll/
   StandBy/        idle detection and full-screen ambient pages
   Dock/           Dock geometry, companion bar, drop tray, live Dock icon
   Services/       media, audio activity, volume, calendar, reminders, battery, downloads,
-                  Bluetooth, weather, clipboard, shelf, apps, files, conversions, Shortcuts
+                  Bluetooth, weather, clipboard, shelf, apps, files, conversions, Shortcuts, updates
   Settings/       settings window (Overview, General, Brain, Live Activities, Search, Widgets, StandBy, Dock), welcome
 Resources/        Info.plist, entitlements, privacy manifest, AppIcon.icon, StandBy wallpapers
 Tests/AtollTests/ Swift Testing suite
@@ -232,6 +272,7 @@ scripts/          build, DMG art, brand kit, wallpaper renderer, the atoll helpe
 brand/            logos, mark, star, wordmark, app icon (SVG · PDF · PNG)
 docs/             screenshots and an example MDM profile
 promo/            the launch films' source (HyperFrames)
+.github/          the release workflow
 ```
 
 The full design rationale, tokens and citations to Apple's Human Interface Guidelines are in **[DESIGN.md](DESIGN.md)**.
@@ -246,8 +287,9 @@ paste clips), and Automation for Music and Spotify.
 Flow's observations, memory and model run on this Mac. Audio is transcribed on-device and never saved or sent.
 Network use is limited to Open-Meteo for weather and ECB rates via frankfurter for currency, both without an account;
 and, while StandBy shows Now Playing, LRCLIB (lrclib.net) for lyrics, asked with the song's title, artist, album and
-length only (**Settings › StandBy › Show Lyrics** turns it off). The privacy manifest declares no tracking and no data
-collection.
+length only (**Settings › StandBy › Show Lyrics** turns it off); and GitHub, at launch and once a day, to check for a
+new release, sending nothing about you (**Settings › About** turns it off). The privacy manifest declares no tracking
+and no data collection.
 
 ### Managed Macs
 
@@ -263,6 +305,8 @@ switches.
 - The Dock's exact width isn't public, so the companion centres itself over the Dock's edge rather than its icons.
 - Release builds aren't notarized yet, because that needs an Apple Developer ID. With one, run
   `SIGN_ID="Developer ID Application: …" ./scripts/build.sh`, then notarize and staple the DMG.
+- The updater can only replace Mac Flow where you can write: an app in **Applications** installed by your own account.
+  Otherwise it says so and points to the download.
 - Turn-by-turn navigation, answering phone calls and Siri have no public macOS APIs, so Mac Flow doesn't fake them.
 
 ## Brand
