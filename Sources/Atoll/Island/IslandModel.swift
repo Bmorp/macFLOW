@@ -649,6 +649,7 @@ final class IslandModel {
     // MARK: - Drops
 
     func handleDrop(_ providers: [NSItemProvider], target: DropTarget) -> Bool {
+        if target == .flow, TaskCapture.canTake(providers) { collapse(); return TaskCapture.drop(providers) }
         switch target {
         case .shelf:
             let ok = ShelfModel.shared.add(providers: providers) { urls in

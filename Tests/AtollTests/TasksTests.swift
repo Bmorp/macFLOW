@@ -598,3 +598,39 @@ struct ReminderSyncTests {
         #expect(remote.elsewhere[rid]?.fields.title == "Moved thing, renamed")
     }
 }
+
+// MARK: - Capture everywhere
+
+@Suite("Flow Tasks: capture") @MainActor
+struct TaskCaptureTests {
+    typealias C = TaskClock
+
+    @Test func searchCommands() throws {
+        let c = try #require(TaskCapture.command("t review deck tomorrow 3pm 45m #launch", now: C.now))
+        #expect(c.draft.title == "Review deck")
+        #expect(c.draft.estimate == 45)
+        #expect(c.typed == "review deck tomorrow 3pm 45m #launch")
+        #expect(TaskCapture.command("todo buy oat milk", now: C.now)?.draft.title == "Buy oat milk")
+        #expect(TaskCapture.command("Task: nope", now: C.now) == nil)            // needs the space
+        #expect(TaskCapture.command("t tomorrow", now: C.now) == nil)            // nothing to do yet
+        #expect(TaskCapture.command("timer 10", now: C.now) == nil)
+        #expect(TaskCapture.opensTasks("tasks"))
+        #expect(TaskCapture.opensTasks("tas"))
+        #expect(TaskCapture.opensTasks("todo"))
+        #expect(!TaskCapture.opensTasks("ta"))
+    }
+
+    @Test func droppedTextBecomesTasks() {
+        let text = """
+        Launch checklist
+        - [ ] Send the deck to Sam by Friday
+        • Book the room
+        2. Draft the post 45m
+
+        * [x] Already done
+        """
+        #expect(TaskCapture.lines(in: text) == ["Launch checklist", "Send the deck to Sam by Friday", "Book the room", "Draft the post 45m", "Already done"])
+        #expect(TaskCapture.lines(in: "   \n\n").isEmpty)
+        #expect(TaskCapture.lines(in: String(repeating: "x", count: 300)).isEmpty)   // a paragraph isn't a task
+    }
+}

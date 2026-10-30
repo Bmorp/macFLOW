@@ -65,6 +65,8 @@ enum TaskRowText {
 /// The circle you click to finish a task. Finishing fills it from the centre on a spring, as Reminders does.
 struct CompletionCircle: View {
     let done: Bool
+    /// In focus right now: the ring takes the accent.
+    var active = false
     var size: CGFloat = 17
     let action: () -> Void
     @State private var hover = false
@@ -73,7 +75,7 @@ struct CompletionCircle: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .strokeBorder(done ? TaskStyle.tint : Color.white.opacity(hover ? 0.62 : 0.34), lineWidth: 1.3)
+                    .strokeBorder(done || active ? TaskStyle.tint : Color.white.opacity(hover ? 0.62 : 0.34), lineWidth: 1.3)
                 // Grows from nothing: no fades inside the island.
                 Circle()
                     .fill(TaskStyle.tint)
@@ -110,7 +112,7 @@ struct TaskRow: View {
     var body: some View {
         let now = Date()
         HStack(spacing: 6) {
-            CompletionCircle(done: task.isDone) { model.toggle(task.id) }
+            CompletionCircle(done: task.isDone, active: active.task?.id == task.id) { model.toggle(task.id) }
             if editing {
                 TextField("", text: $model.editText)
                     .textFieldStyle(.plain)

@@ -77,7 +77,7 @@ private struct DropTargetModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if enabled {
-            content.onDrop(of: [.fileURL], isTargeted: $targeted, perform: perform)
+            content.onDrop(of: [.fileURL, .plainText], isTargeted: $targeted, perform: perform)
         } else {
             content
         }

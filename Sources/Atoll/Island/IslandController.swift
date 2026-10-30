@@ -235,7 +235,7 @@ final class IslandController {
         let buttonDown = NSEvent.pressedMouseButtons & 1 != 0
         let dragPB = NSPasteboard(name: .drag)
         let fileDrag = buttonDown && !dragStartedInside && dragPB.changeCount != dragBaseline
-            && (dragPB.types?.contains(.fileURL) ?? false)
+            && (dragPB.types.map { $0.contains(.fileURL) || $0.contains(.string) } ?? false)
 
         let inIsland = islandZone.contains(p)
         let inBubble = bubbleZone?.contains(p) ?? false

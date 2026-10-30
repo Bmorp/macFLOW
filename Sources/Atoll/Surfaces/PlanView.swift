@@ -237,7 +237,9 @@ struct PlanView: View {
         if dayOver { return "I’ll ask again tomorrow morning." }
         if !store.plan.started, store.hasDrafts {
             let fromYesterday = store.priorities.contains { $0.isDraft && ($0.source ?? "").contains("yesterday") }
-            return fromYesterday ? "Drafted from yesterday — change anything" : "Drafted from your week — change anything"
+            let fromTasks = store.priorities.contains { $0.isDraft && $0.taskID != nil }
+            return fromYesterday ? "Drafted from yesterday — change anything"
+                : fromTasks ? "Drafted from your tasks — change anything" : "Drafted from your week — change anything"
         }
         if let miss = store.unplaced.first {
             let end = Calendar.current.date(bySettingHour: prefs.planEndHour, minute: 0, second: 0, of: now) ?? now
