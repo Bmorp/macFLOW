@@ -292,6 +292,23 @@ enum SnapshotHarness {
                                                               actions: [.summarize("x"), .tasks("x")]))) },
             Case(name: "40-drop", live: false) { m in SearchModel.shared.reset(); m.debugSetMode(.drop) },
             Case(name: "41-mirror", live: false) { m in m.debugSetMode(.mirror) },
+            Case(name: "60-tasks-empty", live: true) { m in
+                TaskStore.shared.debugSet([]); TasksModel.shared.segment = .today; TasksModel.shared.selection = nil
+                m.debugSetMode(.expanded(.tasks)) },
+            Case(name: "61-tasks-today", live: true) { m in
+                let demo = TaskDemo.busyWeek()
+                TaskStore.shared.debugSet(demo.tasks, active: demo.active, since: Date().addingTimeInterval(-12 * 60))
+                TasksModel.shared.segment = .today; TasksModel.shared.selection = demo.tasks[1].id
+                m.debugSetMode(.expanded(.tasks)) },
+            Case(name: "62-tasks-quickadd", live: true) { m in
+                TasksModel.shared.selection = nil; TasksModel.shared.draft = "review deck tomorrow 3pm 45m #launch !high"
+                m.debugSetMode(.expanded(.tasks)) },
+            Case(name: "63-tasks-upcoming", live: true) { m in
+                TasksModel.shared.draft = ""; TasksModel.shared.segment = .upcoming
+                m.debugSetMode(.expanded(.tasks)) },
+            Case(name: "64-search-task", live: true) { m in
+                TasksModel.shared.segment = .today
+                SearchModel.shared.query = "t review deck tomorrow 3pm 45m #launch"; m.debugSetMode(.search) },
         ]
 
         // ATOLL_SNAP_ONLY=10b,1c renders just those (by name prefix) — for iterating on one screen.

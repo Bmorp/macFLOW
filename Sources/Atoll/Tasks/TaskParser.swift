@@ -517,16 +517,19 @@ enum TaskFormat {
         let today = cal.startOfDay(for: now)
         let d = cal.startOfDay(for: date)
         let diff = cal.dateComponents([.day], from: today, to: d).day ?? 0
+        var style = Date.FormatStyle.dateTime
+        style.calendar = cal
+        style.timeZone = cal.timeZone
         switch diff {
         case 0: return "Today"
         case 1: return "Tomorrow"
         case -1: return "Yesterday"
-        case 2...6: return date.formatted(.dateTime.weekday(.wide))
+        case 2...6: return date.formatted(style.weekday(.wide))
         default:
             if cal.component(.year, from: d) == cal.component(.year, from: today) {
-                return date.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+                return date.formatted(style.weekday(.abbreviated).day().month(.abbreviated))
             }
-            return date.formatted(.dateTime.day().month(.abbreviated).year())
+            return date.formatted(style.day().month(.abbreviated).year())
         }
     }
 

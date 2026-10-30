@@ -170,3 +170,431 @@ struct TaskParserTests {
         #expect(TaskFormat.length(45) == "45m")
     }
 }
+
+// MARK: - The store
+
+@MainActor
+func makeStore(_ database: TaskDatabase? = nil) -> TaskStore {
+    let s = TaskStore(database: database)
+    s.clock = { TaskClock.now }
+    s.calendar = TaskClock.cal
+    return s
+}
+
+@MainActor
+final class EventLog {
+    private(set) var events: [String] = []
+    private var sub: Any?
+    init(_ ids: @escaping () -> Set<UUID>) {
+        sub = TaskEvents.stream.sink { [weak self] e in
+            let (name, id): (String, UUID) = switch e {
+            case .added(let t): ("added", t.id)
+            case .updated(let t): ("updated", t.id)
+            case .started(let t): ("started", t.id)
+            case .paused(let t, let f): ("paused:\(Int(f))", t.id)
+            case .completed(let t): ("completed", t.id)
+            case .reopened(let t): ("reopened", t.id)
+            case .deleted(let id): ("deleted", id)
+            }
+            if ids().contains(id) || name == "deleted" { self?.events.append(name) }
+        }
+    }
+}
+
+@Suite("Flow Tasks: the store") @MainActor
+struct TaskStoreTests {
+    typealias C = TaskClock
+
+    @Test func roundTripsThroughSQLite() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tasks-\(UUID().uuidString).sqlite")
+        defer { for s in ["", "-wal", "-shm"] { try? FileManager.default.removeItem(atPath: url.path + s) } }
+        let a = makeStore(TaskDatabase(url: url))
+        let t = try #require(a.add(C.parse("review deck tomorrow 3pm 45m #launch !high every friday"), source: .search, context: "From a test",
+                                   notes: "Slides 4–9"))
+        a.update(t.id) { $0.reminderID = "r-1" }
+        a.complete(try #require(a.add(C.parse("ship it"), source: .typed)).id)
+        a.flush()
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        #expect((attributes[.posixPermissions] as? Int) == 0o600)
+
+        let b = makeStore(TaskDatabase(url: url))
+        #expect(b.tasks.count == 2)
+        let back = try #require(b.task(id: t.id))
+        let original = try #require(a.task(id: t.id))
+        #expect(back == original)
+        #expect(back.project == "launch")
+        #expect(back.notes == "Slides 4–9")
+        #expect(back.repeats == .weekly([6]))
+        #expect(back.reminderID == "r-1")
+        #expect(back.estimateIsUser)
+        #expect(b.projects.map(\.name) == ["launch"])
+        #expect(b.tasks.filter(\.isDone).count == 1)
+    }
+
+    @Test func publishesEveryChange() throws {
+        let s = makeStore()
+        let log = EventLog { Set(s.tasks.map(\.id)) }
+        let t = try #require(s.add(C.parse("write the spec"), source: .typed))
+        s.update(t.id) { $0.title = "Write the spec v2" }
+        s.complete(t.id)
+        s.reopen(t.id)
+        s.update(t.id) { $0.title = "Write the spec v2" }        // no change, no event
+        s.delete(t.id)
+        #expect(log.events == ["added", "updated", "completed", "reopened", "deleted"])
+    }
+
+    @Test func stampsOnlyWhatChanged() throws {
+        let s = makeStore()
+        let t = try #require(s.add(C.parse("draft"), source: .typed))
+        let later = C.now.addingTimeInterval(600)
+        s.clock = { later }
+        s.update(t.id) { $0.title = "Draft the post"; $0.priority = .high }
+        let u = try #require(s.task(id: t.id))
+        #expect(u.stamps[.title] == later)
+        #expect(u.stamps[.priority] == later)
+        #expect(u.stamps[.due] == C.now)
+        s.clock = { later.addingTimeInterval(60) }
+        s.update(t.id) { $0.notes = "x" }
+        #expect(s.task(id: t.id)?.stamps[.title] == later)
+    }
+
+    @Test func listsAndSections() throws {
+        let s = makeStore()
+        let today = try #require(s.add(C.parse("standup notes"), source: .typed, in: .today))
+        let overdue = try #require(s.add(TaskDraft(title: "Expenses", due: C.at(11, 2)), source: .typed))
+        let fri = try #require(s.add(C.parse("dentist friday 3pm"), source: .typed))
+        let fri2 = try #require(s.add(C.parse("buy flowers friday"), source: .typed))
+        let anytime = try #require(s.add(C.parse("read a book"), source: .typed))
+        let parked = try #require(s.add(C.parse("learn piano someday"), source: .typed))
+        #expect(s.list(.today).map(\.id) == [today.id, overdue.id])
+        #expect(s.list(.someday).map(\.id) == [parked.id])
+        let sections = s.sections(.upcoming)
+        #expect(sections.map(\.title) == ["Friday", "Anytime"])
+        #expect(sections.first?.tasks.map(\.id) == [fri.id, fri2.id])   // timed first
+        #expect(sections.last?.tasks.map(\.id) == [anytime.id])
+        #expect(s.task(id: today.id)?.scheduled == C.at(11, 4))    // typed in Today: for today
+        #expect(s.task(id: overdue.id)?.isOverdue(at: C.now, calendar: C.cal) == true)
+    }
+
+    @Test func reordersWithOneWrite() throws {
+        let s = makeStore()
+        let ids = try ["a", "b", "c", "d"].map { try #require(s.add(C.parse($0), source: .typed, in: .today)).id }
+        s.move(ids[3], to: 0, in: ids)
+        #expect(s.list(.today).map(\.title) == ["D", "A", "B", "C"])
+        s.move(ids[3], to: 2, in: s.list(.today).map(\.id))
+        #expect(s.list(.today).map(\.title) == ["A", "B", "D", "C"])
+        s.move(ids[0], to: 4, in: s.list(.today).map(\.id))
+        #expect(s.list(.today).map(\.title) == ["B", "D", "C", "A"])
+    }
+
+    @Test func completingARepeatBringsTheNextOne() throws {
+        let s = makeStore()
+        let t = try #require(s.add(C.parse("water plants every monday 9am"), source: .typed))
+        #expect(t.scheduled == C.at(11, 9, 9))
+        s.complete(t.id)
+        let next = try #require(s.tasks.first { $0.isOpen && $0.title == "Water plants" })
+        #expect(next.scheduled == C.at(11, 16, 9))
+        #expect(next.repeats == .weekly([2]))
+        #expect(s.task(id: t.id)?.repeats == nil)                 // reopening the old one won't spawn another
+    }
+
+    @Test func undoesADelete() throws {
+        let s = makeStore()
+        let t = try #require(s.add(C.parse("call Sam"), source: .typed))
+        s.update(t.id) { $0.reminderID = "r-9" }
+        let gone = try #require(s.delete(t.id))
+        #expect(s.tombstones["r-9"] != nil)
+        s.restore(gone)
+        #expect(s.task(id: t.id)?.reminderID == "r-9")
+        #expect(s.tombstones.isEmpty)                             // Reminders never hears of it
+    }
+
+    @Test func ledgerForTheBrain() throws {
+        let s = makeStore()
+        let snap = try #require(s.capture("review deck tomorrow 3pm 45m", source: .voice))
+        #expect(snap.title == "Review deck")
+        #expect(snap.estimate == 45)
+        #expect(snap.source == .voice)
+        let mine = try #require(s.capture("tidy inbox", source: .flow))
+        s.suggestEstimate(mine.id, minutes: 20)
+        s.suggestEstimate(snap.id, minutes: 90)                   // the user's 45 stays
+        #expect(s.task(snap.id)?.estimate == 45)
+        #expect(s.task(mine.id)?.estimate == 20)
+        s.complete(mine.id)
+        #expect(s.openTasks().map(\.id) == [snap.id])
+    }
+
+    @Test func focusTimeIsCountedAndPublished() throws {
+        let s = makeStore()
+        let log = EventLog { Set(s.tasks.map(\.id)) }
+        let t = try #require(s.add(C.parse("write"), source: .typed))
+        s.beginFocus(t.id)
+        #expect(s.task(id: t.id)?.status == .active)
+        #expect(s.active.task?.id == t.id)
+        s.clock = { C.now.addingTimeInterval(25 * 60) }
+        #expect(s.active.elapsed(at: s.now) == TimeInterval(25 * 60))
+        s.endFocus()
+        #expect(s.task(id: t.id)?.actual == TimeInterval(25 * 60))
+        #expect(s.task(id: t.id)?.status == .open)
+        #expect(s.active.task == nil)
+        #expect(log.events.contains("started"))
+        #expect(log.events.contains("paused:1500"))
+    }
+
+    @Test func rankingForTheMorning() throws {
+        let s = makeStore()
+        let backlog = try #require(s.add(C.parse("backlog thing"), source: .typed))
+        let important = try #require(s.add(C.parse("important thing !!!"), source: .typed))
+        let carried = try #require(s.add(TaskDraft(title: "Yesterday’s thing", scheduled: C.at(11, 3)), source: .plan))
+        let dueToday = try #require(s.add(C.parse("file report by today"), source: .typed))
+        let overdue = try #require(s.add(TaskDraft(title: "Late thing", due: C.at(11, 1)), source: .typed))
+        _ = try #require(s.add(C.parse("next week thing next week"), source: .typed))
+        _ = try #require(s.add(C.parse("someday thing someday"), source: .typed))
+        let picks = TaskRanking.rank(s.tasks, now: C.now, calendar: C.cal)
+        #expect(picks.map(\.task.id) == [overdue.id, dueToday.id, carried.id, important.id, backlog.id])
+        #expect(Array(picks.map(\.reason).prefix(3)) == ["Overdue", "Due today", "Unfinished yesterday"])
+        // What the Brain learned outranks the priority marks within a tier.
+        let learned = TaskRanking.rank(s.tasks, now: C.now, calendar: C.cal) { $0.id == backlog.id ? 0.9 : 0.5 }
+        #expect(Array(learned.map(\.task.id).suffix(2)) == [backlog.id, important.id])
+    }
+}
+
+// MARK: - Carry-over and the plan
+
+@Suite("Flow Tasks: carry-over and the plan") @MainActor
+struct TaskPlanTests {
+    typealias C = TaskClock
+
+    @Test func carriesEveryItemNotJustSix() {
+        let s = makeStore()
+        let items = (1...8).map { "Action item \($0)" } + ["Send the deck to Sam by Friday"]
+        s.carry(items, context: "From Design Review", source: .meeting, to: C.at(11, 5))
+        #expect(s.tasks.count == 9)
+        #expect(s.tasks.allSatisfy { $0.source == .meeting && $0.context == "From Design Review" })
+        let deck = s.tasks.first { $0.title == "Send the deck to Sam" }
+        #expect(deck?.due == C.at(11, 6))                          // its deadline survives
+        #expect(deck?.scheduled == C.at(11, 5))
+        // Carried again (Add to Tomorrow pressed twice): no duplicates.
+        s.carry(items, context: "From Design Review", source: .meeting, to: C.at(11, 5))
+        #expect(s.tasks.count == 9)
+        // The next morning they're all in Today; planning three of them loses none of the rest.
+        s.clock = { C.at(11, 5, 8) }
+        #expect(s.list(.today).count == 9)
+        for pick in s.ranked().prefix(3) { s.plan(pick.task.title, task: pick.task.id, at: C.at(11, 5, 10), minutes: 45, context: nil) }
+        #expect(s.list(.today).count == 9)
+        #expect(s.tasks.count == 9)
+    }
+
+    @Test func unfinishedWorkRollsForward() throws {
+        let s = makeStore()
+        let t = try #require(s.add(TaskDraft(title: "Pricing page", scheduled: C.at(11, 3, 14)), source: .plan))
+        let done = try #require(s.add(TaskDraft(title: "Done thing", scheduled: C.at(11, 3, 9)), source: .plan))
+        s.complete(done.id)
+        s.rollForward([t.id, done.id], to: C.at(11, 4), context: "Unfinished yesterday")
+        #expect(s.task(id: t.id)?.scheduled == C.at(11, 4))
+        #expect(s.task(id: t.id)?.context == "Unfinished yesterday")
+        #expect(s.task(id: done.id)?.scheduled == C.at(11, 3, 9))   // finished work stays where it was
+    }
+
+    @Test func planningLinksOrMakesTasks() throws {
+        let s = makeStore()
+        let t = try #require(s.add(C.parse("write the launch post"), source: .typed))
+        let linked = s.plan("Write the launch post", task: t.id, at: C.at(11, 4, 10, 40), minutes: 90, context: nil)
+        #expect(linked == t.id)
+        #expect(s.task(id: t.id)?.scheduled == C.at(11, 4, 10, 40))
+        #expect(s.task(id: t.id)?.estimate == 90)
+        let made = try #require(s.plan("Inbox zero", task: nil, at: C.at(11, 4, 15), minutes: 30, context: nil))
+        #expect(s.task(id: made)?.source == .plan)
+        #expect(s.list(.today).map(\.id).contains(made))
+    }
+
+    @Test func wrapUpSaysWhatsLeft() {
+        var plan = DayPlan(day: "2026-11-04")
+        plan.items = [PlanItem(title: "A", kind: .focus, start: C.at(11, 4, 9), minutes: 30, done: true),
+                      PlanItem(title: "B", kind: .focus, start: C.at(11, 4, 10), minutes: 30)]
+        #expect(DayGuide.wrapUp(plan: plan, left: []) == "1 of 2 priorities done — see how it went")
+        let line = DayGuide.wrapUp(plan: plan, left: ["B", "Inbox zero", "Call Sam"])
+        #expect(line.contains("“B”, “Inbox zero” +1"))
+    }
+}
+
+// MARK: - Reminders sync
+
+/// Reminders, as a dictionary: what a sync round sees, and what an iPhone edit changes.
+final class FakeReminders: ReminderBackend {
+    var items: [String: RemoteReminder] = [:]
+    /// Moved to another list or finished long ago: found by identifier, not in the list.
+    var elsewhere: [String: RemoteReminder] = [:]
+    var clock = TaskClock.now
+    private var next = 1
+    var failReads = false
+
+    func fetch() -> [RemoteReminder]? { failReads ? nil : Array(items.values) }
+    func lookup(_ id: String) -> RemoteReminder? { items[id] ?? elsewhere[id] }
+    func create(_ fields: ReminderFields) -> RemoteReminder? {
+        let r = RemoteReminder(id: "r\(next)", fields: fields, modified: clock, completedAt: fields.completed ? clock : nil)
+        next += 1
+        items[r.id] = r
+        return r
+    }
+    func update(_ id: String, to fields: ReminderFields, only: Set<ReminderField>) -> RemoteReminder? {
+        guard var r = items[id] ?? elsewhere[id] else { return nil }
+        for f in only { r.fields.take(f, from: fields) }
+        r.modified = clock
+        if items[id] != nil { items[id] = r } else { elsewhere[id] = r }
+        return r
+    }
+    func delete(_ id: String) -> Bool { items[id] = nil; elsewhere[id] = nil; return true }
+    func commit() -> Bool { true }
+
+    /// A change made on the iPhone.
+    func edit(_ id: String, at date: Date, _ change: (inout ReminderFields) -> Void) {
+        guard var r = items[id] else { return }
+        change(&r.fields)
+        r.modified = date
+        if r.fields.completed { r.completedAt = date }
+        items[id] = r
+    }
+    func add(_ title: String, completed: Bool = false, date: Date? = nil) -> String {
+        create(ReminderFields(title: title, notes: "", date: date, priority: .none, completed: completed))!.id
+    }
+    func titles() -> [String] { items.values.map(\.fields.title).sorted() }
+}
+
+@MainActor
+func sync(_ store: TaskStore, _ remote: FakeReminders) {
+    let s = store.syncState()
+    store.applySync(ReminderMerge.round(remote, locals: s.locals, tombstones: s.tombstones, now: store.now), readAt: s.revisions)
+}
+
+@Suite("Flow Tasks: Reminders sync") @MainActor
+struct ReminderSyncTests {
+    typealias C = TaskClock
+    let base = ReminderFields(title: "Deck", notes: "", date: nil, priority: .none, completed: false)
+
+    @Test func mergeIsPerFieldLastEditWins() {
+        var local = base, remote = base
+        local.title = "Deck v2"                                    // changed here
+        remote.date = C.at(11, 6)                                  // changed on the phone
+        let both = ReminderMerge.merge(local: local, stamps: [.title: C.now], base: base, remote: remote, remoteModified: C.now)
+        #expect(both.fields.title == "Deck v2")
+        #expect(both.fields.date == C.at(11, 6))
+        #expect(both.pull == [.date])
+        #expect(both.push)
+        // The same field on both sides: the later edit wins, whichever side it's on.
+        local = base; remote = base
+        local.title = "Mine"; remote.title = "Theirs"
+        let theirs = ReminderMerge.merge(local: local, stamps: [.title: C.now], base: base, remote: remote, remoteModified: C.now.addingTimeInterval(60))
+        #expect(theirs.fields.title == "Theirs")
+        #expect(!theirs.push)
+        let mine = ReminderMerge.merge(local: local, stamps: [.title: C.now.addingTimeInterval(120)], base: base, remote: remote,
+                                       remoteModified: C.now.addingTimeInterval(60))
+        #expect(mine.fields.title == "Mine")
+        #expect(mine.pull.isEmpty)
+        // Reminders keeps minutes, not seconds: the same date isn't a change.
+        local = base; remote = base
+        local.date = C.at(11, 6, 15).addingTimeInterval(12); remote.date = C.at(11, 6, 15)
+        let same = ReminderMerge.merge(local: local, stamps: [:], base: nil, remote: remote, remoteModified: nil)
+        #expect(!same.push && same.pull.isEmpty)
+    }
+
+    @Test func firstSyncMakesNoDuplicates() throws {
+        let s = makeStore()
+        let remote = FakeReminders()
+        _ = remote.add("call sam")                                 // already in Reminders, typed differently
+        _ = remote.add("Pick up dry cleaning")
+        _ = remote.add("Old finished thing", completed: true)
+        let call = try #require(s.add(C.parse("Call Sam"), source: .typed))
+        _ = try #require(s.add(C.parse("Write the spec"), source: .typed))
+        let finished = try #require(s.add(C.parse("Ancient history"), source: .typed))
+        s.update(finished.id) { $0.status = .done; $0.completed = C.now.addingTimeInterval(-10 * 86_400) }
+        sync(s, remote)
+        // Linked, not duplicated; with no history between them, this Mac's spelling wins the tie.
+        #expect(remote.titles() == ["Call Sam", "Old finished thing", "Pick up dry cleaning", "Write the spec"])
+        #expect(Set(s.tasks.filter(\.isOpen).map(\.title)) == ["Call Sam", "Write the spec", "Pick up dry cleaning"])
+        #expect(s.task(id: call.id)?.reminderID != nil)
+        // Nothing changes on a second round.
+        let before = (remote.items, s.tasks.count)
+        sync(s, remote)
+        #expect(remote.items == before.0)
+        #expect(s.tasks.count == before.1)
+    }
+
+    @Test func editsTravelBothWays() throws {
+        let s = makeStore()
+        let remote = FakeReminders()
+        let t = try #require(s.add(C.parse("review deck tomorrow 3pm !!"), source: .typed))
+        sync(s, remote)
+        let rid = try #require(s.task(id: t.id)?.reminderID)
+        #expect(remote.items[rid]?.fields.date == C.at(11, 5, 15))
+        #expect(remote.items[rid]?.fields.priority == .medium)
+        // Here: a new title. On the phone, a minute later: a new time.
+        s.clock = { C.now.addingTimeInterval(60) }
+        s.update(t.id) { $0.title = "Review the deck" }
+        remote.edit(rid, at: C.now.addingTimeInterval(120)) { $0.date = C.at(11, 5, 16) }
+        sync(s, remote)
+        #expect(s.task(id: t.id)?.title == "Review the deck")
+        #expect(s.task(id: t.id)?.scheduled == C.at(11, 5, 16))
+        #expect(remote.items[rid]?.fields.title == "Review the deck")
+        // Done on the Watch: done here, with an event for the Brain.
+        let log = EventLog { [t.id] }
+        remote.edit(rid, at: C.now.addingTimeInterval(300)) { $0.completed = true }
+        sync(s, remote)
+        #expect(s.task(id: t.id)?.isDone == true)
+        #expect(log.events == ["completed"])
+        // Reopened here: open there.
+        s.clock = { C.now.addingTimeInterval(400) }
+        s.reopen(t.id)
+        sync(s, remote)
+        #expect(remote.items[rid]?.fields.completed == false)
+    }
+
+    @Test func deletionsTravelBothWays() throws {
+        let s = makeStore()
+        let remote = FakeReminders()
+        let a = try #require(s.add(C.parse("A thing"), source: .typed))
+        let b = try #require(s.add(C.parse("B thing"), source: .typed))
+        sync(s, remote)
+        let ra = try #require(s.task(id: a.id)?.reminderID)
+        let rb = try #require(s.task(id: b.id)?.reminderID)
+        s.delete(a.id)
+        sync(s, remote)
+        #expect(remote.items[ra] == nil)
+        #expect(s.tombstones.isEmpty)
+        remote.items[rb] = nil                                     // deleted on the iPhone
+        sync(s, remote)
+        #expect(s.task(id: b.id) == nil)
+        #expect(s.tasks.isEmpty)
+    }
+
+    @Test func aFailedReadDeletesNothing() {
+        let s = makeStore()
+        let remote = FakeReminders()
+        for n in 1...6 { _ = s.add(C.parse("Task \(n)"), source: .typed) }
+        sync(s, remote)
+        remote.failReads = true
+        sync(s, remote)
+        #expect(s.tasks.count == 6)
+        // The whole list vanishing at once is a reset, not six deletions: the tasks go back up.
+        remote.failReads = false
+        remote.items = [:]
+        sync(s, remote)
+        #expect(s.tasks.count == 6)
+        sync(s, remote)
+        #expect(remote.items.count == 6)
+    }
+
+    @Test func followsAReminderThatMovedOrFinished() throws {
+        let s = makeStore()
+        let remote = FakeReminders()
+        let t = try #require(s.add(C.parse("Moved thing"), source: .typed))
+        sync(s, remote)
+        let rid = try #require(s.task(id: t.id)?.reminderID)
+        remote.elsewhere[rid] = remote.items.removeValue(forKey: rid)   // dragged to another list on the iPhone
+        s.clock = { C.now.addingTimeInterval(60) }
+        s.update(t.id) { $0.title = "Moved thing, renamed" }
+        sync(s, remote)
+        #expect(s.task(id: t.id) != nil)
+        #expect(remote.elsewhere[rid]?.fields.title == "Moved thing, renamed")
+    }
+}

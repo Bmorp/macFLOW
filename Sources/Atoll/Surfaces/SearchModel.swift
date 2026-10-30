@@ -371,7 +371,12 @@ final class SearchModel: ObservableObject {
             let smart = SmartCommand.parse(q)
             if !smart.isEmpty { out.append(SearchSection(id: "do", title: "Do", items: smart.prefix(6).map(SearchResult.smart))) }
             // A clear instruction ("volume 40", "jbl", "next") doesn't need "Ask Claude …" under it; Tab still asks.
-            commanded = smart.contains { if case .project = $0 { return false }; if case .claude = $0 { return false }; return true }
+            commanded = smart.contains {
+                switch $0 {
+                case .project, .claude, .openTask, .tasks: return false
+                default: return true
+                }
+            }
         }
 
         if scope == .all {
@@ -388,7 +393,8 @@ final class SearchModel: ObservableObject {
 
         if scope == .all || scope == .actions {
             var actions: [SearchResult] = []
-            if let draft = RemindersService.parse(q), !draft.title.isEmpty { actions.append(.action(.reminder(draft))) }
+            // "todo …" is a task (it reaches Reminders through sync), so it isn't offered as a reminder too.
+            if TaskCapture.command(q) == nil, let draft = RemindersService.parse(q), !draft.title.isEmpty { actions.append(.action(.reminder(draft))) }
             if let minutes = Self.timerMinutes(lower) { actions.append(.action(.timer(minutes: minutes))) }
             if !actions.isEmpty { out.append(SearchSection(id: "quick", title: "Quick Actions", items: actions)) }
         }
