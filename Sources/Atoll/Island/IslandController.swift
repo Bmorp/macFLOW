@@ -8,6 +8,8 @@ final class IslandController {
     let screen: NSScreen
     let model: IslandModel
     let panel: NotchPanel
+    /// Whether the island's motion runs in Core Animation (Island Engine 2.0) or as SwiftUI springs (legacy).
+    let usesEngine = false
 
     #if DEBUG
     /// The hover test drives the pointer here; nil in normal use.

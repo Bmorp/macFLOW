@@ -48,6 +48,7 @@ struct IslandView: View {
     }
 
     var body: some View {
+        let _ = IslandTrace.countBody()
         let display = shown ?? current()
         // The live state keeps its live size (hover, growing search results); a held state keeps its own.
         let size = display.key == model.presentationKey ? model.spec.size : display.size
