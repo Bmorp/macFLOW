@@ -1,9 +1,11 @@
 // Fluted — the Prism pictures. A slab of a few hundred vertical glass strips stands in a dark studio; each strip is a
 // cylindrical lens (an elliptical cross-section, edge to edge with its neighbours, silk's ribbon section made thick).
-// The strips rise in bundles to a long, uneven crest and roll over toward the viewer at the top, as ribbon does;
-// a few trail a hairline. Behind them, a field of light: brightest just under the crest, falling from white to the
-// variant's colour, so every strip shows its own slice of it, bent and magnified. One strip in a hundred has a thin
-// coloured light behind it: a spark. Each sample traces one wavelength, so strip edges split into spectra.
+// The strips rise to one long, uneven, continuous crest and fold over it toward the viewer, as a wide flat ribbon
+// folds: a tight rolled edge that catches the softbox as a single clean line, then a flap hanging down in front of
+// the strip, ending in a hairline on a few. Behind them, a field of light: brightest just under the crest, falling
+// through the variant's colours to black, and every strip takes its own share of it, bent and magnified. A spark or
+// two (a thin coloured light behind one strip) and no more. Each sample traces one wavelength, so strip edges split
+// into spectra.
 // The crest rises under the right of the clock (the slab is the depth layer and tucks over the lower minutes).
 //
 // Variants (render.swift --define VARIANT=n): 0 Steel (white to steel blue), 1 Ember (gold to deep red),
@@ -16,10 +18,14 @@
 constant float P = 0.034;            // strip pitch, world units (about two hundred strips across the frame)
 constant float HALF_W = 0.5 * P;     // lens half width: neighbours meet at their thin edges
 constant float HALF_T = 0.34 * P;    // lens half thickness at the ridge
+#ifndef FLATT
+#define FLATT 0.07
+#endif
+constant float HALF_T_FLAT = FLATT * P;   // …and in the fold and the flap, where the ribbon is flat
 constant float HALF_H = 2.244;       // half the frame's height at z = 0 (camera at z = 9, 28°)
 constant float HALF_X = 3.59;        // half its width (16:10)
 constant float ZB = -1.3;            // the light field's plane
-constant float ALPHA_MAX = 4.87;     // how far a strip rolls at its top: about 280°
+constant float FOLD = PI;            // a strip folds right over at its top: 180°, back down in front of itself
 constant int SUB = 3;
 constant float BEHIND = (9.0 - ZB) / 9.0;   // a strip at x on the slab is in front of x · BEHIND on the field
 
@@ -43,26 +49,37 @@ inline float crestY(float x) { return (0.5 - crestV(x / HALF_X)) * 2.0 * HALF_H;
 
 struct Strip {
     float x;       // centre
-    float h;       // where it starts to roll
+    float h;       // where it starts to fold, at the centre…
+    float dh;      // …and how that rises across the strip (the crest's slope: the fold follows the crest, not a step)
     float z;       // its plane
-    float R;       // the roll's radius
-    float tail;    // hairline length (0: none)
+    float R;       // the fold's radius
+    float e;       // where the flap ends, at the centre…
+    float de;      // …and its slope across the strip
+    float tail;    // hairline length below the flap (0: none)
     float hash;
 };
 
-/// Strips come in bundles of 5–13 that end together; each bundle sits a little proud of or behind its neighbours.
+/// The flap's length along the crest: a long, slow drift.
+inline float flapLength(float x) { return 0.15 + 0.2 * noise(float2(x * 0.8, 17.0)); }
+
+/// Everything varies smoothly along the crest (the fold's depth, radius and the flap's length drift with x, so
+/// neighbours always agree), and each strip adds only a hair of its own: no bundles, no steps. A strip's fold and
+/// the end of its flap are cut along the crest's own slope, so the edges are continuous curves.
 inline Strip stripAt(int i) {
     float fi = float(i);
-    // Bundle boundaries from a hash over coarse cells, so bundles vary in width.
-    float cell = floor((fi + 3.0 * hash12(float2(floor(fi / 9.0), 7.0))) / 9.0);
-    float bh = hash12(float2(cell, 13.1)), bz = hash12(float2(cell, 29.7)), br = hash12(float2(cell, 41.3));
     Strip s;
     s.x = (fi + 0.5) * P;
     s.hash = hash12(float2(fi, 3.7));
-    s.h = crestY(s.x) + (bh - 0.5) * 0.18 + (s.hash - 0.5) * 0.006;
-    s.z = (bz - 0.5) * 0.06;
-    s.R = 0.07 + 0.08 * br;
-    s.tail = s.hash > 0.972 ? 0.18 + 0.5 * (s.hash - 0.972) / 0.028 : 0.0;
+    float l = s.x - 0.5 * P, r = s.x + 0.5 * P;
+    float drift = noise(float2(s.x * 1.1, 4.0)), slow = noise(float2(s.x * 0.45, 9.0));
+    s.h = crestY(s.x) + (s.hash - 0.5) * 0.003;
+    s.dh = (crestY(r) - crestY(l)) / P;
+    s.z = (drift - 0.5) * 0.03;
+    s.R = 0.030 + 0.012 * slow;
+    float jitter = (hash12(float2(fi, 8.1)) - 0.5) * 0.012;
+    s.e = crestY(s.x) - flapLength(s.x) + jitter;
+    s.de = ((crestY(r) - flapLength(r)) - (crestY(l) - flapLength(l))) / P;
+    s.tail = s.hash > 0.972 ? 0.16 + 0.5 * (s.hash - 0.972) / 0.028 : 0.0;
     return s;
 }
 
@@ -72,28 +89,33 @@ inline float sdEllipse(float2 p, float2 r) {
     return k0 * (k0 - 1.0) / max(k1, 1e-6);
 }
 
-/// Distance in the strip's (y, z) plane to its centre line: straight up to `h`, then a roll of radius `R` toward the
-/// viewer. `end` receives the roll's last point.
-inline float lineDistance(float2 q, thread const Strip& s, thread float2& end) {
-    float2 base = float2(s.h, s.z);
-    float seg = q.x <= s.h ? abs(q.y - s.z) : length(q - base);
-    float2 c = float2(s.h, s.z + s.R);
+/// A strip's glass in the (y, z) plane: straight up to `h` at its full thickness, then a half-turn of radius `R` toward
+/// the viewer during which it flattens, then straight back down in front to `e` as a thin, flat ribbon. `end`
+/// receives the flap's last point (y, z).
+inline float stripSDF(float3 p, thread const Strip& s, thread float2& end) {
+    float x = p.x - s.x;
+    float h = s.h + s.dh * x;
+    float2 q = float2(p.y, p.z), base = float2(h, s.z);
+    float2 c = float2(h, s.z + s.R);
+    float2 turn = float2(h, s.z + 2.0 * s.R);
+    end = float2(min(s.e + s.de * x, h - 0.01), turn.y);
+    // The body.
+    float dBody = q.x <= h ? abs(q.y - s.z) : length(q - base);
+    float d = sdEllipse(float2(x, dBody), float2(HALF_W, HALF_T)) * 0.8;
+    // The fold, thinning to a flat ribbon over its first part.
     float2 v = q - c;
     float a = atan2(v.x, -v.y);
     if (a < 0.0) a += 2.0 * PI;
-    end = c + s.R * float2(sin(ALPHA_MAX), -cos(ALPHA_MAX));
-    float arc = a <= ALPHA_MAX ? abs(length(v) - s.R) : min(length(q - base), length(q - end));
-    return min(seg, arc);
-}
-
-inline float stripSDF(float3 p, thread const Strip& s) {
-    float2 end;
-    float d2 = lineDistance(float2(p.y, p.z), s, end);
-    float d = sdEllipse(float2(p.x - s.x, d2), float2(HALF_W, HALF_T)) * 0.8;
+    float dArc = a <= FOLD ? abs(length(v) - s.R) : min(length(q - base), length(q - turn));
+    float thin = smoothstep(0.0, 0.45, saturate(min(a, FOLD) / FOLD));
+    d = min(d, sdEllipse(float2(x, dArc), float2(HALF_W, mix(HALF_T, HALF_T_FLAT, thin))) * 0.8);
+    // The flap.
+    float dFlap = length(q - float2(clamp(q.x, end.x, turn.x), turn.y));
+    d = min(d, sdEllipse(float2(x, dFlap), float2(HALF_W, HALF_T_FLAT)) * 0.8);
     if (s.tail > 0.0) {
-        // A hairline of glass hanging from the end of the roll.
+        // A hairline of glass hanging from the end of the flap.
         float y = clamp(p.y, end.x - s.tail, end.x);
-        d = min(d, length(float3(p.x - s.x, p.y - y, p.z - end.y)) - 0.0022);
+        d = min(d, length(float3(x, p.y - y, p.z - end.y)) - 0.0016);
     }
     return d;
 }
@@ -101,7 +123,7 @@ inline float stripSDF(float3 p, thread const Strip& s) {
 inline float map(float3 p) {
     int i = int(floor(p.x / P));
     float d = 1e9;
-    for (int k = -1; k <= 1; k++) { Strip s = stripAt(i + k); d = min(d, stripSDF(p, s)); }
+    for (int k = -1; k <= 1; k++) { Strip s = stripAt(i + k); float2 end; d = min(d, stripSDF(p, s, end)); }
     return d;
 }
 
@@ -149,28 +171,44 @@ inline float3 sparkColour(float h) {
 #endif
 }
 
-/// The field of light behind the slab: brightest just under the crest (light from above, caught by the glass),
-/// white there and the variant's colours further down; a quick fall to black above it.
-inline float3 field(float2 q) {
-    float3 c = float3(0.0012, 0.0013, 0.0022);
+/// The strips that carry a spark: one or two a picture, never more (strip indices; the clock sits above them).
+inline bool sparkAt(int i) {
+#if VARIANT == 1
+    return i == 47 || i == -29;
+#elif VARIANT == 2
+    return i == 21;
+#else
+    return i == 52 || i == -68;
+#endif
+}
+
+/// The field of light behind the slab: brightest just under the crest (light from above, caught by the glass), white
+/// there and the variant's colours further down, and gone to black before the foot. Every strip takes its own share:
+/// its own brightness and its own height for the glow, so neighbours never show the same light.
+inline float3 field(float2 q, bool direct) {
+    float3 c = float3(0.0010, 0.0011, 0.0018);
     float xn = q.x / HALF_X;
     float cy = crestY(q.x / BEHIND) * BEHIND;   // the crest as seen on the field's plane, from the camera
-    float dy = q.y - cy;
-    float k = saturate(-dy / 2.2);
-    // A tight band of light under the crest, a long dim fall below it, almost nothing above.
-    float crest = dy > 0.0 ? 0.25 * exp(-dy * dy / (2.0 * 0.035 * 0.035)) : exp(-dy * dy / (2.0 * 0.32 * 0.32));
-    float body = dy > 0.0 ? 0.0 : 0.2 * exp(-dy * dy / (2.0 * 1.5 * 1.5));
-    // Slow bands across the field, and each strip its own share, so neighbours never show the same light.
     float i = floor(q.x / BEHIND / P);
-    float band = 0.55 + 0.45 * (0.5 + 0.5 * fbm(float2(q.x * 0.8, q.y * 0.3) + 3.0, 3));
-    float own = 0.7 + 0.6 * hash12(float2(i, 5.3));
-    c += rampColour(k, xn) * (crest * 1.7 + body) * band * own;
-    // Sparks: a thin coloured light behind one strip in about seventy.
-    float sx = (i + 0.5) * P * BEHIND;
-    float h = hash12(float2(i, 91.3));
-    if (h > 0.986) {
-        float w = P * 0.22;
-        float line = bump(q.x - sx, w) * smoothstep(0.1, -0.2, dy) * smoothstep(-2.4, -0.6, dy);
+    float own = 0.34 + 0.96 * pow(hash12(float2(i, 5.3)), 1.5);
+    float lift = (hash12(float2(i, 12.9)) - 0.5) * 0.3;
+    float dy = q.y - cy;
+    float below = max(-dy - lift * 0.5, 0.0);
+    float k = saturate(below / 1.7);
+    // A tight band of light under the crest, a long dimmer fall below it, nothing above, and black by the foot.
+    // Light spills a little above the crest, for the glass that bends the view up there; seen straight on (past the
+    // glass, not through it) it isn't there, so nothing glows outside the silhouette.
+    float spill = direct ? 0.0 : 0.85 * exp(-dy / 0.12);
+    float crest = dy > 0.0 ? spill : exp(-below * below / (2.0 * 0.30 * 0.30));
+    float body = 0.30 * exp(-below / 0.5);
+    float fall = 1.0 - smoothstep(0.5, 1.75, below);
+    float band = 0.6 + 0.4 * (0.5 + 0.5 * fbm(float2(q.x * 0.8, q.y * 0.3) + 3.0, 3));
+    c += rampColour(k, xn) * (crest * 1.55 + (dy > 0.0 ? 0.0 : body)) * fall * band * own;
+    // A spark: a thin coloured light behind one strip.
+    if (sparkAt(int(i))) {
+        float sx = (i + 0.5) * P * BEHIND;
+        float w = P * 0.2;
+        float line = bump(q.x - sx, w) * smoothstep(-0.02, -0.3, dy) * smoothstep(-1.9, -0.5, dy);
         c += sparkColour(hash12(float2(i, 17.0))) * line * 5.0;
     }
     return c;
@@ -182,16 +220,16 @@ inline float box(float2 q, float2 h, float soft) {
 }
 
 /// What a ray sees once it leaves the glass: the field behind, a long softbox overhead, a dark studio.
-inline float3 env(float3 o, float3 d) {
+inline float3 env(float3 o, float3 d, bool direct) {
     float3 c = float3(0.0008, 0.0009, 0.0016);
     if (d.z < 0.0) {
         float t = (ZB - o.z) / d.z;
-        c = field(o.xy + d.xy * t);
+        c = field(o.xy + d.xy * t, direct);
     }
     if (d.y > 0.0) {
         float t = (6.0 - o.y) / d.y;
         float2 q = o.xz + d.xz * t;
-        c += float3(7.0, 7.2, 7.6) * box(q - float2(0.0, 1.2), float2(9.0, 1.4), 0.8);
+        c += float3(16.0, 16.4, 17.2) * box(q - float2(0.0, 1.4), float2(9.0, 2.2), 0.8);
     }
     return c;
 }
@@ -202,7 +240,7 @@ inline float3 path(float3 o, float3 d, bool inside, float ior, thread Rng& rng, 
     float3 thr = float3(1.0);
     for (int depth = 0; depth < maxDepth; depth++) {
         float t = march(o, d, inside ? -1.0 : 1.0, 4.0);
-        if (t < 0.0) return thr * env(o, d);
+        if (t < 0.0) return thr * env(o, d, false);
         float3 p = o + d * t;
         float3 n = normalAt(p);
         if (inside) thr *= exp(-float3(5.0, 2.5, 1.2) * t);   // a touch of steel in thick glass
@@ -219,7 +257,7 @@ inline float3 path(float3 o, float3 d, bool inside, float ior, thread Rng& rng, 
             inside = !inside;
         }
     }
-    return thr * env(o, d) * 0.5;
+    return thr * env(o, d, false) * 0.5;
 }
 
 inline float2 r4(uint i, float2 rot) { return fract(float2(0.5) + float(i) * float2(0.6287047, 0.5385888) + rot); }
@@ -237,7 +275,7 @@ Sample render(float2 px, thread Ctx& ctx) {
         float t0 = (0.36 - ray.o.z) / ray.d.z;
         float3 o = ray.o + ray.d * t0;
         float t = march(o, ray.d, 1.0, 2.0);
-        if (t < 0.0) { sum += env(o, ray.d); continue; }
+        if (t < 0.0) { sum += env(o, ray.d, true); continue; }
         fg += 1.0;
         float lam = 400.0 + 300.0 * fract(0.5 + float(i) * 0.6180339887 + rotL);
         float ior = iorAt(lam);
