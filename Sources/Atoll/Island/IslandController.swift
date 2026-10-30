@@ -9,7 +9,14 @@ final class IslandController {
     let model: IslandModel
     let panel: NotchPanel
     /// Whether the island's motion runs in Core Animation (Island Engine 2.0) or as SwiftUI springs (legacy).
-    let usesEngine = false
+    let usesEngine: Bool
+    private(set) var engine: IslandEngine?
+
+    /// The kill switch: `defaults write <domain> legacyIsland -bool YES` brings back the SwiftUI-driven island.
+    static var legacyIsland: Bool {
+        let d = UserDefaults.standard
+        return d.object(forKey: "legacyIsland") == nil ? true : d.bool(forKey: "legacyIsland")
+    }
 
     #if DEBUG
     /// The hover test drives the pointer here; nil in normal use.
@@ -50,16 +57,21 @@ final class IslandController {
         model = IslandModel(geometry: geo, isPrimary: isPrimary)
         let canvas = IslandModel.maxCanvas(for: geo)
         panel = NotchPanel(size: canvas)
+        usesEngine = !Self.legacyIsland
 
-        let hosting = IslandHostingView(rootView: IslandView(model: model))
-        hosting.sizingOptions = []
         let container = TrackingContainerView(frame: NSRect(origin: .zero, size: canvas))
-        hosting.frame = container.bounds
-        hosting.autoresizingMask = [.width, .height]
-        container.addSubview(hosting)
         container.onMouse = { [weak self] in self?.evaluateMouse() }
         panel.contentView = container
         model.panel = panel
+        if usesEngine {
+            engine = IslandEngine(model: model, container: container)
+        } else {
+            let hosting = IslandHostingView(rootView: IslandView(model: model))
+            hosting.sizingOptions = []
+            hosting.frame = container.bounds
+            hosting.autoresizingMask = [.width, .height]
+            container.addSubview(hosting)
+        }
 
         position()
         panel.orderFrontRegardless()
@@ -87,6 +99,7 @@ final class IslandController {
     }
 
     func teardown() {
+        engine?.teardown()
         monitors.forEach(NSEvent.removeMonitor)
         monitors.removeAll()
         pollTimer?.invalidate()

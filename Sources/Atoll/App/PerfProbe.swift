@@ -85,6 +85,7 @@ final class PerfProbe: NSObject {
             ("idle-cpu", 4.0, { PerfProbe.cpuMark = PerfProbe.cpuSeconds() }),
             ("idle-report", 0.05, {
                 print(String(format: "idle (closed, nothing moving): CPU %.2f%% of one core", (PerfProbe.cpuSeconds() - PerfProbe.cpuMark) / 4.0 * 100))
+                print("engine: \(IslandTrace.syncs) syncs, \(IslandTrace.bakes) bakes in the whole run")
             }),
         ]
         // ATOLL_LOOP=1: the everyday moves, eight times each, for medians instead of one noisy run.

@@ -9,6 +9,9 @@ enum IslandTrace {
     /// How many times an island root view (`IslandView`, the engine's hosts) evaluated its body.
     /// Each transition should cost one or two; an animation frame should cost none.
     @MainActor static var rootBodies = 0
+    /// Engine syncs (model read) and bakes (animations added).
+    @MainActor static var syncs = 0
+    @MainActor static var bakes = 0
     #endif
 
     /// Called from an island root's `body`.

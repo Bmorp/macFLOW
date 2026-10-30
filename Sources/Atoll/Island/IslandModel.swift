@@ -118,7 +118,12 @@ enum DropTarget: Equatable { case shelf, airdrop, flow }
 @MainActor
 @Observable
 final class IslandModel {
-    private(set) var mode: IslandMode = .compact
+    private(set) var mode: IslandMode = .compact {
+        didSet { if (mode == .compact) != isCompact { isCompact = mode == .compact } }
+    }
+    /// Whether the island is closed. Views that only care about that read this rather than `mode`, so moving
+    /// between open places doesn't re-render them.
+    private(set) var isCompact = true
     private(set) var alert: AlertState?
     private(set) var hovering = false
     private(set) var live: [ActivityKind] = []
@@ -131,6 +136,35 @@ final class IslandModel {
     private(set) var layoutRevision = 0
     @ObservationIgnored var wantsSearchFocus = false
     @ObservationIgnored private var inlineVolumeWork: DispatchWorkItem?
+
+    /// While a finger drags the island toward another state, what it's heading for: the open host shows it (as a
+    /// miniature that grows with the finger) before the gesture commits. Nil otherwise.
+    private(set) var previewMode: IslandMode?
+    func setPreview(_ mode: IslandMode?) {
+        guard mode != previewMode else { return }
+        withTransaction(Transaction(animation: nil)) { previewMode = mode }
+    }
+
+    /// Set when Island Engine 2.0 draws this island: the shape then moves in Core Animation and state changes
+    /// happen without SwiftUI animation, handing the engine the spring to use (`takePendingMotion`).
+    @ObservationIgnored var engineDriven = false
+    @ObservationIgnored private var pendingMotion: SpringToken?
+
+    /// A change to the island's shape, sprung with `token`: by SwiftUI on the legacy surface, by the engine otherwise.
+    private func animate(_ token: SpringToken, _ change: () -> Void) {
+        if engineDriven {
+            pendingMotion = token
+            withTransaction(Transaction(animation: nil), change)
+        } else {
+            withAnimation(token.animation, change)
+        }
+    }
+
+    /// The spring the latest change asked for (once).
+    func takePendingMotion() -> SpringToken? {
+        defer { pendingMotion = nil }
+        return pendingMotion
+    }
 
     /// Briefly swaps the waveform for a level meter while the person scrolls to change volume.
     func flashInlineVolume() {
@@ -168,7 +202,7 @@ final class IslandModel {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self, self.mode == .expanded(.glance) else { return }
-                withAnimation(Motion.morph) { self.layoutRevision &+= 1 }
+                self.animate(Motion.Token.morph) { self.layoutRevision &+= 1 }
             }
             .store(in: &cancellables)
 
@@ -180,7 +214,7 @@ final class IslandModel {
             .removeDuplicates()
             .sink { [weak self] _ in
                 guard let self, case .expanded(.activity(let k)) = self.mode, k == .call || k == .meeting else { return }
-                withAnimation(Motion.morph) { self.layoutRevision &+= 1 }
+                self.animate(Motion.Token.morph) { self.layoutRevision &+= 1 }
             }
             .store(in: &cancellables)
 
@@ -195,7 +229,7 @@ final class IslandModel {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self, self.mode == .expanded(.glance) else { return }
-                withAnimation(Motion.morph) { self.layoutRevision &+= 1 }
+                self.animate(Motion.Token.morph) { self.layoutRevision &+= 1 }
             }
             .store(in: &cancellables)
 
@@ -206,7 +240,7 @@ final class IslandModel {
             .removeDuplicates()
             .sink { [weak self] _ in
                 guard let self, self.mode == .search else { return }
-                withAnimation(Motion.morph) { self.layoutRevision &+= 1 }
+                self.animate(Motion.Token.morph) { self.layoutRevision &+= 1 }
             }
             .store(in: &cancellables)
     }
@@ -440,7 +474,7 @@ final class IslandModel {
         }
         // The activity on show ended: fall back gracefully.
         if case .expanded(.activity(let k)) = mode, !list.contains(k) {
-            withAnimation(Motion.morph) { mode = .expanded(.glance) }
+            animate(Motion.Token.morph) { mode = .expanded(.glance) }
         }
     }
 
@@ -456,7 +490,7 @@ final class IslandModel {
         if target == .activity(.flow) { target = .glance }
         guard mode != .expanded(target) else { return }
         switchDirection = 0
-        withAnimation(mode == .compact || mode == .alert ? Motion.open : Motion.morph) {
+        animate(mode == .compact || mode == .alert ? Motion.Token.open : Motion.Token.morph) {
             mode = .expanded(target)
             hovering = false
             alert = nil
@@ -468,6 +502,24 @@ final class IslandModel {
     func expandSecondary() {
         guard let s = secondary else { return }
         expand(.activity(s))
+    }
+
+    /// A click on the island itself (not on a control inside it).
+    func tap() {
+        switch mode {
+        case .compact:
+            expand(sticky: true)
+        case .alert:
+            if case .trackChanged = alert?.kind {
+                expand(.activity(.nowPlaying), sticky: true)
+            } else if case .tip = alert?.kind {
+                IslandManager.shared.advanceTour()
+            } else {
+                dismissAlert()
+            }
+        default:
+            break
+        }
     }
 
     /// The island's places, in tab order: Home, then each live activity that has its own page.
@@ -494,7 +546,7 @@ final class IslandModel {
             switchDirection = 0
         }
         Haptics.snap()
-        withAnimation(Motion.morph) { mode = .expanded(focus) }
+        animate(Motion.Token.morph) { mode = .expanded(focus) }
     }
 
     /// Two-finger swipe between the island's places while it's open.
@@ -521,7 +573,7 @@ final class IslandModel {
         }
         // Hand keyboard focus back first: it wakes the input system, and the spring's clock shouldn't be running yet.
         relinquishKey()
-        withAnimation(Motion.collapse) {
+        animate(Motion.Token.close) {
             mode = .compact
             alert = nil
             dropTarget = nil
@@ -555,14 +607,14 @@ final class IslandModel {
 
     func setHovering(_ h: Bool) {
         guard h != hovering, mode == .compact || !h else { return }
-        withAnimation(Motion.hover) { hovering = h }
+        animate(Motion.Token.hover) { hovering = h }
     }
 
     func openSearch() {
         sticky = true
         wantsSearchFocus = true
         panel?.makeKey()
-        withAnimation(Motion.expand) {
+        animate(Motion.Token.open) {
             mode = .search
             hovering = false
             alert = nil
@@ -572,7 +624,7 @@ final class IslandModel {
 
     func openDrop() {
         guard mode != .drop else { return }
-        withAnimation(Motion.expand) {
+        animate(Motion.Token.open) {
             mode = .drop
             hovering = false
             alert = nil
@@ -581,7 +633,7 @@ final class IslandModel {
 
     func openMirror() {
         sticky = true
-        withAnimation(Motion.expand) {
+        animate(Motion.Token.open) {
             mode = .mirror
             alert = nil
         }
@@ -603,7 +655,7 @@ final class IslandModel {
         if mode == .alert, let current = alert, current.kind.sameFamily(kind) {
             alert = AlertState(id: current.id, kind: kind)
         } else {
-            withAnimation(Motion.expand) {
+            animate(Motion.Token.open) {
                 alert = AlertState(kind: kind)
                 mode = .alert
                 hovering = false
@@ -617,7 +669,7 @@ final class IslandModel {
                 return
             }
             self.interruptedFlow = nil
-            withAnimation(Motion.collapse) {
+            animate(Motion.Token.close) {
                 self.mode = .compact
                 self.alert = nil
             }
@@ -630,7 +682,7 @@ final class IslandModel {
         alertWork?.cancel()
         interruptedFlow = nil
         guard mode == .alert else { return }
-        withAnimation(Motion.collapse) {
+        animate(Motion.Token.close) {
             mode = .compact
             alert = nil
         }
@@ -656,7 +708,7 @@ final class IslandModel {
                 Haptics.confirm()
             }
             if ok {
-                withAnimation(Motion.collapse) {
+                animate(Motion.Token.close) {
                     mode = .compact
                     dropTarget = nil
                 }
@@ -667,7 +719,7 @@ final class IslandModel {
                 Haptics.confirm()
                 ShelfModel.airDrop(urls: urls)
             }
-            withAnimation(Motion.collapse) {
+            animate(Motion.Token.close) {
                 mode = .compact
                 dropTarget = nil
             }
@@ -677,7 +729,7 @@ final class IslandModel {
                 Haptics.confirm()
                 LensModel.shared.understand(urls)
             }
-            withAnimation(Motion.collapse) {
+            animate(Motion.Token.close) {
                 mode = .compact
                 dropTarget = nil
             }
