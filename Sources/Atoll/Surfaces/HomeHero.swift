@@ -415,17 +415,24 @@ struct TodayStrip: View {
             .accessibilityLabel("Today, \(open) open. Open Tasks")
 
             if list.isEmpty {
+                // The same rhythm as a list of tasks: a row to add one, and a quiet line saying the day is clear.
                 Button { model.select(.tasks) } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Nothing due today").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.secondary)
-                        Text("Add a task").font(.system(size: 12, weight: .medium)).foregroundStyle(TaskStyle.tint)
+                    HStack(spacing: 10) {
+                        Image(systemName: "plus.circle.fill").font(.system(size: 17)).foregroundStyle(TaskStyle.tint)
+                        Text("Add a task").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.primary)
+                        Spacer(minLength: 0)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
-                    .padding(.top, 6)
+                    .frame(height: 28)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressStyle(scale: 0.98))
-                .accessibilityLabel("Nothing due today. Add a task")
+                .accessibilityLabel("Add a task")
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .light)).foregroundStyle(DS.Ink.tertiary)
+                    Text("Nothing due today").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.tertiary)
+                }
+                .frame(height: 28)
+                .accessibilityElement(children: .combine)
             } else {
                 ForEach(list) { task in TodayRow(task: task, model: model) }
             }

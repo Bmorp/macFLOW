@@ -380,6 +380,9 @@ final class IslandController {
             return
         }
 
+        // Content that scrolls sideways itself (the Home carousel) owns sideways travel while the pointer is over it.
+        if model.isOpen, ScrollClaims.horizontal, abs(scrollX) >= abs(scrollY) { return }
+
         switch model.mode {
         case .compact:
             guard !scrollConsumed, scrollY > 16 else { return }

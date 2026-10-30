@@ -52,6 +52,15 @@ struct PrismSlab: View {
     /// The light field, through the glass. Without a field it's two overlapping washes, so the strips have something
     /// that changes across the card to bend.
     @ViewBuilder private func light(flat: Bool) -> some View {
+        // Half the light comes straight through, so on a card the strips read as texture in the glass, not as a band
+        // of stripes across its top.
+        ZStack {
+            field(flat: flat).opacity(0.55)
+            field(flat: flat).prism(style).opacity(0.45)
+        }
+    }
+
+    @ViewBuilder private func field(flat: Bool) -> some View {
         let s = lit * (flat ? 1.15 : 1)
         Group {
             if let field {
@@ -65,7 +74,6 @@ struct PrismSlab: View {
                 }
             }
         }
-        .prism(style)
     }
 }
 

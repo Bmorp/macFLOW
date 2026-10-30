@@ -146,33 +146,18 @@ private struct HomeStatusTrailing: View {
 
 // MARK: - Dock
 
-/// Your apps along the foot of Home — the ones you open from Atoll first, then your favourites — one click to
-/// launch. When music plays but isn't the hero (a task or a meeting is), a small player takes the right end.
+/// The foot of Home: your apps and Mac Flow's features on one carousel. When music plays but isn't the hero
+/// (a task or a meeting is), a small player takes the right end.
 private struct HomeDock: View {
     var model: IslandModel
     var showsPlayer: Bool
-    @ObservedObject private var catalog = AppCatalog.shared
-
-    private var apps: [AppEntry] {
-        var list = catalog.recentEntries
-        for p in catalog.pinnedEntries where !list.contains(p) { list.append(p) }
-        return Array(list.prefix(showsPlayer ? 6 : 8))
-    }
 
     var body: some View {
-        let items = apps
-        HStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { i, entry in
-                AppTile(entry: entry, model: model)
-                if i < items.count - 1 { Spacer(minLength: 6) }
-            }
-            if showsPlayer {
-                Spacer(minLength: 22)
-                MiniPlayer()
-            }
+        HStack(spacing: 18) {
+            HomeCarousel(model: model)
+            if showsPlayer { MiniPlayer() }
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.top, 8)
     }
 }
 
@@ -199,27 +184,6 @@ private struct MiniPlayer: View {
             Ghost(symbol: playing ? "pause.fill" : "play.fill", label: playing ? "Pause" : "Play", size: 14, weight: .bold, hit: 30) { media.playPause() }
                 .disabled(!media.canControl)
         }
-    }
-}
-
-private struct AppTile: View {
-    let entry: AppEntry
-    var model: IslandModel
-    @State private var hover = false
-
-    var body: some View {
-        Button {
-            AppCatalog.shared.launch(entry)
-            model.collapse()
-        } label: {
-            IconImage(image: AppCatalog.shared.icon(for: entry), size: 36)
-                .scaleEffect(hover ? 1.16 : 1, anchor: .center)
-                .shadow(color: .black.opacity(hover ? 0.4 : 0), radius: 4, y: 2)
-        }
-        .buttonStyle(PressStyle(scale: 0.9))
-        .onHover { h in withAnimation(.spring(response: 0.22, dampingFraction: 0.7)) { hover = h } }
-        .help(entry.name)
-        .accessibilityLabel("Open \(entry.name)")
     }
 }
 
