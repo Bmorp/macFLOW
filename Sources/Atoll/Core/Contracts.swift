@@ -137,6 +137,8 @@ protocol TaskLedger: AnyObject {
     func openTasks() -> [TaskSnapshot]
     func task(_ id: UUID) -> TaskSnapshot?
     func complete(_ id: UUID)
+    /// Add a task from plain words ("review deck tomorrow 3pm 45m"), parsed the same way as typed capture.
+    @discardableResult func capture(_ text: String, source: TaskSource) -> TaskSnapshot?
     /// Store the Brain's estimate on a task the user hasn't estimated.
     func suggestEstimate(_ id: UUID, minutes: Double)
 }
