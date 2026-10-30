@@ -14,7 +14,6 @@ struct IslandView: View {
     private var parkedOpacity: Double { keyed ? 0 : Self.parked }
     var model: IslandModel
     @Namespace private var ns
-    @State private var sweep: CGFloat = 1
     /// What's drawn inside the shape. Usually the model's current state; while closing, the open content
     /// stays (shrinking with the shape) and is swapped only at the very end.
     @State private var shown: Shown?
@@ -58,7 +57,7 @@ struct IslandView: View {
             }
 
             IslandSurface(spec: model.spec, notchHeight: model.notch.height, rim: model.rim,
-                          rimStrength: model.rimStrength, sweep: sweep, elevated: model.isOpen) {
+                          rimStrength: model.rimStrength, elevated: model.isOpen) {
                 let places: [IslandFocus] = {
                     var p = model.tabs
                     if controlsBuilt, !p.contains(.controls) { p.append(.controls) }
@@ -191,16 +190,6 @@ struct IslandView: View {
                 withAnimation(Motion.morph) { slide = 0 }
             }
         }
-        playSweep()
-    }
-
-    /// One pass of light around the rim each time the island opens onto something new.
-    private func playSweep() {
-        guard model.isOpen, !Access.reduceMotion, !RenderMode.snapshot else { return }
-        var t = Transaction()
-        t.disablesAnimations = true
-        withTransaction(t) { sweep = 0 }
-        withAnimation(.easeInOut(duration: 0.6).delay(0.05)) { sweep = 1 }
     }
 
     // MARK: Bubble (minimal presentation)
@@ -261,7 +250,6 @@ struct IslandSurface<Content: View>: View {
     let notchHeight: CGFloat
     let rim: RimStyle
     let rimStrength: Double
-    var sweep: CGFloat = 1
     var elevated: Bool
     @ViewBuilder var content: () -> Content
 
@@ -282,7 +270,7 @@ struct IslandSurface<Content: View>: View {
         // never drift vertically with it.
         .frame(width: spec.size.width, height: spec.size.height, alignment: .top)
         .clipShape(shape)
-        .overlay(RimLight(spec: spec, notchHeight: notchHeight, style: rim, strength: rimStrength, sweep: sweep))
+        .overlay(RimLight(spec: spec, notchHeight: notchHeight, style: rim, strength: rimStrength))
         .contentShape(shape)
     }
 }

@@ -82,24 +82,6 @@ struct IslandOutline: Shape {
     func path(in rect: CGRect) -> Path { IslandShape.outline(in: rect, shoulder: shoulder, corner: corner) }
 }
 
-/// A short highlight that travels once around the rim as the island opens.
-struct RimSweep: Shape {
-    var shoulder: CGFloat
-    var corner: CGFloat
-    var progress: CGFloat
-    var animatableData: AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>> {
-        get { AnimatablePair(progress, AnimatablePair(shoulder, corner)) }
-        set { progress = newValue.first; shoulder = newValue.second.first; corner = newValue.second.second }
-    }
-    func path(in rect: CGRect) -> Path {
-        let span: CGFloat = 0.22
-        let to = min(1, progress * (1 + span))
-        let from = max(0, to - span)
-        guard to > from else { return Path() }
-        return IslandShape.outline(in: rect, shoulder: shoulder, corner: corner).trimmedPath(from: from, to: to)
-    }
-}
-
 /// How the rim light is coloured.
 enum RimStyle: Equatable {
     case tint(Color)
@@ -117,7 +99,6 @@ struct RimLight: View {
     let notchHeight: CGFloat
     let style: RimStyle
     let strength: Double
-    let sweep: CGFloat
 
     var body: some View {
         let outline = IslandOutline(shoulder: spec.shoulder, corner: spec.corner)
@@ -138,16 +119,5 @@ struct RimLight: View {
         .opacity(strength)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-    }
-
-
-    /// Transparent near the top, full colour from just below the notch down.
-    private func shading(_ start: CGFloat, _ end: CGFloat, _ alpha: Double) -> LinearGradient {
-        let base: [Color] = [.white, .white]
-        return LinearGradient(stops: [.init(color: base[0].opacity(0), location: 0),
-                                      .init(color: base[0].opacity(0), location: start),
-                                      .init(color: base[0].opacity(alpha), location: end),
-                                      .init(color: base[1].opacity(alpha), location: 1)],
-                              startPoint: .top, endPoint: .bottom)
     }
 }

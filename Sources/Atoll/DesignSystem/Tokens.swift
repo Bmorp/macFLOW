@@ -106,46 +106,50 @@ enum Access {
     static var increaseContrast: Bool { current.increaseContrast }
 }
 
+/// One spring, written down once. SwiftUI animates with `animation`; the island engine's solver reads `response`
+/// and `damping` directly, so a shape the render server runs and a view SwiftUI runs can't drift apart.
+/// Under Reduce Motion the move becomes a short ease of `reduced` seconds instead.
+struct SpringToken: Hashable, Sendable {
+    /// Seconds for one undamped oscillation (SwiftUI's `response`).
+    let response: Double
+    /// 1 is critically damped (no overshoot); lower bounces.
+    let damping: Double
+    /// The ease's length under Reduce Motion.
+    let reduced: Double
+
+    var spring: Spring { Spring(response: response, dampingRatio: damping) }
+    var animation: Animation {
+        Access.reduceMotion ? .easeInOut(duration: reduced) : .spring(response: response, dampingFraction: damping)
+    }
+}
+
 /// Motion vocabulary. One choreography everywhere (DESIGN.md › Motion):
-/// the shape springs; content leaves fast before it shrinks and arrives staggered after it grows.
-/// Under Reduce Motion every move becomes a short cross-fade.
+/// the shape springs and the content grows and shrinks with it, as one object.
+/// Under Reduce Motion every move becomes a short ease.
 enum Motion {
-    /// The shape opening — quick, with a whisper of overshoot so it feels thrown rather than slid.
-    static var open: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.8)
+    /// The springs themselves.
+    enum Token {
+        /// The shape opening — quick, with a whisper of overshoot so it feels thrown rather than slid.
+        static let open = SpringToken(response: 0.3, damping: 0.8, reduced: 0.2)
+        /// The shape closing — critically damped and immediate: no bounce, no wait.
+        static let close = SpringToken(response: 0.26, damping: 1, reduced: 0.18)
+        /// One open state turning into another.
+        static let morph = SpringToken(response: 0.3, damping: 0.88, reduced: 0.2)
+        static let split = SpringToken(response: 0.45, damping: 0.72, reduced: 0.2)
+        static let hover = SpringToken(response: 0.22, damping: 0.8, reduced: 0.12)
+        /// The duo cross-fade spring.
+        static let duo = SpringToken(response: 0.5, damping: 0.86, reduced: 0.2)
     }
-    /// The shape closing — critically damped and immediate: no bounce, no wait.
-    static var close: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.18) : .spring(response: 0.26, dampingFraction: 1)
-    }
+
+    static var open: Animation { Token.open.animation }
+    static var close: Animation { Token.close.animation }
     /// When a closing island swaps its open content for the compact one: once the close spring has done
     /// most of its travel, so the content shrinks with the shape and gives way just before it lands.
     static let closeSwap: Double = 0.17
-    /// One open state turning into another.
-    static var morph: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.88)
-    }
+    static var morph: Animation { Token.morph.animation }
     static var expand: Animation { open }
     static var collapse: Animation { close }
-    static var split: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.45, dampingFraction: 0.72)
-    }
-    static var hover: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.12) : .spring(response: 0.22, dampingFraction: 0.8)
-    }
-    static var content: Animation { .smooth(duration: 0.3) }
-    /// The duo cross-fade spring.
-    static var duo: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.5, dampingFraction: 0.86)
-    }
-
-    // Content choreography.
-    static let revealDelay: Double = 0.03
-    static let revealStagger: Double = 0.025
-    static let revealSpring = Spring(response: 0.3, dampingRatio: 0.9)
-    static var reveal: Animation {
-        Access.reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.9)
-    }
-    static let exitDuration: Double = 0.1
-    static var exit: Animation { .easeIn(duration: exitDuration) }
+    static var split: Animation { Token.split.animation }
+    static var hover: Animation { Token.hover.animation }
+    static var duo: Animation { Token.duo.animation }
 }
