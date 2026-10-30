@@ -2,8 +2,9 @@ import SwiftUI
 
 extension View {
     /// Shows this view through Prism's fluted glass: vertical lens strips that bend, light and (at their edges) split
-    /// what's behind them. For hero moments only. The effect is static — it renders when the view changes, not per
-    /// frame — so a surface that morphs (the island) costs nothing while it moves.
+    /// what's behind them. For hero moments only, and for pictures and light (a cover, a backdrop, a glow): like real
+    /// reeded glass it scrambles fine detail, so put text above it, not under it. The effect is static — it renders
+    /// when the view changes, not per frame — so a surface that morphs (the island) costs nothing while it moves.
     ///
     /// Falls back on its own: Reduce Transparency shades the strips over the view without looking through it, Increase
     /// Contrast keeps what's behind the glass legible, a hot Mac or a missing shader library draws the view as it is.

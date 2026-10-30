@@ -19,6 +19,11 @@ enum PrismBench {
         try? FileManager.default.createDirectory(atPath: outDir, withIntermediateDirectories: true)
         let env = PrismConditions.shared.current
         print("prism: library \(PrismLibrary.shared?.origin ?? "none") · effects \(PrismLibrary.shared?.effects != nil) · tier \(env.tier) · rt \(env.reduceTransparency)")
+        if CommandLine.arguments.contains("--budgets") {
+            // Only the measurements (repeat runs to see past other GPU work on the machine).
+            budgets()
+            return
+        }
         let suffix = ProcessInfo.processInfo.environment["ATOLL_PRISM_RT"] == "1" ? "-rt" : ""
         // This Mac's SDK declares Date.<= but its Foundation lacks it; the calendar chip compares dates that way.
         CalendarModel.shared.debugSet([])
@@ -52,6 +57,14 @@ enum PrismBench {
                 }
             }
             HStack(spacing: 12) { card; Text("plain").font(.system(size: 13, weight: .medium)).foregroundStyle(.white).frame(width: 90, alignment: .leading) }
+            // The island's expanded timer, as it could show a count in Ribbon numerals.
+            HStack(spacing: 24) {
+                RibbonCount(lead: "24", trail: "59", fontSize: 44)
+                RibbonCount(lead: "1", trail: "07", fontSize: 30)
+                Spacer()
+                Text("count").font(.system(size: 13, weight: .medium)).foregroundStyle(.white).frame(width: 90, alignment: .leading)
+            }
+            .frame(width: 562)
         }
         .padding(20)
         .background(Color.black)
@@ -185,6 +198,18 @@ enum PrismBench {
         thread.start()
         done.wait()
         print(String(format: "prism budget · stage GPU, first frame from an idle GPU: %.3f ms", run.cold * 1000))
+        // The same frames back to back in one command buffer: the cost per frame with other GPU clients' scheduling
+        // averaged out.
+        if let cb = r.queue.makeCommandBuffer() {
+            let frames = Int(ceil(duration * 120)) + 1
+            for i in 0..<frames {
+                let u = b.uniforms(columns: new, time: Float(i) / 120, duration: duration, scale: Float(scale), hasBackdrop: run.backdrop != nil)
+                r.encode(cb, target: run.target, uniforms: u, strips: run.buffer, count: strips.count, backdrop: run.backdrop)
+            }
+            cb.commit()
+            cb.waitUntilCompleted()
+            print(String(format: "prism budget · stage GPU per frame, amortised over %d frames: %.3f ms", frames, (cb.gpuEndTime - cb.gpuStartTime) * 1000 / Double(frames)))
+        }
         return (Timing(samples: run.gpu), Timing(samples: run.cpu), strips.count)
     }
 
@@ -233,11 +258,7 @@ enum PrismBench {
         td.storageMode = .private
         let target = device.makeTexture(descriptor: td)!
         var size = SIMD4<Float>(Float(w) / 2, Float(h) / 2, 2, 0)
-        var times: [Double] = []
-        // 60 frames back to back bring the GPU to its working clock (as the window server's own compositing does
-        // when the island changes); then 60 measured one at a time.
-        for i in 0..<120 {
-            let cb = queue.makeCommandBuffer()!
+        func pass(_ cb: MTLCommandBuffer) {
             let pass = MTLRenderPassDescriptor()
             pass.colorAttachments[0].texture = target
             pass.colorAttachments[0].loadAction = .dontCare
@@ -248,6 +269,20 @@ enum PrismBench {
             enc.setFragmentBytes(&size, length: 16, index: 0)
             enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             enc.endEncoding()
+        }
+        // Amortised: 100 renders in one command buffer.
+        if let cb = queue.makeCommandBuffer() {
+            for _ in 0..<100 { pass(cb) }
+            cb.commit()
+            cb.waitUntilCompleted()
+            print(String(format: "prism budget · material %d×%d GPU per render, amortised over 100: %.3f ms", w, h, (cb.gpuEndTime - cb.gpuStartTime) * 10))
+        }
+        var times: [Double] = []
+        // 60 frames back to back bring the GPU to its working clock (as the window server's own compositing does
+        // when the island changes); then 60 measured one at a time.
+        for i in 0..<120 {
+            let cb = queue.makeCommandBuffer()!
+            pass(cb)
             cb.commit()
             if i >= 59 { cb.waitUntilCompleted() }
             if i >= 60 { times.append(cb.gpuEndTime - cb.gpuStartTime) }

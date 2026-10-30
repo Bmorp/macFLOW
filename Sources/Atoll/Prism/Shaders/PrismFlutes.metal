@@ -35,15 +35,19 @@ static inline float3 stripLight(float3 n, float2 p, float4 box, half4 tint) {
 [[stitchable]] half4 prismFlutes(float2 p, SwiftUI::Layer layer, float4 box,
                                  float pitch, float lens, float magnify, float depth,
                                  float disperse, float spec, float sparks, float seed, half4 tint) {
+    // The layer reaches past the view by the sample offset; out there nothing is glass.
+    if (p.x < box.x || p.x > box.x + box.z) return layer.sample(p);
     prism::Flute f = prism::flute(p.x - box.x, pitch, lens);
     float centre = box.x + (f.index + 0.5) * pitch;
     float offset = f.s * pitch * magnify * 0.5 + depth * f.n.x;
-    half4 g = layer.sample(float2(centre + offset, p.y));
+    // Strips at the edges look back inside the view, never at the transparent margin.
+    float lo = box.x + 0.5, hi = box.x + box.z - 0.5;
+    half4 g = layer.sample(float2(clamp(centre + offset, lo, hi), p.y));
     half4 c = g;
     if (disperse > 0.0) {
         float d = disperse * prism::DISPERSION * 4.0 * abs(f.s);
-        half4 r = layer.sample(float2(centre + offset * (1.0 - d), p.y));
-        half4 b = layer.sample(float2(centre + offset * (1.0 + d), p.y));
+        half4 r = layer.sample(float2(clamp(centre + offset * (1.0 - d), lo, hi), p.y));
+        half4 b = layer.sample(float2(clamp(centre + offset * (1.0 + d), lo, hi), p.y));
         half a = (r.a + g.a + b.a) / 3.0h;
         c = half4(min(r.r, a), min(g.g, a), min(b.b, a), a);
     }
