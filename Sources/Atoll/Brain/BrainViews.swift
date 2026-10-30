@@ -43,6 +43,10 @@ struct BrainSuggestionCard: View {
                         .padding(.leading, 13)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // The alert is one row tall: its Why is a hover away (and on the Home card, where it waits, in full).
+                .help(suggestion.why)
+                .accessibilityElement(children: .combine)
+                .accessibilityHint(suggestion.why.isEmpty ? "" : "Why: \(suggestion.why)")
                 .islandReveal(0)
                 Ghost(symbol: "xmark", label: "Not Now", size: 11, tint: DS.Ink.tertiary, hit: 28) {
                     model.dismissAlert()
@@ -63,6 +67,8 @@ struct BrainQuestionCard: View {
     var model: IslandModel
     let question: BrainQuestion
     @State private var hovered: String?
+    /// What Flow said back, shown in place of the answers for a beat before the card goes.
+    @State private var ack: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -81,11 +87,18 @@ struct BrainQuestionCard: View {
                     model.dismissAlert()
                 }
             }
+            if let ack {
+                Acknowledgement(text: ack, size: 13)
+                    .frame(height: 30)
+                    .padding(.top, 12)
+            } else {
             HStack(spacing: 8) {
                 ForEach(question.options, id: \.self) { option in
                     Button {
-                        model.dismissAlert()
-                        FlowInbox.shared.answer(question, option)
+                        let said = FlowInbox.shared.answer(question, option)
+                        guard let said else { model.dismissAlert(); return }
+                        withAnimation(Motion.morph) { ack = said }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { model.dismissAlert() }
                     } label: {
                         Text(option.label)
                             .font(.system(size: 13, weight: .semibold))
@@ -100,6 +113,7 @@ struct BrainQuestionCard: View {
                 }
             }
             .padding(.top, 12)
+            }
         }
         .padding(.horizontal, IslandModel.expandedFlare + DS.Island.rowLeading + 2)
         .padding(.bottom, 16)
@@ -193,7 +207,7 @@ struct BrainAnswerPanel: View {
                     SecondaryButton(title: "Copy", symbol: "doc.on.doc") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(chat.answer, forType: .string)
-                        Haptics.confirm()
+                        HapticEngine.shared.play(.confirm)
                     }
                 }
                 Spacer(minLength: 0)

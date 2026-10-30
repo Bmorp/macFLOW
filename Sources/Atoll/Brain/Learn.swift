@@ -211,7 +211,7 @@ struct StudyCardView: View {
 
     private func finish(_ g: StudyCard.Grade) {
         LearnStore.shared.grade(card, g)
-        Haptics.confirm()
+        HapticEngine.shared.play(.confirm)
         if inSheet { onDone() } else { model.dismissAlert() }
     }
 }

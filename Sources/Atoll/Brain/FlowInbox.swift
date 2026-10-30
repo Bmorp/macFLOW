@@ -5,7 +5,14 @@ import SwiftUI
 /// it's at the top of Home the next time you open it, with Flow's star on the closed island until then.
 @MainActor
 final class FlowInbox: ObservableObject {
-    static let shared = FlowInbox()
+    static let shared = FlowInbox(learns: true)
+
+    /// Whether what happens here trains Flow (the app's inbox does; a test's doesn't touch the real Brain).
+    private let learns: Bool
+    init(learns: Bool = false) { self.learns = learns }
+
+    /// What Flow said back to an answer, shown in the card for a moment before it goes: "Got it — …".
+    @Published private(set) var acknowledgements: [UUID: String] = [:]
 
     struct Item: Identifiable, Equatable {
         enum Body: Equatable { case suggestion(BrainSuggestion), question(BrainQuestion) }
@@ -48,7 +55,17 @@ final class FlowInbox: ObservableObject {
     /// A waiting suggestion of the same kind is replaced.
     @discardableResult
     func suggest(_ s: BrainSuggestion, lasts: TimeInterval = 30 * 60, pop: Bool = true) -> Bool {
-        add(Item(body: .suggestion(s), added: Date(), expires: Date().addingTimeInterval(lasts)), replacing: true, pop: pop)
+        var s = s
+        var pop = pop
+        if learns {
+            // The plan's nudges and meeting notes come here directly: Flow learns from them too, explains them, and
+            // lets them wait quietly on Home (rather than pop) once you've shown it you rarely want that kind.
+            let engine = BrainEngine.shared
+            if s.why.isEmpty { s.why = engine.why(for: s) }
+            engine.track(s)
+            if pop, !engine.shouldPop(s) { pop = false }
+        }
+        return add(Item(body: .suggestion(s), added: Date(), expires: Date().addingTimeInterval(lasts)), replacing: true, pop: pop)
     }
 
     /// Adds a question and pops it in the island. False if the same question is already waiting.
@@ -60,11 +77,16 @@ final class FlowInbox: ObservableObject {
     private func add(_ item: Item, replacing: Bool, pop: Bool) -> Bool {
         if items.contains(where: { $0.key == item.key }) {
             guard replacing else { return false }
-            items.removeAll { $0.key == item.key }   // superseded, not ignored
+            // Superseded, not ignored: no lesson either way.
+            for old in items where old.key == item.key { forgetOutcome(old) }
+            items.removeAll { $0.key == item.key }
         }
         withAnimation(Motion.morph) {
             items.append(item)
-            if items.count > 6 { items.removeFirst(items.count - 6) }
+            if items.count > 6 {
+                for old in items.prefix(items.count - 6) { forgetOutcome(old) }
+                items.removeFirst(items.count - 6)
+            }
         }
         startSweeping()
         // Never over a call or StandBy: it waits on Home instead.
@@ -72,6 +94,11 @@ final class FlowInbox: ObservableObject {
             IslandManager.shared.showBrain(item.alert)
         }
         return true
+    }
+
+    private func forgetOutcome(_ item: Item) {
+        guard learns, case .suggestion(let s) = item.body else { return }
+        BrainEngine.shared.superseded(s)
     }
 
     func contains(_ id: UUID) -> Bool { items.contains { $0.id == id } }
@@ -94,9 +121,19 @@ final class FlowInbox: ObservableObject {
         BrainEngine.shared.dismiss(s)
     }
 
-    func answer(_ q: BrainQuestion, _ option: BrainQuestion.Option) {
-        resolve(q.id)
-        BrainEngine.shared.answer(q, option)
+    /// Answered: learned from at once, and acknowledged in the card for a moment before it goes. Returns what Flow
+    /// says back, for a card that shows it itself.
+    @discardableResult
+    func answer(_ q: BrainQuestion, _ option: BrainQuestion.Option) -> String? {
+        let ack = learns ? BrainEngine.shared.answer(q, option) : nil
+        guard let ack, contains(q.id) else { resolve(q.id); return ack }
+        withAnimation(Motion.morph) { acknowledgements[q.id] = ack }
+        let id = q.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) { [weak self] in
+            self?.resolve(id)
+            self?.acknowledgements[id] = nil
+        }
+        return ack
     }
 
     /// Not this one: don't ask again for a few days.
@@ -118,9 +155,13 @@ final class FlowInbox: ObservableObject {
     private func sweep() {
         let now = Date()
         let expired = items.filter { $0.expires <= now }
-        for item in expired {
+        for item in expired where learns {
+            switch item.body {
             // A suggestion that ran out unanswered counts as ignored — once, here, not when the alert closed.
-            if case .suggestion(let s) = item.body { BrainEngine.shared.ignored(s) }
+            case .suggestion(let s): BrainEngine.shared.ignored(s)
+            // A question left a day: a soft "not now".
+            case .question(let q): BrainEngine.shared.expired(q)
+            }
         }
         if !expired.isEmpty { withAnimation(Motion.morph) { items.removeAll { $0.expires <= now } } }
         if items.isEmpty {
@@ -144,16 +185,26 @@ struct FlowInboxCard: View {
     /// After an action that takes you somewhere else (opening Flow, starting a timer), the island closes.
     var onLeave: () -> Void = {}
     @Environment(\.islandShowing) private var showing
+    @ObservedObject private var inbox = FlowInbox.shared
     @State private var arrived = RenderMode.snapshot
 
     static let suggestionHeight: CGFloat = 58
+    /// With its one-line Why underneath.
+    static let explainedHeight: CGFloat = 72
     static let questionHeight: CGFloat = 94
     /// Space below the card, before the player.
     static let gap: CGFloat = 8
 
     @MainActor static func height(_ item: FlowInbox.Item?) -> CGFloat {
         guard let item else { return 0 }
-        return (item.isQuestion ? questionHeight : suggestionHeight) + gap
+        return cardHeight(item) + gap
+    }
+
+    @MainActor static func cardHeight(_ item: FlowInbox.Item) -> CGFloat {
+        switch item.body {
+        case .question: questionHeight
+        case .suggestion(let s): s.why.isEmpty ? suggestionHeight : explainedHeight
+        }
     }
 
     var body: some View {
@@ -163,7 +214,7 @@ struct FlowInboxCard: View {
             case .question(let q): question(q)
             }
         }
-        .frame(height: item.isQuestion ? Self.questionHeight : Self.suggestionHeight)
+        .frame(height: Self.cardHeight(item))
         .background(FlowCardBackground())
         .opacity(arrived ? 1 : 0)
         .offset(y: arrived ? 0 : -10)
@@ -193,8 +244,10 @@ struct FlowInboxCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(s.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(DS.Ink.primary).lineLimit(1)
                 meta(s.detail)
+                if !s.why.isEmpty { WhyLine(text: s.why) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
             more
             Ghost(symbol: "xmark", label: "Dismiss", size: 10, tint: DS.Ink.tertiary, hit: 26) {
                 FlowInbox.shared.dismiss(s)
@@ -223,15 +276,19 @@ struct FlowInboxCard: View {
                     FlowInbox.shared.skip(q)
                 }
             }
-            HStack(spacing: 6) {
-                ForEach(q.options, id: \.self) { option in
-                    FlowOptionButton(title: option.label) {
-                        FlowInbox.shared.answer(q, option)
-                        if q.key.hasPrefix("plan.checkin"), option.value == "replan" { onLeave() }
+            if let ack = inbox.acknowledgements[q.id] {
+                Acknowledgement(text: ack).padding(.leading, 44)
+            } else {
+                HStack(spacing: 6) {
+                    ForEach(q.options, id: \.self) { option in
+                        FlowOptionButton(title: option.label) {
+                            FlowInbox.shared.answer(q, option)
+                            if q.key.hasPrefix("plan.checkin"), option.value == "replan" { onLeave() }
+                        }
                     }
                 }
+                .padding(.leading, 44)
             }
-            .padding(.leading, 44)
         }
         .padding(.horizontal, 12)
     }
@@ -261,6 +318,37 @@ struct FlowInboxCard: View {
         case .ask, .openPlan, .openRewind, .openDay: true
         default: false
         }
+    }
+}
+
+/// A suggestion's one-line Why: what Flow has learned that made it speak up now.
+struct WhyLine: View {
+    let text: String
+    var size: CGFloat = 10.5
+
+    var body: some View {
+        HStack(spacing: 4) {
+            FlowGlyph(size: size * 0.7, color: BrainStyle.tint.opacity(0.9))
+            Text(text).font(.system(size: size, weight: .medium)).foregroundStyle(DS.Ink.tertiary).lineLimit(1)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Why: \(text)")
+    }
+}
+
+/// What Flow says back to an answer, in place of the answers.
+struct Acknowledgement: View {
+    let text: String
+    var size: CGFloat = 12
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle.fill").font(.system(size: size, weight: .semibold)).foregroundStyle(BrainStyle.tint)
+            Text(text).font(.system(size: size, weight: .semibold)).foregroundStyle(DS.Ink.primary).lineLimit(1)
+        }
+        .frame(height: 26)
+        .transition(Access.reduceMotion ? .opacity : .scale(scale: 0.96, anchor: .leading).combined(with: .opacity))
+        .accessibilityElement(children: .combine)
     }
 }
 

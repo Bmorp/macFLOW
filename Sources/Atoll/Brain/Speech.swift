@@ -176,7 +176,8 @@ final class VoiceInput: ObservableObject {
         releasedEarly = false
         transcript = ""
         model.openBrain()
-        Haptics.snap()
+        // The hold crossed its threshold: a level change, felt at once (a press response, not a frame).
+        HapticEngine.shared.play(.level, channel: .talk, timing: .now)
         authorizing = true
         LiveTranscriber.authorize(microphone: true) { [weak self] ok in
             guard let self else { return }

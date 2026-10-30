@@ -187,6 +187,8 @@ final class PatternsModel: ObservableObject {
     /// For the planner: when to put the most important thing today (nil if there's no clear best window).
     func bestWindow(on day: Date) -> DateInterval? {
         guard patterns.isReady, let s = patterns.bestStart, let e = patterns.bestEnd,
+              // You said these aren't your sharpest hours: don't plan around them.
+              BrainStore.shared.fact("pref:window.\(s)-\(e)") != "no",
               let a = Calendar.current.date(bySettingHour: s, minute: 0, second: 0, of: day),
               let b = Calendar.current.date(bySettingHour: e, minute: 0, second: 0, of: day) else { return nil }
         return DateInterval(start: a, end: b)

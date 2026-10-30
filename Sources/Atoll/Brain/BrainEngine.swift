@@ -28,10 +28,14 @@ struct BrainSuggestion: Equatable, Identifiable {
     let kind: String                    // feedback key, e.g. "resume", "break"
     let symbol: String
     let title: String
-    let detail: String                  // the why, in plain words
+    let detail: String                  // what it's based on, in plain words
     let actionTitle: String
     let action: BrainAction
     let confidence: Double
+    /// What it points at (an app, a project, an artist): the learner tells "Figma after Slack" from "Mail after Slack".
+    var target: String? = nil
+    /// One line on why Flow showed it now, from what it has learned ("You took 3 of 4 like this in the afternoon").
+    var why: String = ""
 }
 
 struct BrainQuestion: Equatable, Identifiable {
@@ -43,8 +47,9 @@ struct BrainQuestion: Equatable, Identifiable {
     struct Option: Equatable, Hashable { let label: String; let value: String }
 }
 
-/// The engine: senses → candidates with evidence → scored by what you've accepted before → shown only when it's
-/// worth an interruption. Early on it asks; later it mostly knows.
+/// The engine: senses → candidates with evidence → a learned policy decides which are worth an interruption
+/// (`SuggestionPolicy`) → shown, inside hard rails (quiet times, an hourly cap, cooldowns). Questions are chosen by
+/// what Flow is least sure of and most needs to know (`QuestionBank`), and each answer trains it at once.
 @MainActor
 final class BrainEngine: ObservableObject {
     static let shared = BrainEngine()
@@ -54,12 +59,22 @@ final class BrainEngine: ObservableObject {
 
     private let store = BrainStore.shared
     private let context = WorkContext.shared
+    private let policy = SuggestionPolicy.shared
     private var cooldowns: [String: Date] = [:]
     private var lastPop = Date.distantPast
     private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
     private var started = false
     private var lastMeetingID: String?
+    /// Questions on show, by key, so an answer finds what it was about.
+    private var asking: [String: QuestionProbe] = [:]
+    /// The slower parts of what questions look at (a week of app time and modes), refreshed off the main thread.
+    private var weekModes: [WorkMode: Double] = [:]
+    private var weekApps: [(bundle: String, name: String, minutes: Double)] = []
+    private var guesses: [String: WorkMode] = [:]
+    private var worldAt = Date.distantPast
+    private var lastScan = Date.distantPast
+    private var lastConsidered = Date.distantPast
 
     private var installedAt: Date {
         if let s = store.fact("brain:installed"), let t = Double(s) { return Date(timeIntervalSince1970: t) }
@@ -87,6 +102,11 @@ final class BrainEngine: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         timer = t
         store.purge(olderThan: Prefs.shared.brainRetentionDays)
+        // What you did with suggestions before this policy existed still counts.
+        policy.adoptHistory()
+        ModeCorrections.shared.onChange = { WorkContext.shared.correctionsChanged() }
+        TaskBrain.shared.start()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { BrainEngine.shared.refreshWeek() }
     }
 
     // MARK: Triggers
@@ -97,17 +117,19 @@ final class BrainEngine: ObservableObject {
             if away >= 20 * 60 { offer(resume(after: away)) } else if away >= 5 * 60 { offerHabit() }
             // Back from a pause: a good moment to recall something (if a card is due and nothing else spoke up).
             if away >= 3 * 60 { DispatchQueue.main.asyncAfter(deadline: .now() + 20) { LearnStore.shared.quizIfQuiet() } }
+            // …or to ask what Flow most needs to know, if nothing else did.
+            if away >= 3 * 60 { DispatchQueue.main.asyncAfter(deadline: .now() + 45) { BrainEngine.shared.considerAsking() } }
         case .modeChanged(let from, let to, let after):
             if from == .meeting, to != .meeting, after >= 5 * 60 { offer(backToWork()) }
             if from == .meeting || from == .communicating { offerHabit() }
-            if to == .coding || to.isDeepWork { maybeAskAbout(to) }
+            if to != .meeting, to != .idle { considerAsking() }
         case .appOpened(let bundle):
             offer(routine(after: bundle))
-            maybeLearnApp(bundle)
+            guessApp(bundle)
         case .clipboard(let kind):
             if kind == "error", context.mode == .coding { offer(errorHelp()) }
         case .episodeEnded:
-            break
+            considerAsking()
         }
     }
 
@@ -119,6 +141,13 @@ final class BrainEngine: ObservableObject {
         offer(protectFocus())
         offer(focusMusic())
         offer(endOfDay())
+        if Date().timeIntervalSince(lastScan) > 10 * 60 {
+            lastScan = Date()
+            TaskBrain.shared.scan()
+        }
+        if Date().timeIntervalSince(worldAt) > 30 * 60 { refreshWeek() }
+        // A task that looks done is worth asking about while it's fresh — at a light moment, not mid-stretch.
+        if !context.mode.isDeepWork || context.modeDuration < 2 * 60 { considerAsking() }
     }
 
     // MARK: Candidates
@@ -137,12 +166,12 @@ final class BrainEngine: ObservableObject {
             return BrainSuggestion(kind: "resume", symbol: "arrow.uturn.forward",
                                    title: morning ? "Good morning — continue \(name)?" : "Pick up \(name)?",
                                    detail: "Right where you left it · \(room.summary)",
-                                   actionTitle: "Continue", action: .resumeRoom(room.key), confidence: 0.8)
+                                   actionTitle: "Continue", action: .resumeRoom(room.key), confidence: 0.8, target: ep.project)
         }
         return BrainSuggestion(kind: "resume", symbol: "arrow.uturn.forward",
                                title: morning ? "Good morning — continue \(name)?" : "Pick up \(name)?",
                                detail: "You were \(ep.summary.lowercased()) · opens \(names.joined(separator: ", "))",
-                               actionTitle: "Continue", action: .openApps(apps), confidence: 0.75)
+                               actionTitle: "Continue", action: .openApps(apps), confidence: 0.75, target: ep.project.isEmpty ? apps.first : ep.project)
     }
 
     /// At a turning point (back from a break, out of a meeting or messages): what you usually do next from a moment like
@@ -159,7 +188,7 @@ final class BrainEngine: ObservableObject {
                                             title: room != nil ? "Back to \(p.project)?" : "Open \(p.name)?",
                                             detail: "What you usually do now · \(Int(p.confidence * 100))% of moments like this",
                                             actionTitle: "Open", action: room.map { .resumeRoom($0.key) } ?? .openApps([p.bundle]),
-                                            confidence: min(0.9, p.confidence))
+                                            confidence: min(0.9, p.confidence), target: p.bundle)
                     BrainEngine.shared.offerFromHabit(s)
                 }
             }
@@ -178,7 +207,7 @@ final class BrainEngine: ObservableObject {
                                title: "Back to \(ep.project.isEmpty ? "work" : ep.project)?",
                                detail: "Before the meeting you were \(ep.summary.lowercased())",
                                actionTitle: "Resume", action: RoomStore.shared.projectRoom(ep.project).map { .resumeRoom($0.key) } ?? .openApps(apps),
-                               confidence: 0.7)
+                               confidence: 0.7, target: ep.project.isEmpty ? apps.first : ep.project)
     }
 
     /// A meeting is close while you're deep in something.
@@ -201,10 +230,12 @@ final class BrainEngine: ObservableObject {
     /// A long stretch without a pause.
     private func longStretch() -> BrainSuggestion? {
         guard context.mode.isDeepWork, context.modeDuration >= 90 * 60, !FocusTimer.shared.isActive else { return nil }
+        // As long as you said you like them (five minutes until you do).
+        let minutes = store.fact("pref:break.minutes").flatMap(Int.init) ?? 5
         return BrainSuggestion(kind: "break", symbol: "figure.walk",
                                title: "\(Self.duration(context.modeDuration)) of \(context.mode.label.lowercased()) — a short break?",
-                               detail: "A five-minute pause keeps the next hour sharp",
-                               actionTitle: "5-Min Break", action: .startTimer(minutes: 5, label: "Break"), confidence: 0.6)
+                               detail: "A \(minutes)-minute pause keeps the next hour sharp",
+                               actionTitle: "\(minutes)-Min Break", action: .startTimer(minutes: minutes, label: "Break"), confidence: 0.6)
     }
 
     /// Focus is fragmenting: lots of switching away from deep work.
@@ -267,7 +298,8 @@ final class BrainEngine: ObservableObject {
         return BrainSuggestion(kind: "routine", symbol: "arrow.triangle.branch",
                                title: "Open \(nextName) too?",
                                detail: "You open it after \(thisName) \(Int(Double(count) / Double(times) * 100))% of the time",
-                               actionTitle: "Open", action: .openApps([next]), confidence: 0.55 + 0.3 * Double(count) / Double(times))
+                               actionTitle: "Open", action: .openApps([next]), confidence: 0.55 + 0.3 * Double(count) / Double(times),
+                               target: next, why: "You usually open \(nextName) after \(thisName)")
     }
 
     /// Music that suits the moment, when you usually have it.
@@ -283,7 +315,7 @@ final class BrainEngine: ObservableObject {
             return BrainSuggestion(kind: "music", symbol: "music.note",
                                    title: "\(artist) for \(doing)?",
                                    detail: also.isEmpty ? "What you usually play while \(doing)" : "Your \(doing) music · also \(also.joined(separator: ", "))",
-                                   actionTitle: "Play", action: .playArtist(artist), confidence: 0.64)
+                                   actionTitle: "Play", action: .playArtist(artist), confidence: 0.64, target: artist)
         }
         return BrainSuggestion(kind: "music", symbol: "music.note", title: "Some music for \(doing)?",
                                detail: "You said you like music while you work",
@@ -302,31 +334,77 @@ final class BrainEngine: ObservableObject {
                                confidence: 0.55)
     }
 
-    // MARK: Learning questions
+    // MARK: Questions
 
-    private func maybeAskAbout(_ mode: WorkMode) {
-        guard learning || Int.random(in: 0..<6) == 0 else { return }
-        if mode == .coding || mode == .writing, store.fact("pref:music.\(mode.rawValue)") == nil, context.modeDuration > 0 {
-            ask(BrainQuestion(key: "pref:music.\(mode.rawValue)", text: "Do you like music while \(mode.label.lowercased())?",
-                              detail: "I’ll suggest it at the right moment — or never.",
-                              options: [.init(label: "Yes", value: "yes"), .init(label: "Sometimes", value: "sometimes"), .init(label: "No", value: "no")]))
-        } else if context.level == .essentials, store.fact("ask:level") == nil, learning {
-            ask(BrainQuestion(key: "ask:level", text: "Should I learn which project you’re in?",
-                              detail: "I’d read window titles — on this Mac only.",
-                              options: [.init(label: "Yes", value: "yes"), .init(label: "Not now", value: "no")]))
+    /// A quiet moment: ask the one thing Flow most needs to know, if anything's worth it. Never by chance — by
+    /// uncertainty × impact (`QuestionBank`), within a daily budget, never the same question twice unless its
+    /// answer has gone stale.
+    func considerAsking() {
+        guard !quiet, Date().timeIntervalSince(lastPop) >= 10 * 60, Date().timeIntervalSince(lastConsidered) >= 4 * 60,
+              !FlowInbox.shared.items.contains(where: \.isQuestion) else { return }
+        lastConsidered = Date()
+        guard let p = QuestionBank.choose(world()) else { return }
+        guard FlowInbox.shared.ask(p.question) else { return }   // already waiting for you
+        asking[p.key] = p
+        store.noteQuestion(p.key, asked: Date())
+        lastPop = Date()
+    }
+
+    /// What the question bank looks at, now.
+    func world(now: Date = Date()) -> QuestionWorld {
+        var w = QuestionWorld(now: now, learning: learning, policy: policy)
+        w.facts = Dictionary(store.facts().map { ($0.key, $0) }, uniquingKeysWith: { a, _ in a })
+        w.asked = store.askedLog()
+        w.modeMinutes = weekModes
+        w.unclassified = weekApps.filter { app in
+            Understanding.mode(bundle: app.bundle, title: "") == .other && w.facts["mode:\(app.bundle)"]?.source != "answered"
+                && !Prefs.shared.brainExcluded.contains(app.bundle)
+        }.map { ($0.bundle, $0.name, $0.minutes, guesses[$0.bundle]) }
+        w.projects = InsightModel.shared.insight.projects.map { ($0.name, $0.week / 60) }
+        let patterns = PatternsModel.shared.patterns
+        if patterns.isReady, let s = patterns.bestStart, let e = patterns.bestEnd { w.bestWindow = (s, e) }
+        w.patternDays = patterns.days
+        w.plansMornings = Prefs.shared.planMorning
+        w.levelIsEssentials = context.level == .essentials
+        w.taskProbes = TaskBrain.shared.probes(now: now)
+        return w
+    }
+
+    /// A week of kinds of work and apps, read off the main thread every half hour, for what questions look at.
+    func refreshWeek() {
+        worldAt = Date()
+        let store = self.store
+        DispatchQueue.global(qos: .utility).async {
+            let since = Date().addingTimeInterval(-7 * 86_400)
+            var modes: [WorkMode: Double] = [:]
+            for ep in store.episodes(since: since, limit: 2000) {
+                if let m = WorkMode(rawValue: ep.mode) { modes[m, default: 0] += ep.end.timeIntervalSince(ep.start) / 60 }
+            }
+            var apps: [String: (name: String, minutes: Double)] = [:]
+            for e in store.events(since: since, kinds: ["app"], limit: 20_000) where !e.bundle.isEmpty {
+                apps[e.bundle, default: (e.app, 0)].minutes += e.duration / 60
+            }
+            let list = Array(apps.map { (bundle: $0.key, name: $0.value.name, minutes: $0.value.minutes) }.sorted { $0.minutes > $1.minutes }.prefix(30))
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    BrainEngine.shared.weekModes = modes
+                    BrainEngine.shared.weekApps = list
+                }
+            }
         }
     }
 
-    /// An app the rules don't know, used a while: ask what it's for.
-    private func maybeLearnApp(_ bundle: String) {
-        guard learning, Understanding.mode(bundle: bundle, title: "") == .other, store.fact("mode:\(bundle)") == nil,
-              store.fact("asked:\(bundle)") == nil, let name = Self.appName(bundle) else { return }
-        let used = store.appTime(since: Date().addingTimeInterval(-7 * 86_400)).first { $0.app == name }?.seconds ?? 0
-        guard used >= 20 * 60 else { return }
-        store.setFact("asked:\(bundle)", "1", source: "inferred", confidence: 1)
-        ask(BrainQuestion(key: "mode:\(bundle)", text: "What do you use \(name) for?", detail: "So I know when you’re working.",
-                          options: [.init(label: "Building", value: WorkMode.coding.rawValue), .init(label: "Writing", value: WorkMode.writing.rawValue),
-                                    .init(label: "Design", value: WorkMode.design.rawValue), .init(label: "Personal", value: WorkMode.media.rawValue)]))
+    /// An app the rules don't know: on macOS 26, the on-device model makes a first guess, so Flow's question can be a
+    /// quick yes ("Is Notion for writing?") rather than a blank one. The guess is held loosely until you confirm it.
+    private func guessApp(_ bundle: String) {
+        guard Mind.shared.isAvailable, guesses[bundle] == nil, Understanding.mode(bundle: bundle, title: "") == .other,
+              store.fact("mode:\(bundle)") == nil, let name = Self.appName(bundle) else { return }
+        guesses[bundle] = .other
+        let title = context.title
+        Task { @MainActor in
+            guard let mode = await Mind.shared.classify(app: name, title: title), mode != .other, mode != .idle else { return }
+            BrainEngine.shared.guesses[bundle] = mode
+        }
     }
 
     // MARK: Policy
@@ -341,70 +419,124 @@ final class BrainEngine: ObservableObject {
         return false
     }
 
-    /// Bayesian-ish: how often you've said yes to this kind, starting optimistic.
-    /// Bayesian-ish, and aware of the time of day: how often you take this kind of suggestion overall (starting
-    /// optimistic), sharpened by how you take it at this part of the day — so a nudge you welcome at 10 but wave away at
-    /// 4 learns to keep to the morning.
-    private func score(_ s: BrainSuggestion) -> Double {
-        let r = store.reactions(s.kind)
-        let overall = (Double(r.accepted) + 1.5) / (Double(r.accepted) + Double(r.dismissed) + Double(r.ignored) * 0.5 + 2)
-        let c = store.reactions(s.kind, at: Date())
-        let seen = Double(c.accepted) + Double(c.dismissed) + Double(c.ignored) * 0.5
-        let now = (Double(c.accepted) + 2 * overall) / (seen + 2)
-        return s.confidence * (0.4 + 0.9 * now)
+    /// The bar a suggestion's chance of being taken must clear: lower in the first week, while Flow is learning.
+    var bar: Double { learning ? 0.42 : 0.5 }
+
+    /// What you told Flow outright: never this kind, or not at this time of day.
+    func silenced(_ kind: String, at date: Date = Date()) -> Bool {
+        if store.fact("want:\(kind)") == "never" { return true }
+        let part = ContextFeatures.Part(hour: Calendar.current.component(.hour, from: date))
+        return store.factRecord("want:\(kind)@\(part)").map { $0.value == "no" && !$0.isStale() } ?? false
     }
 
     private func offer(_ candidate: BrainSuggestion?) {
-        guard let s = candidate, !quiet else { return }
+        guard var s = candidate, !quiet else { return }
+        // Hard rails first: cooldowns, a pause between pops, five an hour, and anything you said no to.
         if let until = cooldowns[s.kind], until > Date() { return }
         let gap = Date().timeIntervalSince(lastPop)
         let hourCount = store.suggestionsShown(since: Date().addingTimeInterval(-3600))
-        guard gap >= 10 * 60 || s.kind == "meeting", hourCount < 5 else { return }
-        let bar = learning ? 0.42 : 0.5
-        guard score(s) >= bar else { return }
+        guard gap >= 10 * 60 || s.kind == "meeting", hourCount < 5, !silenced(s.kind) else { return }
+        // Then the learned policy: is this one, here, now, worth it?
+        let situation = Situation.now()
+        let d = policy.decide(kind: s.kind, situation: situation, target: s.target, confidence: s.confidence, bar: bar)
+        guard d.show else { return }
+        if s.why.isEmpty || d.exploring { s.why = d.why }
         cooldowns[s.kind] = Date().addingTimeInterval(s.kind == "routine" ? 20 * 60 : 75 * 60)
         lastPop = Date()
         lastSuggestion = s
         store.feedback(s.kind, "shown")
+        policy.shown(s.id, kind: s.kind, situation: situation, target: s.target, confidence: s.confidence)
         FlowInbox.shared.suggest(s, lasts: s.kind == "meeting" ? 12 * 60 : 30 * 60)
     }
 
-    private func ask(_ q: BrainQuestion) {
-        guard !quiet, Date().timeIntervalSince(lastPop) >= 10 * 60 else { return }
-        let today = store.facts().filter { $0.source == "answered" && Calendar.current.isDateInToday($0.updated) }.count
-        guard today < (learning ? 3 : 1) else { return }
-        // Skipped recently ("Don't ask again"): leave it for a few days.
-        if let t = store.fact("skipped:\(q.key)").flatMap(Double.init), Date().timeIntervalSince1970 - t < 3 * 86400 { return }
-        guard FlowInbox.shared.ask(q) else { return }   // already waiting for you
-        lastPop = Date()
+    /// A suggestion that came straight to the inbox (the plan's nudges, meeting notes): learn from it like any other.
+    func track(_ s: BrainSuggestion) {
+        guard !policy.isTracking(s.id) else { return }
+        policy.shown(s.id, kind: s.kind, situation: Situation.now(), target: s.target, confidence: s.confidence)
+    }
+
+    /// For the inbox: whether a suggestion that bypassed the engine should pop, or wait quietly on Home — it waits
+    /// when you've shown Flow you rarely want that kind.
+    func shouldPop(_ s: BrainSuggestion) -> Bool {
+        if silenced(s.kind) { return false }
+        let b = policy.belief(kind: s.kind, situation: Situation.now(), target: s.target, confidence: s.confidence)
+        return b.evidence < 3 || b.p >= bar
+    }
+
+    /// The line on a card from the plan or a meeting: what Flow has learned about that kind.
+    func why(for s: BrainSuggestion) -> String {
+        policy.decide(kind: s.kind, situation: Situation.now(), target: s.target, confidence: s.confidence, bar: 0).why
     }
 
     // MARK: Outcomes
 
     func accept(_ s: BrainSuggestion) {
         store.feedback(s.kind, "accepted")
+        policy.record(s.id, .accepted)
         perform(s.action)
     }
 
     func dismiss(_ s: BrainSuggestion) {
         store.feedback(s.kind, "dismissed")
+        policy.record(s.id, .dismissed)
         cooldowns[s.kind] = Date().addingTimeInterval(4 * 3600)
+        // Music waved away while you'd said you like it then: the answer is wearing thin (and gets asked again sooner).
+        if s.kind == "music", let f = store.factRecord("pref:music.\(context.mode.rawValue)"), f.source == "answered", f.value == "yes" {
+            store.setFact(f.key, f.value, source: "answered", confidence: f.confidence(at: Date()) * 0.75)
+        }
     }
 
-    func ignored(_ s: BrainSuggestion) { store.feedback(s.kind, "ignored") }
+    func ignored(_ s: BrainSuggestion) {
+        store.feedback(s.kind, "ignored")
+        policy.record(s.id, .ignored)
+    }
+
+    /// Replaced by a newer one of its kind, or pushed out of a full inbox: no lesson either way.
+    func superseded(_ s: BrainSuggestion) { policy.record(s.id, .superseded) }
 
     func skip(_ q: BrainQuestion) {
         store.setFact("skipped:\(q.key)", "\(Date().timeIntervalSince1970)", source: "inferred", confidence: 1)
+        store.noteQuestion(q.key, skipped: true)
+        asking[q.key] = nil
     }
 
-    func answer(_ q: BrainQuestion, _ option: BrainQuestion.Option) {
-        store.setFact(q.key, option.value, source: "answered", confidence: 1)
-        if q.key == "ask:level", option.value == "yes" {
-            Prefs.shared.brainLevel = BrainLevel.context.rawValue
-            if !InputControl.isTrusted { InputControl.requestTrust() }
+    /// A question ran out unanswered: a soft "not now".
+    func expired(_ q: BrainQuestion) {
+        store.noteQuestion(q.key, skipped: true)
+        asking[q.key] = nil
+    }
+
+    /// An answer: a strong label, applied at once. Returns what to say back ("Got it — no more break nudges before 5").
+    @discardableResult
+    func answer(_ q: BrainQuestion, _ option: BrainQuestion.Option) -> String? {
+        HapticEngine.shared.play(.confirm)
+        store.noteQuestion(q.key, answer: option.value)
+        let probe = asking.removeValue(forKey: q.key) ?? QuestionBank.candidates(world()).first { $0.key == q.key }
+        guard let probe else {
+            // Not one of Flow's own (the plan's check-in): kept as it was.
+            store.setFact(q.key, option.value, source: "answered", confidence: 1)
+            if q.key.hasPrefix("plan.checkin"), option.value == "replan" { IslandManager.shared.openPlan() }
+            if q.key.hasPrefix("plan.checkin") { return option.value == "behind" ? "Got it — the rest of today, one thing at a time" : "Got it" }
+            return nil
         }
-        if q.key.hasPrefix("plan.checkin"), option.value == "replan" { IslandManager.shared.openPlan() }
-        Haptics.confirm()
+        let effect = QuestionBank.effect(of: option, for: probe, world: world())
+        apply(effect)
+        return effect.acknowledgement
+    }
+
+    func apply(_ effect: AnswerEffect) {
+        for f in effect.facts { store.setFact(f.key, f.value, source: "answered", confidence: 1) }
+        for l in effect.labels { policy.teach(kind: l.kind, situation: l.situation, label: l.y, weight: l.weight, fromAnswer: true) }
+        for a in effect.actions {
+            switch a {
+            case .raiseLevel:
+                Prefs.shared.brainLevel = BrainLevel.context.rawValue
+                if !InputControl.isTrusted { InputControl.requestTrust() }
+            case .completeTask(let id): TaskLinks.ledger?.complete(id)
+            case .estimate(let id, let minutes): TaskBrain.shared.applyEstimate(id, minutes: minutes)
+            case .doneLabel(let id, let done): TaskBrain.shared.labelDone(id, done: done)
+            }
+        }
     }
 
     func perform(_ action: BrainAction) {
@@ -502,14 +634,28 @@ final class BrainEngine: ObservableObject {
             lines.append(t + ".")
         }
         if NowPlayingModel.shared.hasTrack { lines.append("Now playing: \(NowPlayingModel.shared.title) by \(NowPlayingModel.shared.artist).") }
-        let facts = store.facts().filter { $0.source == "answered" && !$0.key.hasPrefix("ask:") }.prefix(12)
+        if let ledger = TaskLinks.ledger {
+            let open = ledger.openTasks().sorted { TaskBrain.shared.importance(of: $0, at: Date()) > TaskBrain.shared.importance(of: $1, at: Date()) }
+            if !open.isEmpty {
+                lines.append("Open tasks, most important first: " + open.prefix(6).map { t in
+                    t.title + (t.due.map { " (due \(Self.clock($0)))" } ?? "") + (t.status == .active ? " (in progress)" : "")
+                }.joined(separator: "; ") + ".")
+            }
+        }
+        let facts = store.facts().filter { $0.source == "answered" && !$0.key.hasPrefix("ask:") && !$0.key.hasPrefix("task.") }.prefix(12)
         if !facts.isEmpty { lines.append("They told Flow: " + facts.map { "\(Self.factText($0))" }.joined(separator: "; ") + ".") }
+        let beliefs = Beliefs.all().filter { $0.confidence >= 0.4 }.prefix(5).map(\.sentence)
+        if !beliefs.isEmpty { lines.append("Flow has learned: " + beliefs.joined(separator: " ")) }
         return lines.joined(separator: "\n")
     }
 
     static func factText(_ f: BrainStore.Fact) -> String {
         if f.key.hasPrefix("pref:music.") { return "music while \(f.key.dropFirst(11)): \(f.value)" }
         if f.key.hasPrefix("mode:"), let name = appName(String(f.key.dropFirst(5))) { return "\(name) is for \(f.value)" }
+        if f.key == "pref:break.minutes" { return "breaks of \(f.value) minutes" }
+        if f.key == "focus:project" { return f.value.isEmpty ? "no single project matters most" : "\(f.value) matters most this week" }
+        if f.key.hasPrefix("pref:window.") { return "\(f.key.dropFirst(12)) as their sharpest hours: \(f.value)" }
+        if f.key.hasPrefix("want:") { return "\(f.key.dropFirst(5)) suggestions: \(f.value)" }
         return "\(f.key): \(f.value)"
     }
 
@@ -530,4 +676,15 @@ final class BrainEngine: ObservableObject {
     #if DEBUG
     func debugShow(_ s: BrainSuggestion) { lastSuggestion = s }
     #endif
+}
+
+extension Situation {
+    /// This moment, from the senses.
+    @MainActor static func now() -> Situation {
+        let ctx = WorkContext.shared
+        let next = CalendarModel.shared.events.first { !$0.isAllDay && $0.start > Date() && Calendar.current.isDateInToday($0.start) }
+        return Situation(date: Date(), mode: ctx.mode, minutesInSession: ctx.modeDuration / 60, switchesLast15: ctx.switchesLast15Minutes,
+                         minutesToMeeting: next.map { $0.start.timeIntervalSinceNow / 60 }, musicPlaying: NowPlayingModel.shared.isPlaying,
+                         focusRunning: FocusTimer.shared.phase == .running)
+    }
 }
