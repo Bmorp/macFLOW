@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 /// A day, planned: your meetings (from Calendar and any you add), your top priorities placed into the free time
 /// around them, and a break. Built in the morning in the island, then Flow walks you through it.
@@ -11,6 +12,8 @@ struct PlanItem: Codable, Identifiable, Equatable {
     var start: Date
     var minutes: Int
     var done = false
+    /// The task this block is for (focus blocks; set when the plan is made).
+    var taskID: UUID? = nil
 
     var end: Date { start.addingTimeInterval(TimeInterval(minutes * 60)) }
     var interval: DateInterval { DateInterval(start: start, duration: TimeInterval(minutes * 60)) }
@@ -61,6 +64,10 @@ struct Priority: Identifiable, Equatable {
     /// once you change the title it's yours.
     var source: String? = nil
     var draft: String? = nil
+    /// The task it is: drafted from your tasks, or made from it when the day is planned.
+    var taskID: UUID? = nil
+    /// A time it already has ("review deck 3pm"): kept if it's free.
+    var preferred: Date? = nil
 
     var isDraft: Bool { source != nil && title == draft }
 }
@@ -102,7 +109,19 @@ enum PlanScheduler {
             return nil
         }
 
-        // Lunch first, so focus blocks don't swallow the middle of the day: 45 min between 12:30 and 14:00.
+        // A task that already has its time ("review deck 3pm") keeps it, if that time is free and still ahead.
+        let named = priorities.filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
+        var placed = Set<UUID>()
+        for p in named {
+            guard let at = p.preferred, calendar.isDate(at, inSameDayAs: day), at >= now, at >= open,
+                  let t = freeSlot(minutes: p.minutes, notBefore: at, notAfter: at) else { continue }
+            let item = PlanItem(id: p.id, title: p.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: p.minutes, taskID: p.taskID)
+            out.append(item)
+            taken.append(DateInterval(start: item.start, end: item.end.addingTimeInterval(buffer)))
+            placed.insert(p.id)
+        }
+
+        // Lunch next, so focus blocks don't swallow the middle of the day: 45 min between 12:30 and 14:00.
         let lunchFrom = day.addingTimeInterval(12.5 * 3600), lunchLatest = day.addingTimeInterval(13.25 * 3600)
         if lunchLatest > now, let t = freeSlot(minutes: 45, notBefore: max(lunchFrom, roundUp(now, to: 15, calendar: calendar)), notAfter: lunchLatest) {
             let item = PlanItem(id: PlanItem.lunchID, title: "Lunch", kind: .rest, start: t, minutes: 45)
@@ -111,21 +130,20 @@ enum PlanScheduler {
         }
 
         // What Flow learned: the first priority goes into your sharpest hours if it fits there (and they're still ahead).
-        let named = priorities.filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
-        var placedFirst: UUID?
-        if let w = focusWindow, let first = named.first, w.end > now {
+        if let w = focusWindow, let first = named.first, !placed.contains(first.id), w.end > now {
             let from = max(w.start, roundUp(now, to: 15, calendar: calendar), open)
             if let t = freeSlot(minutes: first.minutes, notBefore: from, notAfter: w.end.addingTimeInterval(-TimeInterval(first.minutes * 30))) {
-                let item = PlanItem(id: first.id, title: first.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: first.minutes)
+                let item = PlanItem(id: first.id, title: first.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: first.minutes,
+                                    taskID: first.taskID)
                 out.append(item)
                 taken.append(DateInterval(start: item.start, end: item.end.addingTimeInterval(buffer)))
-                placedFirst = first.id
+                placed.insert(first.id)
             }
         }
 
-        for p in named where p.id != placedFirst {
+        for p in named where !placed.contains(p.id) {
             guard let t = freeSlot(minutes: p.minutes, notBefore: cursorStart) else { continue }
-            let item = PlanItem(id: p.id, title: p.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: p.minutes)
+            let item = PlanItem(id: p.id, title: p.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: p.minutes, taskID: p.taskID)
             out.append(item)
             taken.append(DateInterval(start: item.start, end: item.end.addingTimeInterval(buffer)))
             cursorStart = item.end.addingTimeInterval(buffer)
@@ -212,37 +230,70 @@ final class PlanStore: ObservableObject {
     @Published private(set) var addedMeetings: [PlanItem] = []
 
     private static let file = "dayplan.json"
+    private var tasks: TaskStore { TaskStore.shared }
+    private var events: AnyCancellable?
 
     init() {
         let saved = Storage.load(DayPlan.self, from: Self.file)
         plan = saved?.day == DayPlan.key() ? saved! : DayPlan(day: DayPlan.key())
+        if !Storage.readOnly { migrateCarryList() }
         if let saved, saved.day != DayPlan.key() { carryUnfinished(from: saved) }
         prepareForEditing()
+        // A planned block's task finished (or reopened, or renamed) anywhere: the plan follows.
+        events = TaskEvents.stream.sink { [weak self] event in
+            MainActor.assumeIsolated { self?.follow(event) }
+        }
     }
 
-    /// What a past day's plan didn't get to comes forward (once).
+    private func follow(_ event: TaskEvent) {
+        switch event {
+        case .completed(let t): setDone(true, task: t.id)
+        case .reopened(let t): setDone(false, task: t.id)
+        case .updated(let t):
+            guard let i = plan.items.firstIndex(where: { $0.taskID == t.id }), plan.items[i].title != t.title, !t.title.isEmpty else { return }
+            plan.items[i].title = t.title
+            save()
+        default: break
+        }
+    }
+
+    private func setDone(_ done: Bool, task id: UUID) {
+        guard let i = plan.items.firstIndex(where: { $0.taskID == id }), plan.items[i].done != done else { return }
+        plan.items[i].done = done
+        save()
+    }
+
+    /// The day the next plan is for: today until it's planned (in the morning), otherwise tomorrow.
+    var nextPlanDay: Date {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let morning = cal.component(.hour, from: Date()) < 12
+        return !plan.started && !plan.skipped && morning ? today : (cal.date(byAdding: .day, value: 1, to: today) ?? today)
+    }
+
+    /// What a past day's plan didn't get to comes forward: its tasks move to today, nothing left behind.
     private func carryUnfinished(from old: DayPlan) {
         guard old.started else { return }
-        let undone = old.focus.filter { !$0.done }.map(\.title)
-        if !undone.isEmpty { carry(undone, from: "Unfinished yesterday", day: old.day) }
+        let undone = old.focus.filter { !$0.done }
+        let today = Calendar.current.startOfDay(for: Date())
+        let unlinked = undone.filter { $0.taskID == nil }.map(\.title)
+        if !unlinked.isEmpty { tasks.carry(unlinked, context: "Unfinished yesterday", source: .plan, to: today) }
+        tasks.rollForward(undone.compactMap(\.taskID), to: today, context: "Unfinished yesterday")
     }
 
-    /// Items carried into the next day's plan — from a meeting's action items, or what a day didn't get to — and where
-    /// each came from.
-    @Published private(set) var carried: [String] = UserDefaults.standard.stringArray(forKey: "planCarry") ?? []
-    private var carriedFrom: [String: String] = (UserDefaults.standard.dictionary(forKey: "planCarryFrom") as? [String: String]) ?? [:]
+    /// Items for a coming plan — a meeting's action items, tasks Flow Lens found — become tasks for that day, every one
+    /// of them. (They used to wait in a six-item list that the next morning's plan then cleared.)
+    func carry(_ items: [String], from source: String, as kind: TaskSource = .plan) {
+        tasks.carry(items, context: source, source: kind, to: nextPlanDay)
+    }
 
-    func carry(_ items: [String], from source: String, day: String = DayPlan.key()) {
-        var c = carried
-        for i in items.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) }) where !i.isEmpty && !c.contains(i) {
-            c.append(i)
-            carriedFrom[i] = source
-        }
-        carried = Array(c.prefix(6))
-        carriedFrom = carriedFrom.filter { carried.contains($0.key) }
-        UserDefaults.standard.set(carried, forKey: "planCarry")
-        UserDefaults.standard.set(carriedFrom, forKey: "planCarryFrom")
-        UserDefaults.standard.set(day, forKey: "planCarryDay")
+    /// The old carry list, from before tasks: each item becomes a task, once.
+    private func migrateCarryList() {
+        let d = UserDefaults.standard
+        guard let old = d.stringArray(forKey: "planCarry") else { return }
+        let from = (d.dictionary(forKey: "planCarryFrom") as? [String: String]) ?? [:]
+        for item in old { tasks.carry([item], context: from[item] ?? "Carried over", source: .plan, to: nextPlanDay) }
+        for key in ["planCarry", "planCarryFrom", "planCarryDay"] { d.removeObject(forKey: key) }
     }
 
     /// Opening the planner on a day that's already planned: what's still to do comes back to edit; what's done stays done.
@@ -252,20 +303,24 @@ final class PlanStore: ObservableObject {
         draft()
         guard plan.started else { return }
         let now = Date()
-        priorities = plan.focus.filter { !$0.done && $0.end > now }.prefix(3).map { Priority(id: $0.id, title: $0.title, minutes: $0.minutes) }
+        priorities = plan.focus.filter { !$0.done && $0.end > now }.prefix(3)
+            .map { Priority(id: $0.id, title: $0.title, minutes: $0.minutes, taskID: $0.taskID) }
         while priorities.count < 3 { priorities.append(Priority(minutes: 30)) }
         addedMeetings = plan.items.filter { $0.kind == .meeting && $0.end > now }
     }
 
-    /// Flow drafts the morning: what was carried in (yesterday's unfinished priorities, a meeting's action items), then
-    /// your main project this week if there's room. Each draft says where it came from; type over it and it's yours.
+    /// Flow drafts the morning from your tasks: what's due or overdue first, then what you planned for today or didn't
+    /// finish yesterday, then what the Brain has learned matters to you, then priority. Your main project this week fills
+    /// any room left. Each draft says why it's there; type over it and it's yours.
     func draft() {
-        guard !plan.started, !plan.skipped, priorities.allSatisfy({ $0.title.isEmpty }) else { return }
-        var drafts: [Priority] = []
-        if UserDefaults.standard.string(forKey: "planCarryDay") != DayPlan.key() {
-            for item in carried.prefix(3) {
-                drafts.append(Priority(title: item, minutes: 45, source: carriedFrom[item] ?? "Carried over", draft: item))
-            }
+        // Redrafted each time the planner opens, until you've typed something of your own: a task finished or added
+        // since the last look shows up right.
+        guard !plan.started, !plan.skipped, priorities.allSatisfy({ $0.title.isEmpty || $0.isDraft }) else { return }
+        var drafts: [Priority] = tasks.ranked().prefix(3).map { pick in
+            let t = pick.task
+            let minutes = Int(min(180, max(15, ((t.estimate ?? 45) / 5).rounded() * 5)))
+            let at = t.scheduled.flatMap { FlowTask.hasTime($0) && Calendar.current.isDateInToday($0) ? $0 : nil }
+            return Priority(title: t.title, minutes: minutes, source: pick.reason, draft: t.title, taskID: t.id, preferred: at)
         }
         if drafts.count < 3, let p = InsightModel.shared.insight.projects
             .filter({ $0.week > 3600 && Date().timeIntervalSince($0.lastSeen) < 3 * 86_400 })
@@ -275,7 +330,16 @@ final class PlanStore: ObservableObject {
                 drafts.append(Priority(title: title, minutes: 90, source: "Your main project this week — \(BrainEngine.duration(p.week))", draft: title))
             }
         }
-        for (i, d) in drafts.prefix(3).enumerated() where i < priorities.count { priorities[i] = d }
+        for i in priorities.indices {
+            if i < drafts.count {
+                guard priorities[i].title != drafts[i].title || priorities[i].taskID != drafts[i].taskID else { continue }
+                var d = drafts[i]
+                d.id = priorities[i].id      // the same row, so it changes in place
+                priorities[i] = d
+            } else if !priorities[i].title.isEmpty {
+                priorities[i] = Priority(id: priorities[i].id, minutes: priorities[i].minutes)
+            }
+        }
     }
 
     /// Whether anything in the planner is still as Flow drafted it.
@@ -332,10 +396,19 @@ final class PlanStore: ObservableObject {
     }
     #endif
 
-    /// "Start my day": the preview becomes the plan, and Flow starts guiding.
+    /// "Start my day": the preview becomes the plan, and Flow starts guiding. Every priority is a task from here on —
+    /// placed ones planned for their block, ones that didn't fit for today — so nothing typed is lost.
     func commit() {
-        let fresh = preview
+        var fresh = preview
         let ids = Set(fresh.map(\.id))
+        let byID = Dictionary(priorities.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        for i in fresh.indices where fresh[i].kind == .focus {
+            let p = byID[fresh[i].id]
+            fresh[i].taskID = tasks.plan(fresh[i].title, task: p?.taskID ?? fresh[i].taskID, at: fresh[i].start, minutes: fresh[i].minutes,
+                                         context: p?.isDraft == true ? p?.source : nil)
+        }
+        let today = Calendar.current.startOfDay(for: Date())
+        for p in unplaced { tasks.plan(p.title.trimmingCharacters(in: .whitespaces), task: p.taskID, at: today, minutes: p.minutes, context: nil) }
         // Replanning mid-day keeps what's behind you (done, or already over) exactly as it was.
         let kept = plan.started ? plan.items.filter { ($0.done || $0.end <= Date()) && !ids.contains($0.id) } : []
         var p = DayPlan(day: DayPlan.key())
@@ -344,16 +417,6 @@ final class PlanStore: ObservableObject {
         p.fired = plan.fired
         plan = p
         save()
-        // Carried items have had their turn once a morning's plan is made — except ones carried in today, for tomorrow.
-        if UserDefaults.standard.string(forKey: "planCarryDay") != DayPlan.key() {
-            carried = []
-            carriedFrom = [:]
-        } else {
-            let placed = Set(p.focus.map(\.title))
-            carried.removeAll { placed.contains($0) }
-        }
-        UserDefaults.standard.set(carried, forKey: "planCarry")
-        UserDefaults.standard.set(carriedFrom, forKey: "planCarryFrom")
         DayGuide.shared.planChanged()
     }
 
@@ -372,10 +435,12 @@ final class PlanStore: ObservableObject {
         DayGuide.shared.planChanged()
     }
 
+    /// A focus block ran to the end: the block is done, and so is its task.
     func markDone(title: String) {
         guard let i = plan.items.firstIndex(where: { $0.kind == .focus && !$0.done && $0.title == title }) else { return }
         plan.items[i].done = true
         save()
+        if let id = plan.items[i].taskID { tasks.complete(id) }
     }
 
     func markFired(_ key: String) {
@@ -414,6 +479,15 @@ final class DayGuide {
     }
 
     func planChanged() { tick() }
+
+    /// The evening's one line: "2 of 3 priorities done · Still open: Review PR, Inbox zero — they’ll be in tomorrow’s Today".
+    static func wrapUp(plan: DayPlan, left: [String]) -> String {
+        let done = plan.focus.filter(\.done).count
+        let head = "\(done) of \(plan.focus.count) priorities done"
+        guard !left.isEmpty else { return head + " — see how it went" }
+        let names = left.prefix(2).map { "“\($0)”" }.joined(separator: ", ") + (left.count > 2 ? " +\(left.count - 2)" : "")
+        return head + " · still open: \(names) — they’ll be in tomorrow’s Today"
+    }
 
     private func tick() {
         let store = PlanStore.shared
@@ -488,12 +562,11 @@ final class DayGuide {
                                                options: [.init(label: "On Track", value: "on-track"), .init(label: "Behind", value: "behind"),
                                                          .init(label: "Replan", value: "replan")]))
         }
-        // Evening wrap-up.
+        // Evening wrap-up: what got done, and what's still open (it opens tomorrow's Today on its own).
         if hour >= 18, hour < 22, !plan.fired.contains("wrapup"), !plan.focus.isEmpty {
             store.markFired("wrapup")
-            let done = plan.focus.filter(\.done).count
             FlowInbox.shared.suggest(BrainSuggestion(kind: "plan.wrapup", symbol: "sun.horizon.fill", title: "Your day, drawn",
-                                                     detail: "\(done) of \(plan.focus.count) priorities done — see how it went",
+                                                     detail: Self.wrapUp(plan: plan, left: TaskStore.shared.list(.today).filter(\.isOpen).map(\.title)),
                                                      actionTitle: "See Your Day", action: .openDay, confidence: 0.7), lasts: 3 * 3600)
         }
     }
@@ -513,6 +586,8 @@ final class MorningPlanner {
     func start() {
         guard !started else { return }
         started = true
+        // Tasks first: the plan drafts from them, and the Brain reads them through the ledger.
+        TaskStore.shared.start()
         let ws = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.screensDidWakeNotification, NSWorkspace.sessionDidBecomeActiveNotification] {
             ws.addObserver(forName: name, object: nil, queue: .main) { _ in
