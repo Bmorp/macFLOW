@@ -317,6 +317,34 @@ enum SnapshotHarness {
                 PlanStore.shared.debugSet(priorities: [Priority(), Priority(minutes: 60), Priority(minutes: 30)], meetings: [])
                 PlanStore.shared.draft()
                 m.debugSetMode(.expanded(.plan)) },
+            // The redesign's states: Home by what matters now, with tasks, a task in focus and a meeting close.
+            Case(name: "80-home-idle", live: true) { m in
+                ActivityCenter.shared.debugSet([]); silence(); ClaudeSessions.shared.debugSet([]); FlowInbox.shared.debugSet([])
+                FocusTimer.shared.stop(); NowModel.shared.debugSet(nil); CalendarModel.shared.debugSet([])
+                TaskStore.shared.debugSet(TaskDemo.busyWeek().tasks)
+                m.debugSetMode(.expanded(.glance)) },
+            Case(name: "80b-home-empty", live: true) { m in
+                TaskStore.shared.debugSet([])
+                m.debugSetMode(.expanded(.glance)) },
+            Case(name: "81-home-music", live: true) { m in
+                track(); ClaudeSessions.shared.debugSet(claudeSessions); ActivityCenter.shared.debugSet([.nowPlaying])
+                TaskStore.shared.debugSet(TaskDemo.busyWeek().tasks)
+                m.debugSetMode(.expanded(.glance)) },
+            Case(name: "82-home-focus", live: true) { m in
+                track(); ClaudeSessions.shared.debugSet(claudeSessions); ActivityCenter.shared.debugSet([.nowPlaying])
+                let demo = TaskDemo.busyWeek()
+                TaskStore.shared.debugSet(demo.tasks, active: demo.active, since: Date().addingTimeInterval(-12 * 60 - 20))
+                m.debugSetMode(.expanded(.glance)) },
+            Case(name: "83-home-meeting", live: true) { m in
+                TaskStore.shared.debugSet(TaskDemo.busyWeek().tasks)
+                CalendarModel.shared.debugSet([meeting])
+                m.debugSetMode(.expanded(.glance)) },
+            Case(name: "84-home-flow-ask", live: true) { m in
+                CalendarModel.shared.debugSet([]); ClaudeSessions.shared.debugSet([])
+                TaskStore.shared.debugSet(TaskDemo.busyWeek().tasks)
+                FlowInbox.shared.debugSet(Self.demoAsks())
+                NowModel.shared.debugRelease()
+                m.debugSetMode(.expanded(.glance)) },
         ]
 
         // ATOLL_SNAP_ONLY=10b,1c renders just those (by name prefix) — for iterating on one screen.
@@ -330,11 +358,53 @@ enum SnapshotHarness {
         }
         FocusTimer.shared.stop()
         PlanClock.pinned = nil
-        renderWindow(WelcomeView(onContinue: {}), size: CGSize(width: 500, height: 600), name: "50-welcome", outDir: outDir)
+        renderLabs(only: only, outDir: outDir)
+        if only == nil { renderWindow(WelcomeView(onContinue: {}), size: CGSize(width: 500, height: 600), name: "50-welcome", outDir: outDir) }
         print("snapshots ok → \(outDir)")
     }
 
     private static func spin(_ t: TimeInterval) { RunLoop.main.run(until: Date().addingTimeInterval(t)) }
+
+    /// A question and a suggestion waiting in Flow's inbox.
+    private static func demoAsks() -> [FlowInbox.Item] {
+        [.init(body: .question(BrainQuestion(key: "pref:music.coding", text: "Do you like music while coding?",
+                                             detail: "I’ll suggest it at the right moment", options: [.init(label: "Yes", value: "yes"), .init(label: "Sometimes", value: "s"), .init(label: "No", value: "no")])),
+               added: Date().addingTimeInterval(-720), expires: .distantFuture),
+         .init(body: .suggestion(BrainSuggestion(kind: "plan.focus", symbol: "scope", title: "Up next: Write the launch post",
+                                                 detail: "10:40–11:40 · from your plan", actionTitle: "Start Focus", action: .startTimer(minutes: 60, label: "Write the launch post"), confidence: 0.9)),
+               added: Date().addingTimeInterval(-300), expires: .distantFuture)]
+    }
+
+    /// Components on their own over the island's black (Prism's cards), for judging the material itself. Render
+    /// with `ATOLL_PRISM_RT=1` for the flat look Reduce Transparency draws and `=0` for the glass.
+    private static func renderLabs(only: [String]?, outDir: String) {
+        func card(_ title: String, why: String?, primary: Bool) -> some View {
+            PrismAsk(eyebrow: "Flow suggests", title: title, why: why, waited: "5 min ago", more: 1,
+                     primary: primary ? .init(title: "Start Focus", run: {}) : nil, secondary: .init(title: "Not now", run: {}))
+        }
+        let labs: [(String, CGSize, AnyView)] = [
+            ("70-prism-cards", CGSize(width: 520, height: 300), AnyView(
+                VStack(spacing: 14) {
+                    card("Up next: Write the launch post", why: "10:40–11:40 · from your plan", primary: true)
+                    PrismAsk(eyebrow: "Flow asks", title: "Do you like music while coding?", why: "I’ll suggest it at the right moment — or never",
+                             options: ["Yes", "Sometimes", "No"].map { .init(title: $0, run: {}) }, secondary: .init(title: "Don’t ask again", run: {}))
+                }.padding(20))),
+        ]
+        let labs2: [(String, CGSize, AnyView)] = [
+            ("71-ribbon-sizes", CGSize(width: 420, height: 220), AnyView(
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach([26, 32, 38, 46], id: \.self) { size in
+                        HStack { RibbonCount(lead: "1", trail: "37", fontSize: CGFloat(size)); Text("\(size)pt").foregroundStyle(.white.opacity(0.5)) }
+                    }
+                }.padding(16))),
+        ]
+        for lab in labs + labs2 where only.map({ $0.contains { lab.0.hasPrefix($0) } }) ?? false {
+            let r = ImageRenderer(content: lab.2.frame(width: lab.1.width, height: lab.1.height).background(Color.black).environment(\.colorScheme, .dark))
+            r.scale = 2
+            r.colorMode = .nonLinear
+            if let cg = r.cgImage { save(NSBitmapImageRep(cgImage: cg), lab.0, outDir) }
+        }
+    }
 
     private static func seed() {
         ClipboardHistory.shared.debugReplace([
