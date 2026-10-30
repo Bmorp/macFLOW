@@ -63,7 +63,7 @@ struct IslandView: View {
                     if controlsBuilt, !p.contains(.controls) { p.append(.controls) }
                     if brainBuilt, !p.contains(.brain) { p.append(.brain) }
                     if planBuilt, !p.contains(.plan) { p.append(.plan) }
-                    if flowPlacesBuilt { for f in [IslandFocus.rewind, .day, .sheet] where !p.contains(f) { p.append(f) } }
+                    if flowPlacesBuilt { for f in [IslandFocus.rewind, .day, .sheet, .tasks] where !p.contains(f) { p.append(f) } }
                     return p
                 }()
                 let inPlace: Bool = { if case .expanded(let f) = display.mode { return places.contains(f) }; return false }()
@@ -150,7 +150,7 @@ struct IslandView: View {
             if model.mode == .expanded(.controls) { controlsBuilt = true }
             if model.mode == .expanded(.brain) { brainBuilt = true }
             if model.mode == .expanded(.plan) { planBuilt = true }
-            if [IslandFocus.rewind, .day, .sheet].contains(where: { model.mode == .expanded($0) }) { flowPlacesBuilt = true }
+            if [IslandFocus.rewind, .day, .sheet, .tasks].contains(where: { model.mode == .expanded($0) }) { flowPlacesBuilt = true }
             present()
         }
     }
@@ -363,6 +363,8 @@ struct IslandPresentation: View {
             DayArtView(model: model)
         case .expanded(.sheet):
             FlowSheet(model: model)
+        case .expanded(.tasks):
+            TasksPlace(model: model)
         case .expanded(.activity(let kind)):
             ActivityExpanded(kind: kind, model: model, ns: ns)
         case .alert:

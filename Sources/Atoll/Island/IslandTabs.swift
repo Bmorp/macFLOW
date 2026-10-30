@@ -60,6 +60,8 @@ struct IslandTabs: View {
                 Image(systemName: "clock.arrow.circlepath").font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
             case .day:
                 Image(systemName: "circle.circle").font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
+            case .tasks:
+                Image(systemName: "checklist").font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
             case .sheet:
                 Image(systemName: "rectangle.portrait.bottomhalf.inset.filled").font(.system(size: 11, weight: .semibold)).foregroundStyle(tint)
             case .activity(.claude):
@@ -78,6 +80,7 @@ struct IslandTabs: View {
             case .rewind: "Rewind"
             case .day: "Your Day"
             case .sheet: "Today"
+            case .tasks: "Tasks"
             case .activity(let k):
                 switch k {
                 case .call: "Call"
