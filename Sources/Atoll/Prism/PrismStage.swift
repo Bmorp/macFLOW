@@ -74,7 +74,8 @@ struct RibbonScene: Equatable, @unchecked Sendable {
         u.depth = Float(style.depth)
         u.disperse = Float(style.disperse)
         u.spec = Float(style.specular)
-        u.sparks = Float(style.sparks)
+        // Figures keep a clean silhouette: a spark or two across the whole time, never a scatter of hairlines.
+        u.sparks = Float(min(style.sparks, 0.004))
         u.seed = Float(style.seed % 65536)
         u.curl = Float(style.pitch) * 1.2
         u.omega = pace.omega

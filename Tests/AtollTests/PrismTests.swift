@@ -73,7 +73,7 @@ struct PrismFallbackTests {
         #expect(MemoryLayout<RibbonUniforms>.offset(of: \.tint) == 80)
         #expect(MemoryLayout<RibbonUniforms>.offset(of: \.backdrop) == 96)
         #expect(MemoryLayout<RibbonUniforms>.stride == 112)
-        #expect(MemoryLayout<RibbonStrip>.stride == 32)
+        #expect(MemoryLayout<RibbonStrip>.stride == 64)
     }
 }
 
@@ -173,6 +173,109 @@ struct RibbonTests {
         // The 8's middle column crosses three strokes.
         #expect(cols.runs.values.contains { $0.count == 3 })
         #expect(cols.top < cols.foot)
+    }
+
+    // MARK: Edges and rest
+
+    @Test func diagonalsEndInTheirOwnSlope() {
+        // A band rising at 45°: every strip's ends are cut along it, a pitch (5 pt) higher at the right edge than the left,
+        // and neighbouring strips meet exactly, so the silhouette is the outline and not a staircase.
+        let band = CGMutablePath()
+        band.move(to: CGPoint(x: 0, y: 100)); band.addLine(to: CGPoint(x: 100, y: 0))
+        band.addLine(to: CGPoint(x: 100, y: 40)); band.addLine(to: CGPoint(x: 0, y: 140)); band.closeSubpath()
+        let cols = RibbonLayout.columns(band, pitch: 5)
+        let a = try! #require(cols.runs[4]?.first), b = try! #require(cols.runs[5]?.first)
+        #expect(abs(a.topTilt + 5) < 0.01 && abs(a.footTilt + 5) < 0.01)
+        #expect(abs(a.top - 77.5) < 0.01 && abs(a.length - 40) < 0.01)
+        #expect(abs(a.topAt(1) - b.topAt(0)) < 0.01 && abs(a.footAt(1) - b.footAt(0)) < 0.01)
+    }
+
+    @Test func aColumnThatStartsInsideIsFollowedToWhereItStarts() {
+        let bar = CGPath(rect: CGRect(x: 12.5, y: 10, width: 25, height: 20), transform: nil)
+        let cols = RibbonLayout.columns(bar, pitch: 5)
+        let edge = try! #require(cols.runs[2]?.first)
+        #expect(abs(edge.left - 0.5) < 0.01 && edge.right == 1)
+        #expect(cols.runs[1] == nil && cols.runs[3]?.first?.left == 0)
+        // And one that stops inside it.
+        let end = try! #require(RibbonLayout.columns(bar, pitch: 5).runs[7]?.first)
+        #expect(abs(end.right - 0.5) < 0.01)
+    }
+
+    /// The figures StandBy draws, at its size: every units digit after "12:3".
+    private static func clockColumns(_ units: Int) -> RibbonColumns {
+        let size = CGSize(width: 1470, height: 956)
+        let path = TimeGlyphs.path(hour: "12", minute: "3\(units)", size: size.height * ClockLayout.timeSize, in: CGRect(origin: .zero, size: size))
+        return RibbonLayout.columns(path, pitch: 5)
+    }
+
+    /// No two runs of a column overlap anywhere across it: one clean digit, not two layered ones.
+    private static func overlaps(_ c: RibbonColumns) -> [Int] {
+        c.runs.filter { _, runs in
+            zip(runs, runs.dropFirst()).contains { a, b in
+                let lo = max(a.left, b.left), hi = min(a.right, b.right)
+                guard lo < hi else { return false }
+                return [lo, 0.5 * (lo + hi), hi].contains { b.topAt($0) < a.footAt($0) - 0.01 }
+            }
+        }.map(\.key).sorted()
+    }
+
+    @Test func atRestEveryColumnIsOneCleanDigit() {
+        for d in 0...9 {
+            let cols = Self.clockColumns(d)
+            #expect(Self.overlaps(cols).isEmpty, "units \(d)")
+            // The strips handed to the GPU for a cold start are exactly those runs, once each.
+            let strips = RibbonLayout.strips(from: nil, to: cols, morph: .spring).strips
+            #expect(strips.count == cols.stripCount)
+            #expect(strips.allSatisfy { $0.y0a == $0.y0b && $0.y1a == $0.y1b && $0.t0a == $0.t0b && $0.t1a == $0.t1b && $0.delay == 0 })
+        }
+    }
+
+    @Test func aSettledChangeIsExactlyTheNewFigureWithNothingOfTheOld() {
+        let all = (0...9).map(Self.clockColumns)
+        for (from, old) in all.enumerated() {
+            for (to, new) in all.enumerated() where from != to {
+                for pace in [RibbonPace.clock, RibbonPace.count] {
+                    let (strips, duration) = RibbonLayout.strips(from: old, to: new, morph: .spring, pace: pace)
+                    let settled = RibbonLayout.evaluate(strips, at: duration + 0.001, pitch: new.pitch, top: new.top, foot: new.foot, pace: pace)
+                    #expect(Set(settled.runs.keys) == Set(new.runs.keys), "\(from)→\(to)")
+                    for (c, want) in new.runs {
+                        let got = settled.runs[c] ?? []
+                        #expect(got.count == want.count && RibbonLayout.same(got, want, tolerance: 0.01), "\(from)→\(to) column \(c)")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test func aRunThatCollapsedLeavesNothingBehind() {
+        // A pair of runs that becomes one: at rest the extra one is no run at all (not a sliver the GPU would still shade).
+        let old = RibbonColumns(pitch: 5, runs: [0: [RibbonRun(top: 0, foot: 30), RibbonRun(top: 50, foot: 80)]], top: 0, foot: 80)
+        let new = RibbonColumns(pitch: 5, runs: [0: [RibbonRun(top: 0, foot: 80)]], top: 0, foot: 80)
+        let (strips, duration) = RibbonLayout.strips(from: old, to: new, morph: .spring)
+        #expect(strips.count == 2)
+        let at = RibbonPace.clock.settle + 0.2
+        #expect(duration <= at)
+        let runs = RibbonLayout.evaluate(strips, at: duration, pitch: 5, top: 0, foot: 80).runs[0] ?? []
+        #expect(runs.count == 1 && abs(runs[0].length - 80) < 0.01)
+    }
+
+    @Test @MainActor func aSettledChangeDrawsLikeAColdStart() throws {
+        guard let r = PrismRenderer.shared else { return }   // no GPU here
+        let size = CGSize(width: 520, height: 220)
+        func scene(_ minutes: String) -> RibbonScene {
+            RibbonScene(lead: "12", trail: minutes, fontSize: 110, canvas: size, layout: CGRect(origin: .zero, size: size),
+                        style: .standBy, env: PrismEnvironment(libraryLoaded: true))
+        }
+        let a = scene("55"), b = scene("56")
+        let old = RibbonLayout.columns(a.outline, pitch: 5), new = RibbonLayout.columns(b.outline, pitch: 5)
+        let (strips, duration) = RibbonLayout.strips(from: old, to: new, morph: .spring)
+        let u = b.uniforms(columns: new, time: duration, duration: duration, scale: 2, hasBackdrop: false)
+        let moved = try #require(r.frame(width: 1040, height: 440, uniforms: u, strips: strips, backdrop: nil))
+        let cold = try #require(r.still(b, scale: 2))
+        let x = try #require(moved.dataProvider?.data as Data?), y = try #require(cold.dataProvider?.data as Data?)
+        #expect(x.count == y.count)
+        let off = zip(x, y).filter { abs(Int($0) - Int($1)) > 3 }.count
+        #expect(off == 0, "\(off) channel values differ between the settled change and a cold start")
     }
 
     @Test @MainActor func aStillFrameDraws() throws {

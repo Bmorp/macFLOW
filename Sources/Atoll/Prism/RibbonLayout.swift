@@ -1,14 +1,46 @@
 import CoreGraphics
 import Foundation
 
-/// One stretch of a column that the glyphs cover, top to foot, in points (y down).
+/// One stretch of a column that the glyphs cover, top to foot, in points (y down). `top` and `foot` are where the
+/// outline crosses the middle of the column; the cut at each end is a straight line through that point, rising
+/// `topTilt` / `footTilt` points from the column's left edge to its right, so a diagonal stroke ends in a diagonal
+/// and not a staircase. `left` and `right` (0…1 across the column) are where the glyph starts and stops inside it,
+/// for the columns that straddle a glyph's side.
 struct RibbonRun: Equatable, Sendable {
     var top: Float
     var foot: Float
-    var mid: Float { (top + foot) * 0.5 }
-    var length: Float { foot - top }
+    var topTilt: Float = 0
+    var footTilt: Float = 0
+    var left: Float = 0
+    var right: Float = 1
+    /// Across the stretch the glyph covers (not the column's centre, which a run that stops short of it only
+    /// reaches by extrapolating its ends).
+    var centre: Float { 0.5 * (left + right) }
+    var mid: Float { 0.5 * (topAt(centre) + footAt(centre)) }
+    var length: Float { footAt(centre) - topAt(centre) }
+    func topAt(_ u: Float) -> Float { top + topTilt * (u - 0.5) }
+    func footAt(_ u: Float) -> Float { foot + footTilt * (u - 0.5) }
     /// A run of no length at `y`: where a new run grows from, or an old one collapses into.
     static func point(_ y: Float) -> RibbonRun { RibbonRun(top: y, foot: y) }
+    /// Whether the run still covers anything (at either side of what it covers).
+    var isVisible: Bool { max(footAt(left) - topAt(left), footAt(right) - topAt(right)) >= 0.01 }
+
+    /// The run between the outline's crossings on two sides of a column (`x` across it, 0…1).
+    init(top: Float, foot: Float, topTilt: Float = 0, footTilt: Float = 0, left: Float = 0, right: Float = 1) {
+        self.top = top; self.foot = foot; self.topTilt = topTilt; self.footTilt = footTilt; self.left = left; self.right = right
+    }
+
+    /// From the ends at `x0` and `x1` (0…1 across the column): extended along each end's line to the column's centre.
+    init(left a: (top: Float, foot: Float), at x0: Float, right b: (top: Float, foot: Float), at x1: Float) {
+        let span = x1 - x0
+        if span < 0.02 {
+            // Too narrow to have a slope: a sliver, which `tidy` drops.
+            self.init(top: 0.5 * (a.top + b.top), foot: 0.5 * (a.foot + b.foot), left: x0, right: x1)
+            return
+        }
+        let tt = (b.top - a.top) / span, ft = (b.foot - a.foot) / span
+        self.init(top: a.top + tt * (0.5 - x0), foot: a.foot + ft * (0.5 - x0), topTilt: tt, footTilt: ft, left: x0, right: x1)
+    }
 }
 
 /// Numerals as glass strips: column `i` is centred at (i + 0.5) · pitch on the canvas, and holds up to four runs.
@@ -29,10 +61,24 @@ struct RibbonStrip: Equatable, Sendable {
     var x: Float
     var y0a: Float, y1a: Float
     var y0b: Float, y1b: Float
+    /// The slope of each end across the column (see `RibbonRun.topTilt`), old and new.
+    var t0a: Float = 0, t1a: Float = 0
+    var t0b: Float = 0, t1b: Float = 0
+    /// Where the glyph starts and stops across the column, old and new.
+    var la: Float = 0, ra: Float = 1
+    var lb: Float = 0, rb: Float = 1
     var delay: Float
     /// 0: the old run, fading out; 1: the new run, fading in (Reduce Motion); 2: a spring from a to b.
     var phase: Float
     var index: Float
+
+    init(x: Float, from a: RibbonRun, to b: RibbonRun, delay: Float, phase: Float, index: Float) {
+        self.x = x
+        y0a = a.top; y1a = a.foot; y0b = b.top; y1b = b.foot
+        t0a = a.topTilt; t1a = a.footTilt; t0b = b.topTilt; t1b = b.footTilt
+        la = a.left; ra = a.right; lb = b.left; rb = b.right
+        self.delay = delay; self.phase = phase; self.index = index
+    }
 }
 
 /// The spring every run end rides: underdamped a touch, so strips settle like ribbon, not like a counter. Ribbon.metal
@@ -47,6 +93,8 @@ enum RibbonSpring {
 
     static func progress(_ t: Float, omega: Float = RibbonPace.clock.omega, zeta: Float = RibbonPace.clock.damping) -> Float {
         guard t > 0 else { return 0 }
+        // Within sub-pixel of rest it is at rest, exactly: a run that collapsed into a point is then no run at all.
+        if t >= settle(omega: omega, zeta: zeta) { return 1 }
         let x: Float
         if zeta < 1 {
             let wd = omega * (1 - zeta * zeta).squareRoot()
@@ -55,6 +103,12 @@ enum RibbonSpring {
             x = (1 + omega * t) * exp(-omega * t)
         }
         return 1 - x
+    }
+
+    /// When the spring is within 0.2 % of rest.
+    static func settle(omega: Float, zeta: Float) -> Float {
+        let z = min(zeta, 0.999)
+        return -log(0.002 * (1 - z * z).squareRoot()) / (z * omega)
     }
 }
 
@@ -74,10 +128,7 @@ struct RibbonPace: Equatable, Sendable {
     func progress(_ t: Float) -> Float { RibbonSpring.progress(t, omega: omega, zeta: damping) }
 
     /// When the spring is within 0.2 % of rest (sub-pixel on any run).
-    var settle: Float {
-        let z = min(damping, 0.999)
-        return -log(0.002 * (1 - z * z).squareRoot()) / (z * omega)
-    }
+    var settle: Float { RibbonSpring.settle(omega: omega, zeta: damping) }
 }
 
 enum RibbonLayout {
@@ -98,7 +149,7 @@ enum RibbonLayout {
         func steps(_ pts: [CGPoint]) -> Int {
             var len: CGFloat = 0
             for i in 1..<pts.count { len += hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y) }
-            return max(2, min(32, Int(len / 3)))
+            return max(2, min(96, Int(len / 2)))
         }
         path.applyWithBlock { el in
             let e = el.pointee
@@ -135,6 +186,11 @@ enum RibbonLayout {
 
     /// Where a vertical line at `x` is inside the outline (non-zero winding, as glyphs are filled), as runs.
     static func runs(_ edges: [Edge], x: Float) -> [RibbonRun] {
+        tidy(crossings(edges, x: x))
+    }
+
+    /// The same, untidied: every stretch, however short.
+    static func crossings(_ edges: [Edge], x: Float) -> [RibbonRun] {
         var hits: [(y: Float, dir: Int)] = []
         for e in edges where (e.x0 <= x) != (e.x1 <= x) {
             let y = e.y0 + (x - e.x0) * (e.y1 - e.y0) / (e.x1 - e.x0)
@@ -149,25 +205,43 @@ enum RibbonLayout {
             if was == 0, winding != 0 { top = h.y }
             if was != 0, winding == 0 { out.append(RibbonRun(top: top, foot: h.y)) }
         }
-        return tidy(out)
+        return out
     }
 
-    /// Drops slivers, closes hairline gaps, and keeps at most four runs (closing the smallest gaps first).
+    /// Drops slivers, closes hairline gaps, and keeps at most four runs (closing the smallest gaps first). Runs are
+    /// taken in order down the column; two that cover different stretches across it never merge.
     static func tidy(_ input: [RibbonRun], minimum: Float = 0.5) -> [RibbonRun] {
         var runs: [RibbonRun] = []
-        for r in input where r.length >= minimum {
-            if let last = runs.last, r.top - last.foot < minimum { runs[runs.count - 1].foot = max(last.foot, r.foot) } else { runs.append(r) }
+        for r in input where r.length >= minimum && r.right - r.left >= 0.02 {
+            if let last = runs.last, gap(last, r) < minimum { runs[runs.count - 1] = join(last, r) } else { runs.append(r) }
         }
         while runs.count > maxRuns {
             var best = 0
-            for i in 0..<(runs.count - 1) where runs[i + 1].top - runs[i].foot < runs[best + 1].top - runs[best].foot { best = i }
-            runs[best].foot = runs[best + 1].foot
+            for i in 0..<(runs.count - 1) where gap(runs[i], runs[i + 1]) < gap(runs[best], runs[best + 1]) { best = i }
+            runs[best] = join(runs[best], runs[best + 1])
             runs.remove(at: best + 1)
         }
         return runs
     }
 
-    /// The outline sampled at the centre of every column it reaches.
+    /// The room between a run and the one below it, where both are there (infinite when they sit side by side).
+    static func gap(_ a: RibbonRun, _ b: RibbonRun) -> Float {
+        let lo = max(a.left, b.left), hi = min(a.right, b.right)
+        guard lo < hi else { return .infinity }
+        return min(b.topAt(lo) - a.footAt(lo), b.topAt(hi) - a.footAt(hi))
+    }
+
+    /// One run from two that sit one above the other: the first's top, the second's foot.
+    static func join(_ a: RibbonRun, _ b: RibbonRun) -> RibbonRun {
+        var r = a
+        r.foot = max(a.foot, b.foot)
+        r.footTilt = b.footTilt
+        r.left = min(a.left, b.left)
+        r.right = max(a.right, b.right)
+        return r
+    }
+
+    /// The outline cut into columns: in each, the runs between where the outline crosses the column's two edges.
     static func columns(_ path: CGPath, pitch: CGFloat) -> RibbonColumns {
         let box = path.boundingBoxOfPath
         guard pitch > 0, !box.isNull, !box.isEmpty else { return .empty }
@@ -183,10 +257,52 @@ enum RibbonLayout {
         }
         var out: [Int: [RibbonRun]] = [:]
         for c in first...last {
-            let r = runs(buckets[c - first], x: (Float(c) + 0.5) * p)
+            let r = column(buckets[c - first], left: Float(c) * p, pitch: p)
             if !r.isEmpty { out[c] = r }
         }
         return RibbonColumns(pitch: p, runs: out, top: Float(box.minY), foot: Float(box.maxY))
+    }
+
+    /// The runs of one column: where the outline crosses its left and right edges, run by run, so each strip ends in
+    /// the outline's own slope. A run that starts or stops inside the column (a glyph's side) is followed to where it
+    /// does. Neighbouring columns share an edge, so their ends meet exactly.
+    static func column(_ edges: [Edge], left xl: Float, pitch p: Float) -> [RibbonRun] {
+        let xr = xl + p
+        let a = crossings(edges, x: xl).filter { $0.length > 0 }, b = crossings(edges, x: xr).filter { $0.length > 0 }
+        func overlap(_ x: RibbonRun, _ y: RibbonRun) -> Float { min(x.foot, y.foot) - max(x.top, y.top) }
+        var out: [RibbonRun] = []
+        var taken = Set<Int>()
+        for ra in a {
+            let best = b.indices.filter { !taken.contains($0) && overlap(ra, b[$0]) > 0 }.max { overlap(ra, b[$0]) < overlap(ra, b[$1]) }
+            if let j = best {
+                taken.insert(j)
+                out.append(RibbonRun(left: (ra.top, ra.foot), at: 0, right: (b[j].top, b[j].foot), at: 1))
+            } else if let end = follow(edges, from: ra, at: xl, toward: xr) {
+                out.append(RibbonRun(left: (ra.top, ra.foot), at: 0, right: (end.run.top, end.run.foot), at: (end.x - xl) / p))
+            }
+        }
+        for (j, rb) in b.enumerated() where !taken.contains(j) {
+            if let start = follow(edges, from: rb, at: xr, toward: xl) {
+                out.append(RibbonRun(left: (start.run.top, start.run.foot), at: (start.x - xl) / p, right: (rb.top, rb.foot), at: 1))
+            }
+        }
+        return tidy(out.sorted { $0.mid < $1.mid })
+    }
+
+    /// Walks a run that stops short of the other side of the column to where it ends (bisection: the outline is
+    /// known at both ends, so a dozen steps pin it well under a thousandth of a point).
+    static func follow(_ edges: [Edge], from run: RibbonRun, at x0: Float, toward x1: Float) -> (x: Float, run: RibbonRun)? {
+        var near = x0, far = x1, cur = run
+        func carrier(_ x: Float, _ r: RibbonRun) -> RibbonRun? {
+            crossings(edges, x: x).filter { $0.length > 0 && min($0.foot, r.foot) - max($0.top, r.top) > 0 }
+                .max { min($0.foot, r.foot) - max($0.top, r.top) < min($1.foot, r.foot) - max($1.top, r.top) }
+        }
+        for _ in 0..<14 {
+            let mid = 0.5 * (near + far)
+            if let r = carrier(mid, cur) { near = mid; cur = r } else { far = mid }
+        }
+        guard abs(near - x0) > 1e-3 else { return nil }
+        return (near, cur)
     }
 
     // MARK: Morph
@@ -230,7 +346,7 @@ enum RibbonLayout {
         var out: [RibbonStrip] = []
         out.reserveCapacity(new.stripCount + (old?.stripCount ?? 0))
         func still(_ c: Int, _ runs: [RibbonRun]) {
-            for r in runs { out.append(RibbonStrip(x: (Float(c) + 0.5) * p, y0a: r.top, y1a: r.foot, y0b: r.top, y1b: r.foot, delay: 0, phase: 2, index: Float(c))) }
+            for r in runs { out.append(RibbonStrip(x: (Float(c) + 0.5) * p, from: r, to: r, delay: 0, phase: 2, index: Float(c))) }
         }
         guard let old, old.pitch == p, morph != .cut else {
             for (c, r) in new.runs.sorted(by: { $0.key < $1.key }) { still(c, r) }
@@ -250,12 +366,12 @@ enum RibbonLayout {
             let x = (Float(c) + 0.5) * p
             switch morph {
             case .crossFade:
-                for r in a { out.append(RibbonStrip(x: x, y0a: r.top, y1a: r.foot, y0b: r.top, y1b: r.foot, delay: 0, phase: 0, index: Float(c))) }
-                for r in b { out.append(RibbonStrip(x: x, y0a: r.top, y1a: r.foot, y0b: r.top, y1b: r.foot, delay: 0, phase: 1, index: Float(c))) }
+                for r in a { out.append(RibbonStrip(x: x, from: r, to: r, delay: 0, phase: 0, index: Float(c))) }
+                for r in b { out.append(RibbonStrip(x: x, from: r, to: r, delay: 0, phase: 1, index: Float(c))) }
             default:
                 let delay = Float(c - firstChanged) * stagger
                 for m in match(a, b) {
-                    out.append(RibbonStrip(x: x, y0a: m.from.top, y1a: m.from.foot, y0b: m.to.top, y1b: m.to.foot, delay: delay, phase: 2, index: Float(c)))
+                    out.append(RibbonStrip(x: x, from: m.from, to: m.to, delay: delay, phase: 2, index: Float(c)))
                 }
             }
         }
@@ -265,7 +381,11 @@ enum RibbonLayout {
     }
 
     static func same(_ a: [RibbonRun], _ b: [RibbonRun], tolerance: Float = 0.05) -> Bool {
-        a.count == b.count && zip(a, b).allSatisfy { abs($0.top - $1.top) < tolerance && abs($0.foot - $1.foot) < tolerance }
+        a.count == b.count && zip(a, b).allSatisfy {
+            abs($0.top - $1.top) < tolerance && abs($0.foot - $1.foot) < tolerance
+                && abs($0.topTilt - $1.topTilt) < tolerance && abs($0.footTilt - $1.footTilt) < tolerance
+                && abs($0.left - $1.left) < 0.01 && abs($0.right - $1.right) < 0.01
+        }
     }
 
     /// Where every strip is at `t` into a change, as columns: the starting point when a change interrupts another.
@@ -275,14 +395,16 @@ enum RibbonLayout {
             var r: RibbonRun
             switch s.phase {
             case 0: continue
-            case 1: r = RibbonRun(top: s.y0b, foot: s.y1b)
+            case 1: r = RibbonRun(top: s.y0b, foot: s.y1b, topTilt: s.t0b, footTilt: s.t1b, left: s.lb, right: s.rb)
             default:
                 let p0 = pace.progress(t - s.delay), p1 = pace.progress(t - s.delay - RibbonSpring.lag)
-                r = RibbonRun(top: s.y0a + (s.y0b - s.y0a) * p0, foot: s.y1a + (s.y1b - s.y1a) * p1)
+                r = RibbonRun(top: s.y0a + (s.y0b - s.y0a) * p0, foot: s.y1a + (s.y1b - s.y1a) * p1,
+                              topTilt: s.t0a + (s.t0b - s.t0a) * p0, footTilt: s.t1a + (s.t1b - s.t1a) * p1,
+                              left: s.la + (s.lb - s.la) * p0, right: s.ra + (s.rb - s.ra) * p0)
             }
-            if r.length > 0.01 { runs[Int(s.index), default: []].append(r) }
+            if r.isVisible { runs[Int(s.index), default: []].append(r) }
         }
-        for k in runs.keys { runs[k] = tidy(runs[k]!.sorted { $0.top < $1.top }, minimum: 0.01) }
+        for k in runs.keys { runs[k] = tidy(runs[k]!.sorted { $0.mid < $1.mid }, minimum: 0.01) }
         return RibbonColumns(pitch: pitch, runs: runs, top: top, foot: foot)
     }
 }
