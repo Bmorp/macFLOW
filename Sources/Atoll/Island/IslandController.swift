@@ -50,6 +50,12 @@ final class IslandController {
     private var scrollY: CGFloat = 0
     private var scrollConsumed = false
     private var rewindTravel: CGFloat = 0
+    /// The two-finger drag the engine is following with the finger, if any.
+    private var gesture: ScrollGesture?
+    private var xTracker = VelocityTracker()
+    /// A sideways scroll the compact island handed to a live activity, until it ends.
+    private var activityOwnsScroll = false
+    private var activityScrollSent = false
 
     init(screen: NSScreen, isPrimary: Bool) {
         self.screen = screen
@@ -324,8 +330,10 @@ final class IslandController {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in self?.scheduleExpand(focus) }
                 return
             }
+            let before = self.model.mode
             self.model.expand(focus)
-            Haptics.snap()
+            // Felt when the spring arrives under the pointer, not when it starts.
+            if self.model.mode != before { self.playOnLanding(.islandLanded) }
         }
         expandWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + max(0, Prefs.shared.hoverDelay), execute: work)
@@ -375,44 +383,79 @@ final class IslandController {
 
     // MARK: - Trackpad
 
-    /// Swipe down on the notch to open. While open: swipe sideways between live activities,
-    /// swipe up to close — or, over Now Playing, scroll to change the volume.
+    /// A drag the island follows with the finger: what it's heading for, how far the finger must travel to get
+    /// there, and what completing it does.
+    private struct ScrollGesture {
+        let kind: InteractiveTransition.Kind
+        /// Points of finger travel that carry the island all the way to its destination.
+        let reach: CGFloat
+        let springBack: SpringToken
+        var detent = InteractiveTransition.Detent()
+        var velocity = VelocityTracker()
+    }
+
+    /// Pointer-driven landings: a haptic that belongs to the moment the island's spring arrives.
+    private func playOnLanding(_ event: HapticEvent) {
+        if let engine {
+            engine.onLanding = { HapticEngine.shared.play(event) }
+        } else {
+            // The legacy surface can't say when its spring lands: the open spring first reaches its target at ≈ 0.2 s.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { HapticEngine.shared.play(event) }
+        }
+    }
+
+    /// Swipe down on the notch to open. While open: swipe sideways between places, swipe up to close — or, over
+    /// Now Playing, scroll to change the volume. With Island Engine 2.0 the island follows the fingers 1:1
+    /// (rubber-banding at the ends) and finishes with the speed of the release; the legacy surface acts at thresholds.
     private func handleScroll(_ e: NSEvent) {
         guard Prefs.shared.gestures, e.hasPreciseScrollingDeltas, e.momentumPhase.isEmpty else { return }
         if e.phase.contains(.began) || e.phase.contains(.mayBegin) {
+            if gesture != nil { finishGesture(at: e.timestamp, cancelled: true) }
             scrollX = 0
             scrollY = 0
             rewindTravel = 0
             scrollConsumed = false
+            xTracker.reset()
+            activityOwnsScroll = false
+            activityScrollSent = false
         }
         let natural = e.isDirectionInvertedFromDevice
         let dx = natural ? e.scrollingDeltaX : -e.scrollingDeltaX   // + = fingers move right
         let dy = natural ? e.scrollingDeltaY : -e.scrollingDeltaY   // + = fingers move down
         scrollX += dx
         scrollY += dy
-        if e.phase.contains(.ended) || e.phase.contains(.cancelled) {
+        xTracker.add(Double(scrollX), at: e.timestamp)
+        let ended = e.phase.contains(.ended) || e.phase.contains(.cancelled)
+
+        if routeToActivity(e, ended: ended) {
+            if ended { scrollConsumed = false }
+            return
+        }
+        if let engine, followWithFinger(e, engine, ended: ended) { return }
+        if ended {
             scrollConsumed = false
             return
         }
 
         switch model.mode {
-        case .compact:
+        case .compact where engine == nil:
             guard !scrollConsumed, scrollY > 16 else { return }
             scrollConsumed = true
             cancelExpand()
             model.expand(sticky: true)
-            Haptics.snap()
+            HapticEngine.shared.play(.gestureCommitted)
         case .expanded(.controls):
             break
-        case .expanded(.glance) where scrollY > 44 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
+        case .expanded(.glance) where engine == nil && scrollY > 44 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
             // Pull Home down: the sheet.
             scrollConsumed = true
             model.open(.sheet)
-            Haptics.snap()
-        case .expanded(.sheet) where scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
+            HapticEngine.shared.play(.gestureCommitted)
+        case .expanded(.sheet) where engine == nil && scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
             // Push it back up: Home.
             scrollConsumed = true
             model.select(.glance)
+            HapticEngine.shared.play(.gestureCommitted)
         case .expanded(.rewind) where abs(scrollX) >= abs(scrollY):
             // Two fingers sideways scrub through the day: a moment per 12 points of travel.
             rewindTravel += dx
@@ -422,17 +465,150 @@ final class IslandController {
             }
         case .expanded(.activity(.nowPlaying)) where abs(scrollY) > abs(scrollX):
             adjustVolume(by: -dy)
-        case .expanded:
+        case .expanded where engine == nil:
             guard !scrollConsumed else { return }
             if abs(scrollX) > 46, abs(scrollX) > abs(scrollY) * 1.6 {
                 scrollConsumed = true
                 model.cycleFocus(scrollX < 0 ? 1 : -1)
+                HapticEngine.shared.play(.gestureCommitted)
             } else if scrollY < -28, abs(scrollY) > abs(scrollX) * 1.6 {
                 scrollConsumed = true
                 model.collapse()
+                HapticEngine.shared.play(.gestureCommitted)
             }
         default:
             break
+        }
+    }
+
+    /// A sideways two-finger scroll over a live activity on the closed island belongs to that activity (skip a
+    /// track, nudge a timer). Returns true while the activity has it; vertical stays the island's.
+    private func routeToActivity(_ e: NSEvent, ended: Bool) -> Bool {
+        guard model.mode == .compact else { return false }
+        guard activityOwnsScroll || (abs(scrollX) >= 3 && abs(scrollX) > abs(scrollY) * 1.6) else { return false }
+        let kind: ActivityKind? = (bubbleZone?.contains(Self.pointer) ?? false) ? model.secondary : model.primary
+        guard let kind else { return false }
+        // The first event it sees carries everything so far, as the start of the gesture.
+        let first = !activityScrollSent
+        let natural = e.isDirectionInvertedFromDevice
+        let delta = first ? scrollX : (natural ? e.scrollingDeltaX : -e.scrollingDeltaX)
+        let phase: NSEvent.Phase = first ? [.began] : e.phase
+        let used = CompactGestures.scroll(kind: kind, deltaX: delta, phase: phase,
+                                          velocity: CGFloat(xTracker.velocity(at: e.timestamp)))
+        guard used || activityOwnsScroll else { return false }
+        activityScrollSent = true
+        if used { activityOwnsScroll = true }
+        if ended {
+            activityOwnsScroll = false
+            activityScrollSent = false
+        }
+        return true
+    }
+
+    /// Starts, follows and finishes a 1:1 drag. Returns true when it has the event.
+    private func followWithFinger(_ e: NSEvent, _ engine: IslandEngine, ended: Bool) -> Bool {
+        if gesture != nil {
+            if ended {
+                finishGesture(at: e.timestamp, cancelled: e.phase.contains(.cancelled))
+            } else {
+                followGesture(engine, at: e.timestamp)
+            }
+            return true
+        }
+        guard !ended, !scrollConsumed, let (kind, destination, preview) = gestureCandidate() else { return false }
+        cancelExpand()
+        let reach: CGFloat
+        let back: SpringToken
+        if kind.isTabs {
+            reach = 92
+            back = Motion.Token.morph
+        } else {
+            let from = engine.frame(for: model.mode).height, to = engine.frame(for: destination).height
+            reach = max(60, abs(CGFloat(to - from)))
+            back = destination == .compact ? Motion.Token.close : Motion.Token.morph
+        }
+        gesture = ScrollGesture(kind: kind, reach: reach, springBack: back)
+        engine.beginInteractive(toward: destination, preview: preview)
+        followGesture(engine, at: e.timestamp)
+        return true
+    }
+
+    /// What the fingers have started doing, if it's a move the island can follow.
+    private func gestureCandidate() -> (InteractiveTransition.Kind, IslandMode, Bool)? {
+        let ax = abs(scrollX), ay = abs(scrollY)
+        let vertical = ay >= 5 && ay > ax * 1.6
+        let horizontal = ax >= 5 && ax > ay * 1.6
+        guard vertical || horizontal else { return nil }
+        switch model.mode {
+        case .compact:
+            guard vertical, scrollY > 0 else { return nil }
+            return (.pullOpen, .expanded(model.expansionTarget()), true)
+        case .expanded(let place):
+            if place == .controls { return nil }
+            if horizontal {
+                guard place != .rewind, model.tabs.count > 1 else { return nil }
+                return (.tabs(direction: scrollX < 0 ? 1 : -1), model.mode, false)
+            }
+            switch place {
+            case .glance:
+                return scrollY > 0 ? (.toSheet, .expanded(.sheet), true) : (.close, .compact, false)
+            case .sheet:
+                return scrollY < 0 ? (.toHome, .expanded(.glance), true) : nil
+            case .activity(.nowPlaying):
+                return nil
+            default:
+                return scrollY < 0 ? (.close, .compact, false) : nil
+            }
+        default:
+            return nil
+        }
+    }
+
+    /// How far the fingers have carried the drag toward its destination, in points.
+    private func travel(_ kind: InteractiveTransition.Kind) -> CGFloat {
+        switch kind {
+        case .pullOpen, .toSheet: scrollY
+        case .toHome, .close: -scrollY
+        case .tabs(let direction): direction > 0 ? -scrollX : scrollX
+        }
+    }
+
+    private func followGesture(_ engine: IslandEngine, at time: TimeInterval) {
+        guard var g = gesture else { return }
+        let pull = travel(g.kind)
+        g.velocity.add(Double(pull), at: time)
+        let p = Double(pull / g.reach)
+        if g.kind.isTabs {
+            engine.updateInteractive(progress: 0, slide: InteractiveTransition.slide(Double(scrollX)))
+        } else {
+            engine.updateInteractive(progress: p)
+        }
+        // Felt as the finger crosses the point where letting go completes it.
+        if g.detent.update(progress: p) { HapticEngine.shared.play(.gestureCommitted) }
+        gesture = g
+    }
+
+    /// The fingers lifted: complete the move with their speed, or let the island spring back.
+    private func finishGesture(at time: TimeInterval, cancelled: Bool) {
+        guard let g = gesture else { return }
+        gesture = nil
+        scrollConsumed = false
+        guard let engine, engine.isInteracting else { return }
+        let pull = travel(g.kind)
+        let v = g.velocity.velocity(at: time) / Double(g.reach)
+        let p = Double(pull / g.reach)
+        let commit = !cancelled && InteractiveTransition.completes(progress: p, velocity: v, travel: Double(max(0, pull)))
+        // A flick that completes without crossing halfway still gets its confirmation.
+        if commit, !g.detent.fired { HapticEngine.shared.play(.gestureCommitted) }
+        let model = model
+        engine.endInteractive(velocity: v, commit: commit, springBack: g.springBack) {
+            switch g.kind {
+            case .pullOpen: model.expand(sticky: true)
+            case .toSheet: model.open(.sheet)
+            case .toHome: model.select(.glance)
+            case .close: model.collapse()
+            case .tabs(let direction): model.cycleFocus(direction)
+            }
         }
     }
 
@@ -442,7 +618,7 @@ final class IslandController {
         let old = volume.muted ? 0 : volume.volume
         let new = min(1, max(0, old + Double(fingerTravel) * 0.0045))
         guard abs(new - old) > 0.0005 else { return }
-        if (new == 0 || new == 1) && old != new { Haptics.snap() }
+        if HapticEvent.reachedEnd(from: old, to: new) { HapticEngine.shared.play(.sliderEnd) }
         IslandManager.shared.noteOwnVolumeChange()
         volume.set(new)
         model.flashInlineVolume()

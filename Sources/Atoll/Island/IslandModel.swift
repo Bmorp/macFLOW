@@ -480,14 +480,20 @@ final class IslandModel {
 
     // MARK: - Transitions
 
-    func expand(_ focus: IslandFocus? = nil, sticky makeSticky: Bool = false) {
-        alertWork?.cancel()
-        interruptedFlow = nil
-        if makeSticky { sticky = true }
+    /// Where opening the island (to `focus`, or to whatever is live) lands.
+    func expansionTarget(_ focus: IslandFocus? = nil) -> IslandFocus {
         // Music lives in the home (with your apps); anything else that's live opens its own row.
         // Flow's star opens Home too, where its waiting card is.
         var target = focus ?? primary.flatMap { $0 == .nowPlaying || $0 == .flow ? nil : .activity($0) } ?? .glance
         if target == .activity(.flow) { target = .glance }
+        return target
+    }
+
+    func expand(_ focus: IslandFocus? = nil, sticky makeSticky: Bool = false) {
+        alertWork?.cancel()
+        interruptedFlow = nil
+        if makeSticky { sticky = true }
+        let target = expansionTarget(focus)
         guard mode != .expanded(target) else { return }
         switchDirection = 0
         animate(mode == .compact || mode == .alert ? Motion.Token.open : Motion.Token.morph) {
@@ -545,7 +551,7 @@ final class IslandModel {
         } else {
             switchDirection = 0
         }
-        Haptics.snap()
+        // No haptic: a click or a key already says it, and the content sliding over shows it (HapticEvent.tabSelected).
         animate(Motion.Token.morph) { mode = .expanded(focus) }
     }
 
@@ -706,7 +712,7 @@ final class IslandModel {
         case .shelf:
             let ok = ShelfModel.shared.add(providers: providers) { urls in
                 guard !urls.isEmpty else { return }
-                Haptics.confirm()
+                HapticEngine.shared.play(.dropAccepted)
             }
             if ok {
                 animate(Motion.Token.close) {
@@ -717,7 +723,7 @@ final class IslandModel {
             return ok
         case .airdrop:
             ShelfModel.loadURLs(providers) { urls in
-                Haptics.confirm()
+                HapticEngine.shared.play(.dropAccepted)
                 ShelfModel.airDrop(urls: urls)
             }
             animate(Motion.Token.close) {
@@ -727,7 +733,7 @@ final class IslandModel {
             return true
         case .flow:
             ShelfModel.loadURLs(providers) { urls in
-                Haptics.confirm()
+                HapticEngine.shared.play(.dropAccepted)
                 LensModel.shared.understand(urls)
             }
             animate(Motion.Token.close) {

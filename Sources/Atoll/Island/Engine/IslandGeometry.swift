@@ -50,6 +50,26 @@ struct IslandFrame: Equatable {
     static let zero = IslandFrame(width: 0, height: 0, shoulder: 0, corner: 0, slide: 0, rim: 0, light: 0)
 
     var size: CGSize { CGSize(width: width, height: height) }
+
+    /// `a` moved `t` of the way to `b`, channel by channel (t may leave 0…1: a rubber-banded drag).
+    static func mix(_ a: IslandFrame, _ b: IslandFrame, _ t: Double) -> IslandFrame {
+        var f = a
+        for i in 0..<channels { f[i] = a[i] + (b[i] - a[i]) * t }
+        return f
+    }
+
+    /// The per-channel change from `a` to `b`: what one unit of drag progress is worth in each channel.
+    static func difference(_ a: IslandFrame, _ b: IslandFrame) -> IslandFrame {
+        var f = IslandFrame.zero
+        for i in 0..<channels { f[i] = b[i] - a[i] }
+        return f
+    }
+
+    func scaled(by k: Double) -> IslandFrame {
+        var f = self
+        for i in 0..<IslandFrame.channels { f[i] = self[i] * k }
+        return f
+    }
 }
 
 /// The silhouette for one frame, resolved exactly as `IslandShape.build` resolves it (same clamps), in the panel's

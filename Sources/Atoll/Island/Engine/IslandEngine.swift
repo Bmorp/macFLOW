@@ -68,6 +68,25 @@ final class IslandEngine {
     /// Whether the open host's content is an open state (not a wide alert): closing from one holds it until landing.
     private var heldIsOpen = false
     private var lastKey = ""
+
+    /// A drag that has the island by the hand: the shape is set per event from here, not baked.
+    private struct Interaction {
+        let from: IslandFrame
+        let to: IslandFrame
+        let fromMode: IslandMode
+        let preview: IslandMode?
+        var progress = 0.0
+        var slide = 0.0
+    }
+    private var interaction: Interaction?
+    /// How fast each channel was moving when the finger lifted: the spring that follows starts from it.
+    private var launchVelocity = IslandFrame.zero
+    /// The spring a released drag settles with when the model asks for none (a drag that was let go).
+    private var followUpToken: SpringToken?
+    /// A drag already showed the next place, so it doesn't slide in again when the drag completes.
+    private var suppressSlide = false
+    /// Runs once when the next move arrives (or at once if nothing moves): a haptic that belongs to the landing.
+    var onLanding: (() -> Void)?
     private var lightColor: CGColor?
     private var rimAlpha: CGFloat = -1
     private var dirty = true
@@ -234,11 +253,21 @@ final class IslandEngine {
         #if DEBUG || ATOLL_PROBE
         IslandTrace.syncs += 1
         #endif
+        if let i = interaction {
+            // Something else moved the island under the finger (an alert, a hover): the drag is over.
+            if model.mode == i.fromMode { syncInteractive(i); return }
+            interaction = nil
+            model.setPreview(nil)
+            launchVelocity = .zero
+        }
         let spec = model.spec
         let mode = model.mode
         let key = model.presentationKey
         let shownOpen = mode != .compact
-        let token = model.takePendingMotion()
+        let token = model.takePendingMotion() ?? followUpToken
+        followUpToken = nil
+        let landing = onLanding
+        onLanding = nil
         let now = CACurrentMediaTime()
 
         var to = IslandFrame(width: Double(spec.size.width), height: Double(spec.size.height), shoulder: Double(spec.shoulder),
@@ -258,13 +287,14 @@ final class IslandEngine {
         updateRimColor()
         syncBridge(now: now)
 
-        var (start, velocity) = flight?.state(at: now) ?? (target, .zero)
-        if flight == nil { start = target }
+        var (start, velocity) = flight?.state(at: now) ?? (target, launchVelocity)
+        launchVelocity = .zero
         // Moving between open places: the new one slides in from the side you're heading (DESIGN.md › 5.2).
-        if key != lastKey, shownOpen, wasOpenVisible, model.switchDirection != 0, !reduceMotion {
+        if key != lastKey, shownOpen, wasOpenVisible, model.switchDirection != 0, !reduceMotion, !suppressSlide {
             start.slide = 34 * Double(model.switchDirection)
             velocity.slide = 0
         }
+        suppressSlide = false
         lastKey = key
         let first = target == .zero
         target = to
@@ -275,9 +305,10 @@ final class IslandEngine {
         let curve = token.map { MotionCurve($0, reduceMotion: reduceMotion) } ?? flight?.curve
         guard !first, let curve, start != to || velocity != .zero else {
             jump(to)
+            landing?()
             return
         }
-        bake(from: start, velocity: velocity, to: to, curve: curve, now: now, holdOpen: holdOpen || holdingOpen(at: now))
+        bake(from: start, velocity: velocity, to: to, curve: curve, now: now, holdOpen: holdOpen || holdingOpen(at: now), landing: landing)
     }
 
     private var bridgeWasVisible = false
@@ -318,6 +349,13 @@ final class IslandEngine {
             h.layer?.removeAnimation(forKey: "island.transform")
             h.layer?.removeAnimation(forKey: "island.swap")
         }
+        applyStatic(f)
+        CATransaction.commit()
+        setVisibility()
+    }
+
+    /// Sets every engine-owned layer to `f` (inside the caller's transaction, actions off).
+    private func applyStatic(_ f: IslandFrame) {
         let g = IslandOutlineGeometry(f, centerX: centerX)
         fill.apply(g)
         clipShape.apply(g)
@@ -326,8 +364,6 @@ final class IslandEngine {
         radial.frame = lights.radial
         rising.frame = lights.rising
         lightView.root.opacity = Float(min(1, max(0, f.light)))
-        CATransaction.commit()
-        setVisibility()
     }
 
     private func setVisibility() {
@@ -348,7 +384,7 @@ final class IslandEngine {
         return CAFrameRateRange(minimum: 80, maximum: 120, preferred: 120)
     }
 
-    private func bake(from x0: IslandFrame, velocity v0: IslandFrame, to: IslandFrame, curve: MotionCurve, now: CFTimeInterval, holdOpen: Bool) {
+    private func bake(from x0: IslandFrame, velocity v0: IslandFrame, to: IslandFrame, curve: MotionCurve, now: CFTimeInterval, holdOpen: Bool, landing: (() -> Void)? = nil) {
         let state = IslandTrace.signposter.beginInterval("bake")
         defer { IslandTrace.signposter.endInterval("bake", state) }
         #if DEBUG || ATOLL_PROBE
@@ -358,7 +394,7 @@ final class IslandEngine {
         for i in 0..<IslandFrame.channels {
             duration = max(duration, curve.duration(from: x0[i], to: to[i], v0: v0[i], epsilon: IslandFrame.epsilon[i]))
         }
-        guard duration > 0 else { jump(to); return }
+        guard duration > 0 else { jump(to); landing?(); return }
         let n = max(2, Int((duration * Self.sampleRate).rounded(.up)) + 1)
         let total = Double(n - 1) / Self.sampleRate
         let f = Flight(from: x0, velocity: v0, to: to, curve: curve, begin: now, duration: total)
@@ -373,6 +409,12 @@ final class IslandEngine {
             let landing = Double(compactTarget.height) + 10
             swap = Double(frames.firstIndex { $0.height <= landing } ?? n - 1) / Self.sampleRate
             if swap == 0, frames[0].height > landing { swap = Motion.closeSwap }
+        }
+
+        // The landing: the first moment the shape is within a point of where it's going.
+        if let landing {
+            let arrived = frames.firstIndex { abs($0.width - to.width) <= 1 && abs($0.height - to.height) <= 1 } ?? n - 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(arrived) / Self.sampleRate) { landing() }
         }
 
         let cx = centerX
@@ -444,23 +486,155 @@ final class IslandEngine {
         }
     }
 
-    private func bakeTransform(_ host: NSView, frames: [IslandFrame], target: CGSize, slides: Bool, bake: Bake) {
-        guard let layer = host.layer, let superlayer = layer.superlayer else { return }
-        // A layer's transform acts in its superlayer's orientation, about the anchor (which sits at `position`), whatever
-        // AppKit chose for the anchor and for the host's own flipping. So: the panel's top centre, in the superlayer.
+    /// How a host's layer is transformed to show the content of size `target` inside a shape in state `f`.
+    /// A layer's transform acts in its superlayer's orientation, about the anchor (which sits at `position`), whatever
+    /// AppKit chose for the anchor and for the host's own flipping. So: the panel's top centre, in the superlayer.
+    private func contentTransform(_ layer: CALayer, _ f: IslandFrame, target: CGSize, slides: Bool) -> CATransform3D? {
+        guard let superlayer = layer.superlayer else { return nil }
         let sb = superlayer.bounds
         let topCenter = CGPoint(x: sb.midX, y: superlayer.isGeometryFlipped ? sb.minY : sb.maxY)
-        let anchor = layer.position
-        let values = frames.map { f -> NSValue in
-            let s = IslandGeometry.zoom(live: f.size, target: target)
-            return NSValue(caTransform3D: IslandGeometry.scale(s, about: topCenter, anchor: anchor, dx: slides ? CGFloat(f.slide) : 0))
-        }
+        let s = IslandGeometry.zoom(live: f.size, target: target)
+        return IslandGeometry.scale(s, about: topCenter, anchor: layer.position, dx: slides ? CGFloat(f.slide) : 0)
+    }
+
+    private func bakeTransform(_ host: NSView, frames: [IslandFrame], target: CGSize, slides: Bool, bake: Bake) {
+        guard let layer = host.layer, layer.superlayer != nil else { return }
+        let values = frames.map { f in NSValue(caTransform3D: contentTransform(layer, f, target: target, slides: slides) ?? CATransform3DIdentity) }
         let identity = CATransform3DIdentity
         if values.allSatisfy({ CATransform3DEqualToTransform($0.caTransform3DValue, identity) }) {
             layer.removeAnimation(forKey: "island.transform")
         } else {
             bake.add(layer, "transform", values, key: "island.transform")
         }
+    }
+
+    // MARK: - Interactive drags
+
+    /// Whether a finger has the island right now.
+    var isInteracting: Bool { interaction != nil }
+
+    /// The island's resting frame in `mode`.
+    func frame(for mode: IslandMode) -> IslandFrame {
+        let spec = model.spec(for: mode)
+        let open = mode != .compact && !(mode == .alert && (model.alert?.kind.isWide ?? true))
+        return IslandFrame(width: Double(spec.size.width), height: Double(spec.size.height), shoulder: Double(spec.shoulder),
+                           corner: Double(spec.corner), slide: 0, rim: open ? (Access.increaseContrast ? 1 : 0.85) : 0, light: open ? 1 : 0)
+    }
+
+    /// How far along a drag shows: rubber-banded, and only ever stretching the island past its larger end. It never
+    /// shrinks below the closed island (a shape shorter than the notch isn't a thing) and never grows past what's open
+    /// for more than a whisper.
+    private func shownProgress(_ i: Interaction) -> Double {
+        let p = InteractiveTransition.band(i.progress)
+        return i.to.height >= i.from.height ? max(0, p) : min(1, p)
+    }
+
+    /// Where the island is on screen right now.
+    private func shownFrame(at now: CFTimeInterval) -> IslandFrame {
+        if let i = interaction {
+            var f = IslandFrame.mix(i.from, i.to, shownProgress(i))
+            f.slide = i.slide
+            return f
+        }
+        return flight?.state(at: now).0 ?? target
+    }
+
+    /// Takes the island by the hand: from wherever it is now (even mid-spring) toward `destination`. With `preview`,
+    /// the open host shows that place as a miniature that grows with the finger.
+    func beginInteractive(toward destination: IslandMode, preview: Bool) {
+        guard interaction == nil else { return }
+        let now = CACurrentMediaTime()
+        let from = shownFrame(at: now)
+        let i = Interaction(from: from, to: frame(for: destination), fromMode: model.mode, preview: preview ? destination : nil)
+        flight = nil
+        swapAt = 0
+        target = from
+        interaction = i
+        if preview { model.setPreview(destination) }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for l in [rim, rimFade, rimSolid, radial, rising, lightView.root] as [CALayer] { l.removeAllAnimations() }
+        for h in [compactHost, openHost] as [NSView] { h.layer?.removeAnimation(forKey: "island.swap") }
+        CATransaction.commit()
+        prepareInteractiveContent(i)
+        render(i)
+    }
+
+    /// The finger moved: `progress` is how far toward the destination (0…1, unbounded: the island rubber-bands
+    /// past either end) and `slide` the content's sideways offset.
+    func updateInteractive(progress: Double, slide: Double = 0) {
+        guard var i = interaction else { return }
+        i.progress = progress
+        i.slide = reduceMotion ? 0 : slide
+        interaction = i
+        render(i)
+    }
+
+    /// The finger lifted at `velocity` (progress per second). Completing runs `apply` (the model change) and springs
+    /// on from where the finger left the island, with the finger's speed; otherwise the island springs back.
+    func endInteractive(velocity: Double, commit: Bool, springBack: SpringToken, slideVelocity: Double = 0, apply: () -> Void) {
+        guard let i = interaction else { if commit { apply() }; return }
+        let shown = shownFrame(at: CACurrentMediaTime())
+        interaction = nil
+        flight = nil
+        target = shown
+        var v = IslandFrame.difference(i.from, i.to).scaled(by: (i.progress == shownProgress(i) ? velocity : 0))
+        v.slide = slideVelocity
+        launchVelocity = v
+        if commit {
+            suppressSlide = i.preview != nil
+            apply()
+            model.setPreview(nil)
+        } else {
+            followUpToken = springBack
+            model.setPreview(nil)
+        }
+        dirty = true
+    }
+
+    /// Opens the right host for the drag and measures its content against the place it shows.
+    private func prepareInteractiveContent(_ i: Interaction) {
+        if let preview = i.preview {
+            openTarget = model.spec(for: preview).size
+            heldIsOpen = preview != .alert
+            openVisible = true
+        } else {
+            openVisible = i.fromMode != .compact
+        }
+        setVisibility()
+    }
+
+    /// Model changes during a drag that don't end it (live content, a new tint): keep the content right.
+    private func syncInteractive(_ i: Interaction) {
+        updateLight()
+        updateRimColor()
+        prepareInteractiveContent(i)
+        render(i)
+    }
+
+    /// Draws the drag: every engine-owned layer set directly to the frame, and each host held at its scale.
+    private func render(_ i: Interaction) {
+        var f = IslandFrame.mix(i.from, i.to, shownProgress(i))
+        f.slide = i.slide
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        applyStatic(f)
+        holdContent(compactHost, f, target: compactTarget, slides: false)
+        holdContent(openHost, f, target: openTarget, slides: true)
+        CATransaction.commit()
+    }
+
+    /// Pins a host at its transform for this frame with a never-ending animation (the model transform stays identity,
+    /// which AppKit owns); the next event replaces it, and baking or a jump removes it.
+    private func holdContent(_ host: NSView, _ f: IslandFrame, target: CGSize, slides: Bool) {
+        guard let layer = host.layer, let t = contentTransform(layer, f, target: target, slides: slides) else { return }
+        let a = CABasicAnimation(keyPath: "transform")
+        a.fromValue = NSValue(caTransform3D: t)
+        a.toValue = NSValue(caTransform3D: t)
+        a.duration = 1000
+        a.isRemovedOnCompletion = false
+        a.fillMode = .forwards
+        layer.add(a, forKey: "island.transform")
     }
 
     // MARK: - Rim and light
