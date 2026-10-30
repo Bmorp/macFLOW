@@ -14,6 +14,7 @@ enum AtollMain {
     @MainActor
     static func main() {
         let app = NSApplication.shared
+        if CommandLine.arguments.contains("--prism-check") { exit(PrismLibrary.selfCheck()) }
         #if DEBUG
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > i + 1 {
             app.setActivationPolicy(.accessory)
@@ -28,6 +29,11 @@ enum AtollMain {
         if let i = CommandLine.arguments.firstIndex(of: "--standby"), CommandLine.arguments.count > i + 1 {
             app.setActivationPolicy(.accessory)
             SurfaceHarness.runStandBy(outDir: CommandLine.arguments[i + 1])
+            return
+        }
+        if let i = CommandLine.arguments.firstIndex(of: "--prism"), CommandLine.arguments.count > i + 1 {
+            app.setActivationPolicy(.accessory)
+            PrismBench.run(outDir: CommandLine.arguments[i + 1])
             return
         }
         if let i = CommandLine.arguments.firstIndex(of: "--surfaces"), CommandLine.arguments.count > i + 1 {

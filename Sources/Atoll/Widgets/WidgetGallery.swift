@@ -118,7 +118,7 @@ struct WidgetGalleryView: View {
 
     private func add(_ family: WidgetFamily) {
         WidgetStore.shared.add(selection, family: family)
-        Haptics.confirm()
+        HapticEngine.shared.play(.widgetAdded)
         withAnimation(Motion.duo) { justAdded = family }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             withAnimation(Motion.duo) { if justAdded == family { justAdded = nil } }

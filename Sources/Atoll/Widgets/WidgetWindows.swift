@@ -104,8 +104,7 @@ private final class WidgetWindowController {
     private var family: WidgetFamily
     private var dragStartMouse: NSPoint?
     private var dragStartOrigin: NSPoint?
-    private var alignedX = false
-    private var alignedY = false
+    private let snapFeel = HapticAlignment(.widgetSnapped)
     var isDragging: Bool { dragStartMouse != nil }
 
     private var store: WidgetStore { .shared }
@@ -181,10 +180,10 @@ private final class WidgetWindowController {
         let screen = NSScreen.screens.first { $0.frame.contains(center) } ?? WidgetStore.screen(for: w.screenID)
         let offset = store.offset(forCocoaOrigin: raw, size: size, on: screen)
         let a = store.aligned(offset, size: size, screen: screen.displayID, excluding: id, threshold: 8)
-        if (a.x && !alignedX) || (a.y && !alignedY) { Haptics.snap() }
-        alignedX = a.x
-        alignedY = a.y
         let origin = store.cocoaOrigin(forOffset: a.point, size: size, on: screen)
+        // AppKit's alignment filter decides when a snap is felt (not on every frame of a fast drag).
+        snapFeel.update(with: NSApp.currentEvent)
+        snapFeel.moved(previous: NSPoint(x: window.frame.minX + pad, y: window.frame.minY + pad), aligned: origin, unaligned: raw)
         window.setFrameOrigin(NSPoint(x: origin.x - pad, y: origin.y - pad))
     }
 
@@ -192,8 +191,6 @@ private final class WidgetWindowController {
         guard dragStartMouse != nil else { return }
         dragStartMouse = nil
         dragStartOrigin = nil
-        alignedX = false
-        alignedY = false
         state.lifted = false
         let origin = NSPoint(x: window.frame.minX + pad, y: window.frame.minY + pad)
         guard let w = store.move(id, toCocoaOrigin: origin) else { return }

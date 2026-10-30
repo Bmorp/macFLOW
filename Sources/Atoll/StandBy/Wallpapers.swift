@@ -21,7 +21,14 @@ enum Wallpapers {
         Wallpaper(id: "nebula", name: "Nebula", hasDepth: false),
         Wallpaper(id: "glass", name: "Glass", hasDepth: false),
         Wallpaper(id: "graphite", name: "Graphite", hasDepth: false),
+        // Prism: fluted glass rolled at the crest (scripts/wallpapers/fluted.metal), made for the Prism face.
+        Wallpaper(id: "prism-steel", name: "Steel", hasDepth: true),
+        Wallpaper(id: "prism-ember", name: "Ember", hasDepth: true),
+        Wallpaper(id: "prism-aurora", name: "Polar", hasDepth: true),
     ]
+
+    /// The pictures the Prism face shuffles among.
+    static var prismFamily: [Wallpaper] { available.filter { $0.id.hasPrefix("prism-") } }
 
     /// The setting's two special values.
     static let none = "none"
@@ -54,12 +61,16 @@ enum Wallpapers {
         return nil
     }
 
-    /// What the setting means right now. Shuffle never repeats the picture before.
+    /// What the setting means right now. Shuffle never repeats the picture before; with the Prism face it keeps to the
+    /// Prism pictures, which are lit for it.
+    @MainActor
     static func resolve(_ setting: String, after previous: String? = nil) -> Wallpaper? {
         if setting == none { return nil }
         if setting != shuffle, let w = named(setting), url(w.id) != nil { return w }
-        let pool = available.filter { $0.id != previous }
-        return pool.randomElement() ?? available.first
+        let prismFace = Prefs.shared.standByClockStyle == StandByClockStyle.prism.rawValue
+        let family = prismFace && !prismFamily.isEmpty ? prismFamily : available
+        let pool = family.filter { $0.id != previous }
+        return pool.randomElement() ?? family.first
     }
 
     static func next(after id: String?, by delta: Int) -> Wallpaper? {

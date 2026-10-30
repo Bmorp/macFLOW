@@ -214,7 +214,6 @@ private struct DockItemView: View {
             let f = g.frame(in: .named("dockbar"))
             let s = magnification(f)
             Button {
-                Haptics.confirm()
                 entry.perform()
                 model.onAction?()
             } label: {
@@ -555,7 +554,12 @@ final class DockBarController {
         layout()
         panel.orderFrontRegardless()
         DispatchQueue.main.async { [weak self] in self?.model.shown = true }
-        Haptics.snap()
+        if !manual {
+            // Rose under the pointer resting on the handle: felt as it lands, when the rise (Motion.duo) settles.
+            DispatchQueue.main.asyncAfter(deadline: .now() + (Access.reduceMotion ? 0.2 : 0.3)) { [weak self] in
+                if self?.isShown == true { HapticEngine.shared.play(.dockLanded) }
+            }
+        }
         startPolling()
         clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             MainActor.assumeIsolated {

@@ -403,6 +403,7 @@ final class IslandManager {
             default: break
             }
         }
+        if model.mode == .expanded(.tasks), TasksModel.shared.handle(e, typing: c.panel.firstResponder is NSText) { return true }
         if model.mode == .expanded(.plan), e.keyCode == 53 {
             MorningPlanner.shared.later()
             return true

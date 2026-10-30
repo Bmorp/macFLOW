@@ -19,6 +19,12 @@ enum SmartCommand: Equatable {
     case plan
     case rewind
     case day
+    /// "t review deck tomorrow 3pm 45m": a new task, as understood so far.
+    case addTask(TaskDraft, typed: String)
+    /// The Tasks place.
+    case tasks
+    /// An open task found by name.
+    case openTask(id: UUID, title: String, detail: String)
 
     var id: String {
         switch self {
@@ -39,6 +45,9 @@ enum SmartCommand: Equatable {
         case .plan: "plan"
         case .rewind: "rewind"
         case .day: "day"
+        case .addTask(_, let typed): "task.add:\(typed)"
+        case .tasks: "tasks"
+        case .openTask(let id, _, _): "task:\(id)"
         }
     }
 
@@ -61,6 +70,9 @@ enum SmartCommand: Equatable {
         case .plan: "Plan Your Day"
         case .rewind: "Rewind Today"
         case .day: "See Your Day"
+        case .addTask(let d, _): "New Task: \(d.title)"
+        case .tasks: "Tasks"
+        case .openTask(_, let t, _): t
         }
     }
 
@@ -84,6 +96,9 @@ enum SmartCommand: Equatable {
             }
         case .rewind: "Scrub back to any moment and reopen it"
         case .day: "Today, drawn — focus, meetings and music"
+        case .addTask(let d, _): d.hasDetails ? TaskFormat.parts(of: d).joined(separator: " · ") : "Add it to your tasks"
+        case .tasks: TaskCapture.summary
+        case .openTask(_, _, let d): d
         }
     }
 
@@ -108,6 +123,9 @@ enum SmartCommand: Equatable {
         case .plan: "sun.horizon.fill"
         case .rewind: "clock.arrow.circlepath"
         case .day: "circle.circle"
+        case .addTask: "plus.circle"
+        case .tasks: "checklist"
+        case .openTask: "circle"
         }
     }
 
@@ -122,6 +140,7 @@ enum SmartCommand: Equatable {
         case .claude: ClaudeSessions.tint
         case .plan: PlanView.morning
         case .rewind, .day: BrainStyle.tint
+        case .addTask, .tasks, .openTask: TaskStyle.tint
         }
     }
 
@@ -135,7 +154,8 @@ enum SmartCommand: Equatable {
 
     var actionHint: String {
         switch self {
-        case .project, .claude, .plan, .rewind, .day: "Open"
+        case .project, .claude, .plan, .rewind, .day, .tasks, .openTask: "Open"
+        case .addTask: "Add"
         case .join: "Join"
         case .output: "Switch"
         default: "Do It"
@@ -195,11 +215,25 @@ enum SmartCommand: Equatable {
         case .day:
             IslandManager.shared.primary?.model.open(.day)
             return nil
+        case .addTask(let d, let typed):
+            guard let t = TaskStore.shared.add(d, typed: typed, source: .search) else { return nil }
+            return TaskCapture.added(t)
+        case .tasks:
+            TasksModel.shared.show(nil)
+            return nil
+        case .openTask(let id, _, _):
+            TasksModel.shared.show(id)
+            return nil
         }
     }
 
     /// Commands that move the island to another of its places rather than closing it.
-    var staysInIsland: Bool { self == .plan || self == .rewind || self == .day }
+    var staysInIsland: Bool {
+        switch self {
+        case .plan, .rewind, .day, .tasks, .openTask: true
+        default: false
+        }
+    }
 
     // MARK: Understanding what you typed
 
@@ -252,6 +286,13 @@ enum SmartCommand: Equatable {
            let e = CalendarModel.shared.events.first(where: { !$0.isAllDay && $0.end > Date() && $0.start.timeIntervalSinceNow < 3600 && $0.meetingURL != nil }),
            let url = e.meetingURL {
             out.append(.join(url: url, title: e.title))
+        }
+        // Tasks: "t …", "task …", "todo …" add one; "tasks" opens them; a task's name finds it.
+        if let c = TaskCapture.command(q) {
+            out.insert(.addTask(c.draft, typed: c.typed), at: 0)
+        } else {
+            if TaskCapture.opensTasks(lower) { out.append(.tasks) }
+            out += TaskCapture.find(lower).map { .openTask(id: $0.id, title: $0.title, detail: $0.detail) }
         }
         // Planning the day.
         if lower.count >= 3, "plan my day".hasPrefix(lower) || lower.hasPrefix("plan") || ["my day", "today", "replan", "schedule"].contains(lower) {

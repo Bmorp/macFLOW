@@ -49,10 +49,25 @@ else
 fi
 lipo -info "$BIN_DIR/$BIN_NAME"
 
+step "Compiling Prism shaders (Metal)"
+# Prism's material and Ribbon numerals. In CI a missing library is a failed build; on a Mac without Xcode's Metal
+# Toolchain the app is built without it and keeps its plain look (shaders.sh says how to add the toolchain).
+METALLIB="$WORK/Prism.metallib"
+rm -f "$METALLIB"
+shaders=0
+"$ROOT/scripts/shaders.sh" "$METALLIB" || shaders=$?
+if [[ $shaders -eq 2 && -z "${CI:-}" ]]; then
+    echo "⚠︎ Building without Prism.metallib: Prism surfaces will show their plain look"
+elif [[ $shaders -ne 0 ]]; then
+    echo "Prism shaders failed to build" >&2
+    exit 1
+fi
+
 step "Assembling $APP_NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN_DIR/$BIN_NAME" "$APP/Contents/MacOS/$EXEC_NAME"
+if [[ -f "$METALLIB" ]]; then cp "$METALLIB" "$APP/Contents/Resources/Prism.metallib"; fi
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD_NUMBER/" "$ROOT/Resources/Info.plist" > "$APP/Contents/Info.plist"
 cp "$ROOT/Resources/PrivacyInfo.xcprivacy" "$APP/Contents/Resources/"
 # StandBy's 4K wallpapers (rendered by scripts/wallpapers; HEIC, with depth layers for three of them).

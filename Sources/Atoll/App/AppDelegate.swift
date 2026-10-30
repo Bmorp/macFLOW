@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         IslandManager.shared.start()
         WidgetManager.shared.start()
         StandByController.shared.start()
+        PrismLibrary.prewarm()
         DockBarController.shared.start()
         DockDropController.shared.start()
         DockTileController.shared.start()

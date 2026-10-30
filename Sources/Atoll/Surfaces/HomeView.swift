@@ -244,7 +244,6 @@ private struct AppTile: View {
 
     var body: some View {
         Button {
-            Haptics.confirm()
             AppCatalog.shared.launch(entry)
             model.collapse()
         } label: {

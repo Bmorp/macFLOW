@@ -293,14 +293,14 @@ final class StandByController {
         scrollY += e.scrollingDeltaY
         let threshold: CGFloat = e.hasPreciseScrollingDeltas ? 60 : 3
         if abs(scrollX) > threshold, abs(scrollX) > abs(scrollY) {
-            model.turn(scrollX < 0 ? 1 : -1)
+            model.turn(scrollX < 0 ? 1 : -1, bySwipe: e.hasPreciseScrollingDeltas)
             scrollConsumed = true
         } else if abs(scrollY) > threshold {
             if model.page == .clock {
                 model.cycleWallpaper(by: scrollY < 0 ? 1 : -1)
             } else {
                 let side = NSEvent.mouseLocation.x < (panel?.frame.midX ?? 0) ? 0 : 1
-                model.cycle(stack: side, by: scrollY < 0 ? 1 : -1)
+                model.cycle(stack: side, by: scrollY < 0 ? 1 : -1, bySwipe: e.hasPreciseScrollingDeltas)
             }
             scrollConsumed = true
         }

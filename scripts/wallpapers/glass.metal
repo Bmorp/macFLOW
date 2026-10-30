@@ -131,31 +131,7 @@ inline float3 env(float3 o, float3 d) {
     return c;
 }
 
-// MARK: - Spectral glass
-
-/// Wavelength (nm) → linear-sRGB weight whose average over 400–700 nm is white (Wyman's CIE fit, clipped).
-inline float3 spectrum(float l) {
-    float t1 = (l - 599.8) / (l < 599.8 ? 37.9 : 31.0), t2 = (l - 442.0) / (l < 442.0 ? 16.0 : 26.7), t3 = (l - 501.1) / (l < 501.1 ? 20.4 : 26.2);
-    float x = 1.056 * exp(-0.5 * t1 * t1) + 0.362 * exp(-0.5 * t2 * t2) - 0.065 * exp(-0.5 * t3 * t3);
-    float t4 = (l - 568.8) / (l < 568.8 ? 46.9 : 40.5), t5 = (l - 530.9) / (l < 530.9 ? 16.3 : 31.1);
-    float y = 0.821 * exp(-0.5 * t4 * t4) + 0.286 * exp(-0.5 * t5 * t5);
-    float t6 = (l - 437.0) / (l < 437.0 ? 11.8 : 36.0), t7 = (l - 459.0) / (l < 459.0 ? 26.0 : 13.8);
-    float z = 1.217 * exp(-0.5 * t6 * t6) + 0.681 * exp(-0.5 * t7 * t7);
-    float3 rgb = float3(3.2406 * x - 1.5372 * y - 0.4986 * z, -0.9689 * x + 1.8758 * y + 0.0415 * z, 0.0557 * x - 0.2040 * y + 1.0570 * z);
-    return max(rgb, float3(0.0)) / float3(0.586964, 0.384455, 0.362577);
-}
-
-/// Cauchy dispersion around n = 1.50 at 550 nm (stronger than crown glass, for visible fire at the rims).
-inline float iorAt(float l) { float u = l * 0.001; return 1.50 + 0.011 * (1.0 / (u * u) - 1.0 / (0.55 * 0.55)); }
-
-inline float fresnel(float cosi, float eta) {
-    float s2 = eta * eta * (1.0 - cosi * cosi);
-    if (s2 >= 1.0) return 1.0;
-    float cost = sqrt(1.0 - s2);
-    float rs = (eta * cosi - cost) / (eta * cosi + cost);
-    float rp = (cosi - eta * cost) / (cosi + eta * cost);
-    return 0.5 * (rs * rs + rp * rp);
-}
+// MARK: - Spectral glass (spectrum, iorAt and fresnel come from optics.metal)
 
 /// Follows a ray through the scene, choosing reflection or refraction by Fresnel at each crossing.
 inline float3 path(float3 o, float3 d, bool inside, float ior, thread const Scene& S, thread Rng& rng, int maxDepth) {
