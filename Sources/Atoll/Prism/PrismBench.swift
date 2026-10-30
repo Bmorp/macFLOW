@@ -24,6 +24,15 @@ enum PrismBench {
             budgets()
             return
         }
+        if let times = ProcessInfo.processInfo.environment["ATOLL_PRISM_STILLS"] {
+            // Debug: just the numerals at rest for the given times ("12:56,9:41"), at 2x, for looking at edges.
+            stills(times.split(separator: ",").map(String.init), outDir: outDir)
+            return
+        }
+        if ProcessInfo.processInfo.environment["ATOLL_PRISM_MORPH"] != nil {
+            filmstrip(outDir: outDir)
+            return
+        }
         let suffix = ProcessInfo.processInfo.environment["ATOLL_PRISM_RT"] == "1" ? "-rt" : ""
         // This Mac's SDK declares Date.<= but its Foundation lacks it; the calendar chip compares dates that way.
         CalendarModel.shared.debugSet([])
@@ -84,6 +93,24 @@ enum PrismBench {
 
     // MARK: Morph
 
+    /// Numerals at rest for each "h:mm", the whole frame, on the first Prism wallpaper's blur when there is one.
+    static func stills(_ times: [String], outDir: String) {
+        guard let r = PrismRenderer.shared else { return }
+        for t in times {
+            let parts = t.split(separator: ":").map(String.init)
+            guard parts.count == 2 else { continue }
+            let s = scene(parts[0], parts[1], frost: frostImage())
+            if let img = r.still(s, scale: 2) { write(img, URL(fileURLWithPath: outDir).appendingPathComponent("still-\(parts[0])-\(parts[1]).png")) }
+        }
+        print("prism stills ok → \(outDir)")
+    }
+
+    static func frostImage() -> CGImage? {
+        guard let id = Wallpapers.available.first(where: { $0.id.hasPrefix("prism-") })?.id ?? Wallpapers.available.first?.id,
+              let url = Wallpapers.url(id), let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return CGImageSourceCreateThumbnailAtIndex(src, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 480] as CFDictionary)
+    }
+
     static func scene(_ h: String, _ m: String, canvas: CGSize = CGSize(width: 1470, height: 956), frost: CGImage? = nil) -> RibbonScene {
         RibbonScene(lead: h, trail: m, fontSize: canvas.height * ClockLayout.timeSize, canvas: canvas,
                     layout: CGRect(origin: .zero, size: canvas), style: .standBy, frost: frost, env: PrismConditions.shared.current)
@@ -96,13 +123,19 @@ enum PrismBench {
             guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
             return CGImageSourceCreateThumbnailAtIndex(src, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 480] as CFDictionary)
         }
-        let a = scene("9", "59", frost: frost), b = scene("10", "00", frost: frost)
+        // ATOLL_PRISM_MORPH="12:55>12:56" looks at another change.
+        var from = ("9", "59"), to = ("10", "00")
+        if let m = ProcessInfo.processInfo.environment["ATOLL_PRISM_MORPH"] {
+            let t = m.split(separator: ">").map { $0.split(separator: ":").map(String.init) }
+            if t.count == 2, t[0].count == 2, t[1].count == 2 { from = (t[0][0], t[0][1]); to = (t[1][0], t[1][1]) }
+        }
+        let a = scene(from.0, from.1, frost: frost), b = scene(to.0, to.1, frost: frost)
         let old = RibbonLayout.columns(a.outline, pitch: a.style.pitch), new = RibbonLayout.columns(b.outline, pitch: b.style.pitch)
         let (strips, duration) = RibbonLayout.strips(from: old, to: new, morph: .spring)
         let scale: CGFloat = 1
         let w = Int(b.canvas.width * scale), h = Int(b.canvas.height * scale)
         let backdrop = frost.flatMap { r.texture($0) }
-        let times: [Float] = [0, 0.15, 0.3, 0.45, 0.65, duration]
+        let times: [Float] = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.65, duration]
         let crop = CGRect(x: 0, y: Int(Double(new.top) * scale) - 30, width: w, height: Int(Double(new.foot - new.top) * scale) + 60)
         let sheet = CGContext(data: nil, width: w, height: Int(crop.height) * times.count, bitsPerComponent: 8, bytesPerRow: 0,
                               space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
@@ -116,7 +149,7 @@ enum PrismBench {
             sheet.draw(part, in: CGRect(x: 0, y: y, width: w, height: Int(crop.height)))
         }
         if let img = sheet.makeImage() { write(img, URL(fileURLWithPath: outDir).appendingPathComponent("78-ribbon-morph.png")) }
-        print(String(format: "prism: morph 9:59 → 10:00 · %d strips · %.2f s", strips.count, duration))
+        print(String(format: "prism: morph %@:%@ → %@:%@ · %d strips · %.2f s", from.0, from.1, to.0, to.1, strips.count, duration))
     }
 
     // MARK: Budgets
