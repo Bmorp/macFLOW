@@ -14,6 +14,7 @@ enum AtollMain {
     @MainActor
     static func main() {
         let app = NSApplication.shared
+        if CommandLine.arguments.contains("--prism-check") { exit(PrismLibrary.selfCheck()) }
         #if DEBUG
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot"), CommandLine.arguments.count > i + 1 {
             app.setActivationPolicy(.accessory)

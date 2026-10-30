@@ -101,6 +101,40 @@ enum PrismLibrary {
         return try device.makeLibrary(source: text, options: options)
     }
 
+    // MARK: Self-check
+
+    /// `Mac Flow --prism-check`: loads the library this build would use, builds the ribbon pipeline, draws a ribbon
+    /// frame and a SwiftUI effect offscreen, prints what happened and exits (0: Prism works; 1: the plain look).
+    /// Works in release builds, so a packaged app can be checked without starting it.
+    @MainActor
+    static func selfCheck() -> Int32 {
+        guard let loaded = shared else {
+            print("prism-check: no usable \(fileName); Prism surfaces show their plain look")
+            return 1
+        }
+        print("prism-check: library \(loaded.origin)")
+        guard let r = PrismRenderer.shared, r.pipeline != nil else { print("prism-check: no ribbon pipeline"); return 1 }
+        let size = CGSize(width: 240, height: 120)
+        let scene = RibbonScene(lead: "9", trail: "41", fontSize: 60, canvas: size, layout: CGRect(origin: .zero, size: size),
+                                style: .standBy, env: PrismEnvironment(libraryLoaded: true))
+        let ribbonLit = r.still(scene, scale: 2).map(litPixels) ?? 0
+        print("prism-check: ribbons drew \(ribbonLit) lit pixels")
+        var effectChanged = false
+        if let lib = loaded.effects {
+            let plain = Color.white.frame(width: 64, height: 32)
+            let flutes = ImageRenderer(content: plain.layerEffect(PrismEffect.flutes(lib, .standBy), maxSampleOffset: PrismEffect.maxOffset(.standBy)))
+            let flat = ImageRenderer(content: plain)
+            if let a = flutes.cgImage, let b = flat.cgImage { effectChanged = a.dataProvider?.data as Data? != b.dataProvider?.data as Data? }
+            print("prism-check: SwiftUI flutes \(effectChanged ? "drew" : "didn't change the view")")
+        }
+        return ribbonLit > 0 && (loaded.effects == nil || effectChanged) ? 0 : 1
+    }
+
+    private static func litPixels(_ image: CGImage) -> Int {
+        guard let data = image.dataProvider?.data as Data? else { return 0 }
+        return stride(from: 3, to: data.count, by: 4).reduce(0) { $0 + (data[$1] > 0 ? 1 : 0) }
+    }
+
     // MARK: Prewarm
 
     /// macOS compiles a SwiftUI shader the first time it draws. On macOS 15 this does it ahead of time, off the main
