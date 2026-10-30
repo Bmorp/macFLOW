@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import Combine
 import SwiftUI
 
@@ -88,6 +88,10 @@ final class TaskStore: ObservableObject, TaskLedger {
             }
             .store(in: &cancellables)
         ReminderSync.shared.start(with: self)
+        // Writes are queued; the last ones land before the app goes.
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.flush() }
+        }
     }
 
     var now: Date { clock() }

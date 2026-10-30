@@ -699,3 +699,25 @@ struct TaskKeyboardTests {
         #expect(m.field == nil)
     }
 }
+
+// MARK: - The scheduler with tasks
+
+@Suite("Flow Tasks: the plan's scheduler")
+struct TaskSchedulerTests {
+    typealias C = TaskClock
+
+    @Test func aTaskKeepsItsOwnTime() {
+        // Planning at 8:40 on 4 November; a meeting 10:00–10:30.
+        let busy = [DateInterval(start: C.at(11, 4, 10), end: C.at(11, 4, 10, 30))]
+        let deck = Priority(title: "Review deck", minutes: 45, preferred: C.at(11, 4, 15))
+        let spec = Priority(title: "Write the spec", minutes: 60)
+        let clash = Priority(title: "Call Sam", minutes: 30, preferred: C.at(11, 4, 10, 15))       // during the meeting
+        let items = PlanScheduler.schedule(priorities: [spec, deck, clash], busy: busy, from: C.at(11, 4, 8, 40), calendar: C.cal)
+        let focus = Dictionary(uniqueKeysWithValues: items.filter { $0.kind == .focus }.map { ($0.title, $0.start) })
+        #expect(focus["Review deck"] == C.at(11, 4, 15))           // its own time
+        #expect(focus["Write the spec"] == C.at(11, 4, 9))         // the earliest free hour, as before
+        #expect(focus["Call Sam"] == C.at(11, 4, 10, 40))          // its time was taken: the next free slot
+        let all = items.map(\.interval) + busy
+        for (i, a) in all.enumerated() { for b in all[(i + 1)...] { #expect(a.intersection(with: b).map { $0.duration == 0 } ?? true) } }
+    }
+}

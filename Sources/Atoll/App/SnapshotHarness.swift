@@ -309,6 +309,14 @@ enum SnapshotHarness {
             Case(name: "64-search-task", live: true) { m in
                 TasksModel.shared.segment = .today
                 SearchModel.shared.query = "t review deck tomorrow 3pm 45m #launch"; m.debugSetMode(.search) },
+            Case(name: "65-plan-from-tasks", live: true) { m in
+                SearchModel.shared.reset()
+                let demo = TaskDemo.busyWeek()
+                TaskStore.shared.debugSet(demo.tasks)
+                PlanClock.pinned = Calendar.current.date(bySettingHour: 8, minute: 42, second: 0, of: Date())
+                PlanStore.shared.debugSet(priorities: [Priority(), Priority(minutes: 60), Priority(minutes: 30)], meetings: [])
+                PlanStore.shared.draft()
+                m.debugSetMode(.expanded(.plan)) },
         ]
 
         // ATOLL_SNAP_ONLY=10b,1c renders just those (by name prefix) — for iterating on one screen.

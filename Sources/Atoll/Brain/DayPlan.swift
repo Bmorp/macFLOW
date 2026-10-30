@@ -66,6 +66,8 @@ struct Priority: Identifiable, Equatable {
     var draft: String? = nil
     /// The task it is: drafted from your tasks, or made from it when the day is planned.
     var taskID: UUID? = nil
+    /// A time it already has ("review deck 3pm"): kept if it's free.
+    var preferred: Date? = nil
 
     var isDraft: Bool { source != nil && title == draft }
 }
@@ -107,7 +109,19 @@ enum PlanScheduler {
             return nil
         }
 
-        // Lunch first, so focus blocks don't swallow the middle of the day: 45 min between 12:30 and 14:00.
+        // A task that already has its time ("review deck 3pm") keeps it, if that time is free and still ahead.
+        let named = priorities.filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
+        var placed = Set<UUID>()
+        for p in named {
+            guard let at = p.preferred, calendar.isDate(at, inSameDayAs: day), at >= now, at >= open,
+                  let t = freeSlot(minutes: p.minutes, notBefore: at, notAfter: at) else { continue }
+            let item = PlanItem(id: p.id, title: p.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: p.minutes, taskID: p.taskID)
+            out.append(item)
+            taken.append(DateInterval(start: item.start, end: item.end.addingTimeInterval(buffer)))
+            placed.insert(p.id)
+        }
+
+        // Lunch next, so focus blocks don't swallow the middle of the day: 45 min between 12:30 and 14:00.
         let lunchFrom = day.addingTimeInterval(12.5 * 3600), lunchLatest = day.addingTimeInterval(13.25 * 3600)
         if lunchLatest > now, let t = freeSlot(minutes: 45, notBefore: max(lunchFrom, roundUp(now, to: 15, calendar: calendar)), notAfter: lunchLatest) {
             let item = PlanItem(id: PlanItem.lunchID, title: "Lunch", kind: .rest, start: t, minutes: 45)
@@ -116,20 +130,18 @@ enum PlanScheduler {
         }
 
         // What Flow learned: the first priority goes into your sharpest hours if it fits there (and they're still ahead).
-        let named = priorities.filter { !$0.title.trimmingCharacters(in: .whitespaces).isEmpty }
-        var placedFirst: UUID?
-        if let w = focusWindow, let first = named.first, w.end > now {
+        if let w = focusWindow, let first = named.first, !placed.contains(first.id), w.end > now {
             let from = max(w.start, roundUp(now, to: 15, calendar: calendar), open)
             if let t = freeSlot(minutes: first.minutes, notBefore: from, notAfter: w.end.addingTimeInterval(-TimeInterval(first.minutes * 30))) {
                 let item = PlanItem(id: first.id, title: first.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: first.minutes,
                                     taskID: first.taskID)
                 out.append(item)
                 taken.append(DateInterval(start: item.start, end: item.end.addingTimeInterval(buffer)))
-                placedFirst = first.id
+                placed.insert(first.id)
             }
         }
 
-        for p in named where p.id != placedFirst {
+        for p in named where !placed.contains(p.id) {
             guard let t = freeSlot(minutes: p.minutes, notBefore: cursorStart) else { continue }
             let item = PlanItem(id: p.id, title: p.title.trimmingCharacters(in: .whitespaces), kind: .focus, start: t, minutes: p.minutes, taskID: p.taskID)
             out.append(item)
@@ -301,11 +313,14 @@ final class PlanStore: ObservableObject {
     /// finish yesterday, then what the Brain has learned matters to you, then priority. Your main project this week fills
     /// any room left. Each draft says why it's there; type over it and it's yours.
     func draft() {
-        guard !plan.started, !plan.skipped, priorities.allSatisfy({ $0.title.isEmpty }) else { return }
+        // Redrafted each time the planner opens, until you've typed something of your own: a task finished or added
+        // since the last look shows up right.
+        guard !plan.started, !plan.skipped, priorities.allSatisfy({ $0.title.isEmpty || $0.isDraft }) else { return }
         var drafts: [Priority] = tasks.ranked().prefix(3).map { pick in
             let t = pick.task
             let minutes = Int(min(180, max(15, ((t.estimate ?? 45) / 5).rounded() * 5)))
-            return Priority(title: t.title, minutes: minutes, source: pick.reason, draft: t.title, taskID: t.id)
+            let at = t.scheduled.flatMap { FlowTask.hasTime($0) && Calendar.current.isDateInToday($0) ? $0 : nil }
+            return Priority(title: t.title, minutes: minutes, source: pick.reason, draft: t.title, taskID: t.id, preferred: at)
         }
         if drafts.count < 3, let p = InsightModel.shared.insight.projects
             .filter({ $0.week > 3600 && Date().timeIntervalSince($0.lastSeen) < 3 * 86_400 })
@@ -315,7 +330,16 @@ final class PlanStore: ObservableObject {
                 drafts.append(Priority(title: title, minutes: 90, source: "Your main project this week — \(BrainEngine.duration(p.week))", draft: title))
             }
         }
-        for (i, d) in drafts.prefix(3).enumerated() where i < priorities.count { priorities[i] = d }
+        for i in priorities.indices {
+            if i < drafts.count {
+                guard priorities[i].title != drafts[i].title || priorities[i].taskID != drafts[i].taskID else { continue }
+                var d = drafts[i]
+                d.id = priorities[i].id      // the same row, so it changes in place
+                priorities[i] = d
+            } else if !priorities[i].title.isEmpty {
+                priorities[i] = Priority(id: priorities[i].id, minutes: priorities[i].minutes)
+            }
+        }
     }
 
     /// Whether anything in the planner is still as Flow drafted it.
