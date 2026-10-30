@@ -107,3 +107,125 @@ struct SpringSolverTests {
         #expect(ease.duration(from: 0, to: 10, v0: 0, epsilon: 0.05) == 0.2)
     }
 }
+
+@Suite("Island engine: geometry")
+struct IslandGeometryTests {
+    @Test func outlineClampsLikeTheLegacyShape() {
+        // A shoulder can't exceed a quarter of the width or half the height; a corner can't outgrow the body.
+        let f = IslandFrame(width: 40, height: 20, shoulder: 22, corner: 30, slide: 0, rim: 1, light: 1)
+        let g = IslandOutlineGeometry(f, centerX: 100)
+        #expect(g.shoulder <= 10)
+        #expect(g.body.minX >= 80 && g.body.maxX <= 120)
+        #expect(g.cornerRadius <= 20)
+    }
+
+    @Test func zoomNeverExceedsOne() {
+        #expect(IslandGeometry.zoom(live: CGSize(width: 800, height: 400), target: CGSize(width: 400, height: 200)) == 1)
+        let z = IslandGeometry.zoom(live: CGSize(width: 200, height: 200), target: CGSize(width: 400, height: 200))
+        #expect(abs(z - 0.5) < 1e-9)
+    }
+
+    @Test func mixInterpolatesEveryChannel() {
+        let a = IslandFrame(width: 100, height: 30, shoulder: 8, corner: 10, slide: 0, rim: 0, light: 0)
+        let b = IslandFrame(width: 500, height: 230, shoulder: 22, corner: 30, slide: 0, rim: 0.85, light: 1)
+        let m = IslandFrame.mix(a, b, 0.25)
+        #expect(m.width == 200 && m.height == 80 && abs(m.rim - 0.2125) < 1e-9 && m.light == 0.25)
+    }
+}
+
+@Suite("Island engine: gestures")
+struct InteractiveTransitionTests {
+    @Test func bandIsOneToOneInsideAndResistsOutside() {
+        for p in stride(from: 0.0, through: 1.0, by: 0.1) { #expect(InteractiveTransition.band(p) == p) }
+        let a = InteractiveTransition.band(1.2) - 1
+        let b = InteractiveTransition.band(2.2) - 1
+        #expect(a > 0 && b > a)
+        #expect(b < InteractiveTransition.stretch)   // never more than a tenth past the end, however far the finger goes
+        #expect(InteractiveTransition.band(-0.5) < 0)
+        #expect(InteractiveTransition.band(-0.5) > -InteractiveTransition.stretch)
+        // Monotone and continuous across the ends.
+        #expect(abs(InteractiveTransition.band(1.0001) - 1.0001) < 1e-3)
+    }
+
+    @Test func slideFollowsThenResists() {
+        #expect(abs(InteractiveTransition.slide(2)) < 2)
+        #expect(InteractiveTransition.slide(-30) < 0)
+        #expect(abs(InteractiveTransition.slide(10_000)) < 40)
+        #expect(InteractiveTransition.slide(80) > InteractiveTransition.slide(40))
+    }
+
+    @Test func completesByPositionOrFlick() {
+        // Slowly past halfway completes; slowly short of it doesn't.
+        #expect(InteractiveTransition.completes(progress: 0.6, velocity: 0, travel: 90))
+        #expect(!InteractiveTransition.completes(progress: 0.4, velocity: 0, travel: 60))
+        // A flick completes from the start (but not a twitch).
+        #expect(InteractiveTransition.completes(progress: 0.1, velocity: 1.5, travel: 30))
+        #expect(!InteractiveTransition.completes(progress: 0.02, velocity: 3, travel: 3))
+        // Flicking back while past halfway cancels.
+        #expect(!InteractiveTransition.completes(progress: 0.6, velocity: -2, travel: 90))
+        // Past the end counts as the end.
+        #expect(InteractiveTransition.completes(progress: 1.4, velocity: 0, travel: 200))
+    }
+
+    @Test func detentFiresOnceAndRearms() {
+        var d = InteractiveTransition.Detent()
+        func fires(_ p: Double) -> Bool { d.update(progress: p) }
+        #expect(!fires(0.3))
+        #expect(fires(0.52))
+        #expect(!fires(0.6))          // still past it: no second tick
+        #expect(!fires(0.45))         // backing off a little doesn't re-arm
+        #expect(!fires(0.55))
+        #expect(!fires(0.3))          // backed off enough: re-armed...
+        #expect(fires(0.5))           // ...and fires again on the next crossing
+        #expect(d.fired)
+    }
+
+    @Test func velocityIsTheSlopeOfTheLastHundredMilliseconds() {
+        var t = VelocityTracker()
+        for i in 0..<20 { t.add(Double(i) * 4, at: 10 + Double(i) * 0.008) }   // 500 points/s
+        #expect(abs(t.velocity(at: 10 + 19 * 0.008 + 0.005) - 500) < 1)
+        // Fingers that stopped before lifting leave no velocity.
+        #expect(t.velocity(at: 10 + 19 * 0.008 + 0.2) == 0)
+        // Old movement outside the window doesn't count.
+        var u = VelocityTracker()
+        u.add(0, at: 0); u.add(500, at: 0.05)           // fast, long ago
+        for i in 0..<12 { u.add(500, at: 1 + Double(i) * 0.01) }   // then still
+        #expect(abs(u.velocity(at: 1.115)) < 1e-6)
+        #expect(VelocityTracker().velocity(at: 0) == 0)
+    }
+}
+
+@Suite("Island engine: liquid bridge")
+@MainActor
+struct LiquidBridgeTests {
+    static let params = LiquidBridge.Params(centerX: 400, islandWidth: 230, height: 32, diameter: 32, restOffset: 150, softness: 13)
+
+    private func count(_ path: CGPath) -> Int {
+        var n = 0
+        path.applyWithBlock { _ in n += 1 }
+        return n
+    }
+
+    @Test func everyPullHasTheSameNumberOfPoints() {
+        // Required for the render server to interpolate the keyframes instead of snapping between them.
+        let counts = Set(stride(from: 0.0, through: 1.0, by: 0.05).map { count(LiquidBridge.path(progress: $0, Self.params)) })
+        #expect(counts.count == 1)
+    }
+
+    @Test func theNeckStretchesThenBreaksAsTheBubbleLeaves() {
+        let p = Self.params
+        let bodyRight = p.centerX + p.islandWidth / 2 - IslandModel.compactFlare
+        let between = CGPoint(x: bodyRight + 3, y: 12)   // just beyond the island's end
+        let restingBubble = CGPoint(x: p.centerX + p.restOffset, y: 16)
+        let tucked = LiquidBridge.path(progress: 0, p)
+        let pulling = LiquidBridge.path(progress: 0.5, p)
+        let out = LiquidBridge.path(progress: 1, p)
+        // Half way out, the bubble is still joined to the island by a neck.
+        #expect(pulling.contains(between))
+        // Detached, it sits at its rest position with open space between it and the island.
+        #expect(out.contains(restingBubble))
+        #expect(!out.contains(between))
+        // Tucked in, the bubble hides inside the island's end.
+        #expect(!tucked.contains(restingBubble))
+    }
+}
