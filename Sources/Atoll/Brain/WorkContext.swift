@@ -178,7 +178,8 @@ final class WorkContext: ObservableObject {
 
     private var knownProjects: [String] {
         var names = ClaudeSessions.shared.sessions.map(\.folder).filter { $0 != "Untitled session" }
-        names += store.facts().filter { $0.key.hasPrefix("project:") }.map { String($0.key.dropFirst(8)) }
+        // Projects seen in past sessions, while Flow still believes in them: unseen for weeks, they fade out.
+        names += store.facts().filter { $0.key.hasPrefix("project:") && $0.confidence(at: Date()) >= 0.25 }.map { String($0.key.dropFirst(8)) }
         return Array(Set(names))
     }
 
@@ -190,8 +191,13 @@ final class WorkContext: ObservableObject {
         return out
     }
 
+    /// A correction you made may change what's on screen now.
+    func correctionsChanged() { reclassify() }
+
     private func reclassify() {
-        var next = Understanding.mode(bundle: bundle, title: title, overrides: overrides)
+        // A moment you corrected (or one like it) beats the rules; then your answers; then the rules.
+        var next = ModeCorrections.shared.override(app: appName, bundle: bundle, title: title, project: project ?? "")
+            ?? Understanding.mode(bundle: bundle, title: title, overrides: overrides)
         if ActivityCenter.shared.call != nil { next = .meeting }
         let proj = Understanding.project(bundle: bundle, title: title, known: knownProjects)
             ?? (next == .coding ? ClaudeSessions.shared.featured?.folder : nil)
@@ -240,7 +246,11 @@ final class WorkContext: ObservableObject {
             let ep = BrainStore.Episode(start: episodeStart, end: boundary, mode: episodeMode.rawValue, project: episodeProject ?? "",
                                         apps: apps, summary: "\(episodeMode.label)\(where_) in \(names.joined(separator: ", "))")
             store.save(ep)
-            if let p = episodeProject { store.setFact("project:\(p)", "seen", source: "learned", confidence: 0.6) }
+            if let p = episodeProject {
+                // Each session seen makes Flow surer it's a real project (and keeps it from fading).
+                let was = store.factRecord("project:\(p)")?.confidence(at: Date()) ?? 0
+                store.setFact("project:\(p)", "seen", source: "learned", confidence: min(1, 1 - (1 - max(was, 0.45)) * 0.75))
+            }
             onChange?(.episodeEnded(ep))
         }
         episodeStart = boundary

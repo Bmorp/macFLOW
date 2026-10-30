@@ -209,6 +209,8 @@ struct BrainPane: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
+            WhatFlowLearnedSection()
+
             Section("What Flow Knows") {
                 let told = facts.filter { $0.source == "answered" && !$0.key.hasPrefix("ask:") }
                 if told.isEmpty && sessions.isEmpty {

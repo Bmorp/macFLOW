@@ -176,7 +176,7 @@ final class VoiceInput: ObservableObject {
         releasedEarly = false
         transcript = ""
         model.openBrain()
-        Haptics.snap()
+        HapticEngine.shared.play(.holdToTalkEngaged)
         authorizing = true
         LiveTranscriber.authorize(microphone: true) { [weak self] ok in
             guard let self else { return }
@@ -230,7 +230,14 @@ final class VoiceInput: ObservableObject {
             self.transcriber = nil
             self.state = .idle
             self.transcript = ""
-            if text.count >= 2 { BrainAgent.shared.send(text) }
+            guard text.count >= 2 else { return }
+            // "Add a task …" is a plain command: Tasks takes it directly, so it works without the language model too.
+            if let words = BrainTaskTools.spokenTask(text), let ledger = TaskLinks.ledger {
+                let task = ledger.capture(words, source: .voice)
+                BrainAgent.shared.captured(heard: text, task: task)
+            } else {
+                BrainAgent.shared.send(text)
+            }
         }
     }
 
