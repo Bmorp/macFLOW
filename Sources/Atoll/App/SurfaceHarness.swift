@@ -80,6 +80,7 @@ enum SurfaceHarness {
         shot("72-standby-float", .clock, style: .float, wallpaper: depth, accent: .orange)
         shot("72-standby-digital", .clock, style: .digital, wallpaper: depth)
         shot("72-standby-glass-black", .clock, wallpaper: Wallpapers.none)
+        for w in Wallpapers.available where w.id.hasPrefix("prism-") || w.id == first { shot("76-standby-prism-\(w.id)", .clock, style: .prism, wallpaper: w.id, scale: 2) }
         shot("73-standby-widgets", .widgets, wallpaper: first)
 
         LyricsModel.shared.debugSet(demoLyrics)

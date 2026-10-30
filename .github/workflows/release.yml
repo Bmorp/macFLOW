@@ -21,6 +21,7 @@ on:
       - "Tests/**"
       - "Package.swift"
       - "scripts/build.sh"
+      - "scripts/shaders.sh"
       - "scripts/make_art.swift"
       - "scripts/atoll"
       - ".github/workflows/release.yml"
@@ -61,6 +62,10 @@ jobs:
 
       - name: Test
         run: swift test
+
+      # Xcode 26 ships the Metal compiler separately; Prism's shaders need it (build.sh fails in CI without it).
+      - name: Metal toolchain
+        run: xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
 
       - name: Import signing certificate
         if: env.HAS_SIGNING_CERT == 'true'
