@@ -60,6 +60,18 @@ final class RewindModel: ObservableObject {
         index = at.flatMap(nearest) ?? max(0, moments.count - 1)
     }
 
+    /// "This was writing": teaches the Brain (it learns moments like this one) and relabels this moment and the run of
+    /// the same app and work right after it, here and in the record.
+    func correct(to mode: WorkMode) {
+        guard let m = current, m.mode != mode.rawValue else { return }
+        var upto = index
+        while moments.indices.contains(upto + 1), moments[upto + 1].mode == m.mode, moments[upto + 1].bundle == m.bundle { upto += 1 }
+        let run = Array(moments[(index + 1)..<(upto + 1)])
+        ModeCorrections.correct(moment: m, to: mode, alongWith: run)
+        for i in index...upto { moments[i].mode = mode.rawValue }
+        spans = Self.spans(moments, until: Date())
+    }
+
     func nearest(_ t: Date) -> Int? {
         guard !moments.isEmpty else { return nil }
         return moments.indices.min { abs(moments[$0].ts.timeIntervalSince(t)) < abs(moments[$1].ts.timeIntervalSince(t)) }
@@ -249,6 +261,15 @@ struct RewindView: View {
                     Image(systemName: mode.symbol).font(.system(size: 10, weight: .bold)).foregroundStyle(mode.tint)
                     Text((m.project.isEmpty ? mode.label : "\(mode.label) · \(m.project)").uppercased())
                         .font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(mode.tint).lineLimit(1)
+                }
+                .contentShape(Rectangle())
+                .help("Right-click to say what this really was")
+                .contextMenu {
+                    Section("This was…") {
+                        ForEach(WorkMode.allCases.filter { $0 != .idle }, id: \.self) { choice in
+                            Button { rewind.correct(to: choice) } label: { Label(choice.label, systemImage: choice.symbol) }
+                        }
+                    }
                 }
                 Text(m.ts.formatted(date: .omitted, time: .shortened))
                     .font(.system(size: 34, weight: .light, design: .rounded).monospacedDigit())

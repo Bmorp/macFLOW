@@ -70,6 +70,17 @@ final class BrainAgent: ObservableObject {
         }
     }
 
+    /// A task spoken to the notch and taken by Tasks without the language model: what you said, and what was added.
+    func captured(heard: String, task: TaskSnapshot?) {
+        messages.append(Message(role: .you, text: heard))
+        guard let task else {
+            messages.append(Message(role: .atoll, text: "I couldn’t add that task."))
+            return
+        }
+        noteAction("Task added: \(task.title)", symbol: "checklist")
+        messages.append(Message(role: .atoll, text: "Added “\(task.title)”" + (task.due.map { ", due \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "") + "."))
+    }
+
     /// A page summarized or explained: a short line for what you asked, then the answer streaming in. Apart from the chat
     /// session (whose tools and context leave no room for a page), so it works even while Flow is mid-answer.
     func page(_ label: String, instruction: String, title: String, text: String) {
@@ -130,6 +141,8 @@ final class BrainAgent: ObservableObject {
             // The relevant past, by meaning (on this Mac): it goes with the question, so Flow answers from memory too.
             let hits = await Memory.shared.recall(q, limit: 5)
             var prompt = hits.isEmpty ? q : "Possibly relevant memories (use only if they help):\n\(Memory.lines(hits))\n\nThe user says: \(q)"
+            // The picture of their day, as it is now — every turn, so it never goes stale mid-conversation.
+            prompt = "Context, as of now:\n\(Self.context())\n\n" + prompt
             if let page = pendingContext {
                 pendingContext = nil
                 prompt = "What the user is looking at:\n\(page)\n\n" + prompt
@@ -152,10 +165,13 @@ final class BrainAgent: ObservableObject {
     }
     #endif
 
-    /// Who Atoll is, what it can do, and what it knows right now — kept short for the on-device context window.
+    /// The day's picture for one turn: fresh each time, trimmed for the on-device context window.
+    static func context() -> String { String(BrainEngine.shared.digest().prefix(1500)) }
+
+    /// Who Flow is and what it can do. What it knows comes with each message instead (see `context()`), so it's
+    /// always current.
     static func instructions() -> String {
-        let digest = String(BrainEngine.shared.digest().prefix(1800))
-        return """
+        """
         You are Flow, the calm, capable personal assistant in Mac Flow, living in the notch of the user's Mac.
         When the user asks you to do something, do it with a tool — timers, playing music, playback, volume, brightness,
         Night Shift, True Tone, opening an app or project, reminders, joining the next meeting, remembering a fact,
@@ -163,15 +179,14 @@ final class BrainAgent: ObservableObject {
         picking a project up where it was left (resume), saying what they were doing at a time today (recall), showing their
         day (showDay), moving a calendar event (moveEvent), taking meeting notes (meetingNotes), and searching their past days
         by meaning (searchMemory) — use it for anything about earlier days; doing something with the page open in their
-        browser (readPage: summarize, explain, save to learn); and the news from their sources (news).
+        browser (readPage: summarize, explain, save to learn); the news from their sources (news); their tasks (listTasks,
+        addTask, completeTask); and what you've learned about them (whatFlowLearned).
         When the user has a plan for today (in the context), guide them by it: what's next, what to cut if they're behind.
         After acting, confirm in one short sentence. You can use several tools for one request.
-        For questions about their day, projects, music or habits, answer only from the context below. Never invent.
+        For questions about their day, projects, music or habits, answer only from the context that comes with each
+        message. Never invent.
         For coding, writing or general-knowledge questions that need depth, use handToClaude.
         Be brief and warm: one to three sentences.
-
-        Context:
-        \(digest)
         """
     }
 }
@@ -189,7 +204,68 @@ enum AtollTools {
     static var all: [any Tool] {
         [StartTimer(), Playback(), PlayMusic(), SetLevel(), DisplayFeature(), OpenThing(), Remember(), Reminder(), JoinMeeting(),
          AddToPlan(), OpenPlan(), SetRoom(), Resume(), Recall(), ShowDay(), MoveEvent(), TakeNotes(), SearchMemory(),
-         ReadPage(), News(), HandToClaude()]
+         ReadPage(), News(), HandToClaude(), ListTasks(), AddTask(), CompleteTask(), WhatFlowLearned()]
+    }
+
+    struct ListTasks: Tool {
+        let name = "listTasks"
+        let description = "List the user's open tasks, most important first, with due dates and estimates."
+        @Generable struct Arguments {}
+        func call(arguments: Arguments) async throws -> String {
+            if BrainAgent.dryRun { return await dry("listTasks()") }
+            return await MainActor.run {
+                let reply = BrainTaskTools.list(ledger: TaskLinks.ledger)
+                BrainAgent.shared.noteAction("Looked at your tasks", symbol: "checklist")
+                return reply
+            }
+        }
+    }
+
+    struct AddTask: Tool {
+        let name = "addTask"
+        let description = "Add a task to the user's task list, in plain words with any due time and length, e.g. 'review deck tomorrow 3pm 45m'."
+        @Generable struct Arguments {
+            @Guide(description: "The task, with when and how long if they said") var text: String
+        }
+        func call(arguments: Arguments) async throws -> String {
+            if BrainAgent.dryRun { return await dry("addTask(\(arguments.text))") }
+            return await MainActor.run {
+                let (reply, task) = BrainTaskTools.add(arguments.text, ledger: TaskLinks.ledger)
+                if let task { BrainAgent.shared.noteAction("Task: \(task.title)", symbol: "plus.circle.fill") }
+                return reply
+            }
+        }
+    }
+
+    struct CompleteTask: Tool {
+        let name = "completeTask"
+        let description = "Mark one of the user's open tasks as done, by a few words from its title."
+        @Generable struct Arguments {
+            @Guide(description: "Words from the task's title") var task: String
+        }
+        func call(arguments: Arguments) async throws -> String {
+            if BrainAgent.dryRun { return await dry("completeTask(\(arguments.task))") }
+            return await MainActor.run {
+                let (reply, task) = BrainTaskTools.complete(arguments.task, ledger: TaskLinks.ledger)
+                if let task {
+                    BrainAgent.shared.noteAction("Done: \(task.title)", symbol: "checkmark.circle.fill")
+                }
+                return reply
+            }
+        }
+    }
+
+    struct WhatFlowLearned: Tool {
+        let name = "whatFlowLearned"
+        let description = "What Flow has learned about the user — which suggestions they like and when, what they've told Flow, how long their tasks take — with how sure it is."
+        @Generable struct Arguments {}
+        func call(arguments: Arguments) async throws -> String {
+            if BrainAgent.dryRun { return await dry("whatFlowLearned()") }
+            return await MainActor.run {
+                BrainAgent.shared.noteAction("Looked at what I’ve learned", symbol: "brain.head.profile")
+                return Beliefs.summary()
+            }
+        }
     }
 
     struct StartTimer: Tool {

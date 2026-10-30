@@ -49,8 +49,61 @@ final class BrainStore: @unchecked Sendable {
         let key: String
         let value: String
         let source: String        // learned, answered, inferred
+        /// How sure Flow was when it was written, 0…1. Read through `confidence(at:)`, which lets it fade.
         let confidence: Double
         let updated: Date
+
+        /// How sure Flow is now. What you answered fades over months (people change); what Flow inferred from
+        /// watching fades over weeks unless it's seen again; bookkeeping ("inferred") doesn't fade.
+        func confidence(at now: Date = Date()) -> Double {
+            let halfLife: TimeInterval? = switch source {
+            case "answered": 180 * 86_400
+            case "learned": 30 * 86_400
+            default: nil
+            }
+            guard let halfLife else { return confidence }
+            return confidence * pow(0.5, max(0, now.timeIntervalSince(updated)) / halfLife)
+        }
+
+        /// Below half: worth checking again rather than acting on.
+        func isStale(at now: Date = Date()) -> Bool { confidence(at: now) < 0.5 }
+    }
+
+    /// A question Flow asked, and what happened.
+    struct Asked: Sendable, Equatable {
+        let key: String
+        var asked: Date
+        var answered: Date?
+        var answer: String?
+        /// How many times it has been put to you.
+        var times: Int
+        /// "Don't ask again" (and questions that expired unanswered).
+        var skips: Int
+    }
+
+    /// You said a moment was really a different kind of work.
+    struct Correction: Sendable, Equatable, Identifiable {
+        var id: Int64 = 0
+        var ts: Date
+        var bundle: String
+        var app: String
+        var title: String
+        var project: String
+        var from: String
+        var to: String
+    }
+
+    /// A finished task, as the duration estimator learns from it.
+    struct TaskExample: Sendable, Equatable, Codable {
+        var id: String
+        var ts: Date
+        var title: String
+        var project: String
+        var mode: String
+        /// Focused minutes it actually took.
+        var minutes: Double
+        /// What you estimated, if you did.
+        var estimate: Double?
     }
 
     private var db: OpaquePointer?
@@ -59,7 +112,12 @@ final class BrainStore: @unchecked Sendable {
     private var factCache: [String: Fact]?
     private var reactionCache: [String: (accepted: Int, dismissed: Int, ignored: Int)] = [:]
     private var shownTimes: [Date] = []
+    private var askedCache: [String: Asked]?
+    private var eraseHandlers: [@Sendable () -> Void] = []
     private let queue = DispatchQueue(label: "atoll.brain.store")
+    /// Writes handed to the queue that haven't landed yet (guarded by `cacheLock`). Reads from the separate
+    /// reader connections wait for these, so a value you just wrote is always the value you read back.
+    private var pendingWrites = 0
     private let url: URL
     /// Reads never wait behind the writer or the Brain's long background scans (a week of events, thousands
     /// of rows): the main thread has a read-only connection of its own — WAL lets readers run beside the
@@ -86,6 +144,10 @@ final class BrainStore: @unchecked Sendable {
         CREATE TABLE IF NOT EXISTS feedback(id INTEGER PRIMARY KEY, ts REAL, kind TEXT, outcome TEXT);
         CREATE TABLE IF NOT EXISTS moments(id INTEGER PRIMARY KEY, ts REAL, mode TEXT, project TEXT, bundle TEXT, app TEXT, title TEXT, document TEXT, track TEXT, claude TEXT);
         CREATE INDEX IF NOT EXISTS moments_ts ON moments(ts);
+        CREATE TABLE IF NOT EXISTS learners(key TEXT PRIMARY KEY, state TEXT, updated REAL);
+        CREATE TABLE IF NOT EXISTS questions(key TEXT PRIMARY KEY, asked REAL, answered REAL, answer TEXT, times INTEGER, skips INTEGER);
+        CREATE TABLE IF NOT EXISTS corrections(id INTEGER PRIMARY KEY, ts REAL, bundle TEXT, app TEXT, title TEXT, project TEXT, mode_from TEXT, mode_to TEXT);
+        CREATE TABLE IF NOT EXISTS task_examples(id TEXT PRIMARY KEY, ts REAL, title TEXT, project TEXT, mode TEXT, minutes REAL, estimate REAL);
         """)
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
@@ -102,7 +164,27 @@ final class BrainStore: @unchecked Sendable {
         return conn
     }
 
+    /// Queues a write. Counted until it lands, so reads can tell when they would otherwise see the past.
+    private func write(_ body: @escaping () -> Void) {
+        cacheLock.lock(); pendingWrites += 1; cacheLock.unlock()
+        queue.async {
+            body()
+            self.cacheLock.lock(); self.pendingWrites -= 1; self.cacheLock.unlock()
+        }
+    }
+
+    /// A sync point: returns once every write queued before the call has landed.
+    func flush() { queue.sync {} }
+
+    /// Waits for queued writes, if there are any. They are single-row inserts, so the wait is a moment; with nothing
+    /// queued (the usual case) a read never touches the writer's queue.
+    private func settle() {
+        cacheLock.lock(); let waiting = pendingWrites > 0; cacheLock.unlock()
+        if waiting { queue.sync {} }
+    }
+
     private func read<T>(_ body: (OpaquePointer?) -> T) -> T {
+        settle()
         if Thread.isMainThread {
             if mainReader == nil { mainReader = openReader() }
             if let conn = mainReader { return body(conn) }
@@ -141,7 +223,7 @@ final class BrainStore: @unchecked Sendable {
     // MARK: Events
 
     func record(_ e: Event) {
-        queue.async {
+        write {
             self.run("INSERT INTO events(ts, kind, app, bundle, title, detail, duration) VALUES(?,?,?,?,?,?,?)",
                      [e.ts.timeIntervalSince1970, e.kind, e.app, e.bundle, String(e.title.prefix(300)), String(e.detail.prefix(600)), e.duration])
         }
@@ -171,7 +253,7 @@ final class BrainStore: @unchecked Sendable {
     // MARK: Episodes
 
     func save(_ ep: Episode) {
-        queue.async {
+        write {
             self.run("INSERT INTO episodes(start, end, mode, project, apps, summary) VALUES(?,?,?,?,?,?)",
                      [ep.start.timeIntervalSince1970, ep.end.timeIntervalSince1970, ep.mode, ep.project, ep.apps.joined(separator: ","), ep.summary])
         }
@@ -189,12 +271,12 @@ final class BrainStore: @unchecked Sendable {
         }
     }
 
-    func deleteEpisode(_ id: Int64) { queue.async { self.run("DELETE FROM episodes WHERE id = ?", [id]) } }
+    func deleteEpisode(_ id: Int64) { write { self.run("DELETE FROM episodes WHERE id = ?", [id]) } }
 
     // MARK: Moments
 
     func record(_ m: Moment) {
-        queue.async {
+        write {
             self.run("INSERT INTO moments(ts, mode, project, bundle, app, title, document, track, claude) VALUES(?,?,?,?,?,?,?,?,?)",
                      [m.ts.timeIntervalSince1970, m.mode, m.project, m.bundle, m.app, String(m.title.prefix(300)), String(m.document.prefix(1000)),
                       String(m.track.prefix(200)), m.claude])
@@ -221,7 +303,7 @@ final class BrainStore: @unchecked Sendable {
         cacheLock.lock()
         if factCache != nil { factCache?[key] = Fact(key: key, value: value, source: source, confidence: confidence, updated: Date()) }
         cacheLock.unlock()
-        queue.async {
+        write {
             self.run("INSERT INTO facts(key, value, source, confidence, updated) VALUES(?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, source=excluded.source, confidence=excluded.confidence, updated=excluded.updated",
                      [key, value, source, confidence, Date().timeIntervalSince1970])
         }
@@ -237,6 +319,13 @@ final class BrainStore: @unchecked Sendable {
         loadFactsIfNeeded()
         cacheLock.lock(); defer { cacheLock.unlock() }
         return (factCache ?? [:]).values.sorted { $0.updated > $1.updated }
+    }
+
+    /// The whole fact — source, confidence and age — not just its value.
+    func factRecord(_ key: String) -> Fact? {
+        loadFactsIfNeeded()
+        cacheLock.lock(); defer { cacheLock.unlock() }
+        return factCache?[key]
     }
 
     private func loadFactsIfNeeded() {
@@ -263,7 +352,7 @@ final class BrainStore: @unchecked Sendable {
 
     func deleteFact(_ key: String) {
         cacheLock.lock(); factCache?[key] = nil; cacheLock.unlock()
-        queue.async { self.run("DELETE FROM facts WHERE key = ?", [key]) }
+        write { self.run("DELETE FROM facts WHERE key = ?", [key]) }
     }
 
     // MARK: Feedback
@@ -273,7 +362,7 @@ final class BrainStore: @unchecked Sendable {
         if outcome == "shown" { shownTimes.append(Date()); shownTimes.removeAll { $0.timeIntervalSinceNow < -86_400 } }
         reactionCache = reactionCache.filter { !$0.key.hasPrefix(kind) }
         cacheLock.unlock()
-        queue.async { self.run("INSERT INTO feedback(ts, kind, outcome) VALUES(?,?,?)", [Date().timeIntervalSince1970, kind, outcome]) }
+        write { self.run("INSERT INTO feedback(ts, kind, outcome) VALUES(?,?,?)", [Date().timeIntervalSince1970, kind, outcome]) }
     }
 
     /// How you've reacted to a kind of suggestion over the last 60 days.
@@ -327,6 +416,148 @@ final class BrainStore: @unchecked Sendable {
         return shownTimes.filter { $0 >= since }.count
     }
 
+    /// Every reaction since a date, oldest first (for replaying history into the learners, and the trend).
+    func feedbackRows(since: Date) -> [(ts: Date, kind: String, outcome: String)] {
+        read { conn in
+            var out: [(Date, String, String)] = []
+            run("SELECT ts, kind, outcome FROM feedback WHERE ts >= ? ORDER BY ts ASC", [since.timeIntervalSince1970], on: conn) { s in
+                out.append((Date(timeIntervalSince1970: sqlite3_column_double(s, 0)), Self.text(s, 1), Self.text(s, 2)))
+            }
+            return out
+        }
+    }
+
+    // MARK: Learners
+
+    /// A learner's state (its weights and counts), as JSON. The learner keeps the live copy; this is for relaunch.
+    func saveLearner(_ key: String, _ data: Data) {
+        let text = String(decoding: data, as: UTF8.self)
+        write {
+            self.run("INSERT INTO learners(key, state, updated) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET state=excluded.state, updated=excluded.updated",
+                     [key, text, Date().timeIntervalSince1970])
+        }
+    }
+
+    func learnerStates(prefix: String) -> [String: Data] {
+        // Through the writer's queue, so a state saved a moment ago is never missed.
+        queue.sync {
+            var out: [String: Data] = [:]
+            run("SELECT key, state FROM learners WHERE key LIKE ?", [prefix + "%"]) { s in out[Self.text(s, 0)] = Data(Self.text(s, 1).utf8) }
+            return out
+        }
+    }
+
+    func deleteLearners(prefix: String) {
+        write { self.run("DELETE FROM learners WHERE key LIKE ?", [prefix + "%"]) }
+    }
+
+    func deleteLearner(_ key: String) {
+        write { self.run("DELETE FROM learners WHERE key = ?", [key]) }
+    }
+
+    // MARK: Questions asked
+
+    func askedLog() -> [String: Asked] {
+        cacheLock.lock()
+        if let hit = askedCache { cacheLock.unlock(); return hit }
+        cacheLock.unlock()
+        let all: [String: Asked] = queue.sync {
+            var out: [String: Asked] = [:]
+            run("SELECT key, asked, answered, answer, times, skips FROM questions", []) { s in
+                let key = Self.text(s, 0)
+                let answered = sqlite3_column_type(s, 2) == SQLITE_NULL ? nil : Date(timeIntervalSince1970: sqlite3_column_double(s, 2))
+                out[key] = Asked(key: key, asked: Date(timeIntervalSince1970: sqlite3_column_double(s, 1)), answered: answered,
+                                 answer: sqlite3_column_type(s, 3) == SQLITE_NULL ? nil : Self.text(s, 3),
+                                 times: Int(sqlite3_column_int64(s, 4)), skips: Int(sqlite3_column_int64(s, 5)))
+            }
+            return out
+        }
+        cacheLock.lock()
+        if askedCache == nil { askedCache = all }
+        let value = askedCache ?? all
+        cacheLock.unlock()
+        return value
+    }
+
+    /// Records that a question was put to you, or what you did with it.
+    func noteQuestion(_ key: String, asked: Date? = nil, answer: String? = nil, skipped: Bool = false, at now: Date = Date()) {
+        var entry = askedLog()[key] ?? Asked(key: key, asked: now, answered: nil, answer: nil, times: 0, skips: 0)
+        if let asked { entry.asked = asked; entry.times += 1 }
+        if let answer { entry.answer = answer; entry.answered = now }
+        if skipped { entry.skips += 1 }
+        cacheLock.lock(); askedCache?[key] = entry; cacheLock.unlock()
+        let e = entry
+        write {
+            self.run("INSERT INTO questions(key, asked, answered, answer, times, skips) VALUES(?,?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET asked=excluded.asked, answered=excluded.answered, answer=excluded.answer, times=excluded.times, skips=excluded.skips",
+                     [e.key, e.asked.timeIntervalSince1970, e.answered?.timeIntervalSince1970, e.answer, e.times, e.skips])
+        }
+    }
+
+    func forgetQuestion(_ key: String) {
+        cacheLock.lock(); askedCache?[key] = nil; cacheLock.unlock()
+        write { self.run("DELETE FROM questions WHERE key = ?", [key]) }
+    }
+
+    // MARK: Mode corrections
+
+    func save(_ c: Correction) {
+        write {
+            self.run("INSERT INTO corrections(ts, bundle, app, title, project, mode_from, mode_to) VALUES(?,?,?,?,?,?,?)",
+                     [c.ts.timeIntervalSince1970, c.bundle, c.app, String(c.title.prefix(300)), c.project, c.from, c.to])
+        }
+    }
+
+    func corrections() -> [Correction] {
+        queue.sync {
+            var out: [Correction] = []
+            run("SELECT id, ts, bundle, app, title, project, mode_from, mode_to FROM corrections ORDER BY ts ASC", []) { s in
+                out.append(Correction(id: sqlite3_column_int64(s, 0), ts: Date(timeIntervalSince1970: sqlite3_column_double(s, 1)), bundle: Self.text(s, 2),
+                                      app: Self.text(s, 3), title: Self.text(s, 4), project: Self.text(s, 5), from: Self.text(s, 6), to: Self.text(s, 7)))
+            }
+            return out
+        }
+    }
+
+    func deleteCorrections(bundle: String?) {
+        write {
+            if let bundle { self.run("DELETE FROM corrections WHERE bundle = ?", [bundle]) } else { self.run("DELETE FROM corrections", []) }
+        }
+    }
+
+    /// Rewrites the mode of moments you corrected, so Rewind and the day show what you said.
+    func relabelMoments(_ ids: [Int64], mode: String) {
+        guard !ids.isEmpty else { return }
+        write { for id in ids { self.run("UPDATE moments SET mode = ? WHERE id = ?", [mode, id]) } }
+    }
+
+    // MARK: Task examples
+
+    func save(_ t: TaskExample) {
+        write {
+            self.run("INSERT INTO task_examples(id, ts, title, project, mode, minutes, estimate) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ts=excluded.ts, title=excluded.title, project=excluded.project, mode=excluded.mode, minutes=excluded.minutes, estimate=excluded.estimate",
+                     [t.id, t.ts.timeIntervalSince1970, String(t.title.prefix(300)), t.project, t.mode, t.minutes, t.estimate])
+        }
+    }
+
+    func taskExamples() -> [TaskExample] {
+        queue.sync {
+            var out: [TaskExample] = []
+            run("SELECT id, ts, title, project, mode, minutes, estimate FROM task_examples ORDER BY ts ASC", []) { s in
+                out.append(TaskExample(id: Self.text(s, 0), ts: Date(timeIntervalSince1970: sqlite3_column_double(s, 1)), title: Self.text(s, 2),
+                                       project: Self.text(s, 3), mode: Self.text(s, 4), minutes: sqlite3_column_double(s, 5),
+                                       estimate: sqlite3_column_type(s, 6) == SQLITE_NULL ? nil : sqlite3_column_double(s, 6)))
+            }
+            return out
+        }
+    }
+
+    func deleteTaskExamples() { write { self.run("DELETE FROM task_examples", []) } }
+
+    /// Learners keep live state in memory; they register here so Erase Everything clears them too.
+    func onErase(_ body: @escaping @Sendable () -> Void) {
+        cacheLock.lock(); eraseHandlers.append(body); cacheLock.unlock()
+    }
+
     // MARK: Retention
 
     func purge(olderThan days: Int) {
@@ -340,10 +571,18 @@ final class BrainStore: @unchecked Sendable {
 
     func eraseEverything() {
         queue.sync {
-            exec("DELETE FROM events; DELETE FROM episodes; DELETE FROM facts; DELETE FROM feedback; DELETE FROM moments; VACUUM;")
-            cacheLock.lock(); factCache = [:]; reactionCache = [:]; shownTimes = []; cacheLock.unlock()
-            Memory.shared.forgetEverything()
+            exec("""
+            DELETE FROM events; DELETE FROM episodes; DELETE FROM facts; DELETE FROM feedback; DELETE FROM moments;
+            DELETE FROM learners; DELETE FROM questions; DELETE FROM corrections; DELETE FROM task_examples; VACUUM;
+            """)
+            cacheLock.lock(); factCache = [:]; reactionCache = [:]; shownTimes = []; askedCache = [:]; cacheLock.unlock()
+            if self === BrainStore.shared { Memory.shared.forgetEverything() }
         }
+        cacheLock.lock()
+        let handlers = eraseHandlers
+        cacheLock.unlock()
+        // Outside the store's queue: a learner's reset may save its (now empty) state.
+        for h in handlers { h() }
     }
 
     func counts() -> (events: Int, episodes: Int, facts: Int) {
