@@ -134,14 +134,48 @@ the split is a fade, marquee becomes truncation.
 Restraint over volume (`playing-haptics.md`: "the best haptic experience is one that people may not be
 conscious of, but miss when it's turned off").
 
-| Event | Pattern | Why this pattern |
-|---|---|---|
-| Island opens under the pointer | alignment | snapping to a preferred position |
-| Scrubber / volume reaches either end | alignment | Apple's documented scrubber case |
-| Swipe gesture crosses its threshold | alignment | commit point of a drag |
-| Drop accepted | generic | discrete completion |
+**Haptics 2.0 (9.0).** Every haptic goes through `HapticEngine` (`Core/HapticEngine.swift`); what each moment
+feels like is one table, `HapticEvent` (`Core/HapticRules.swift`), and the rules are a pure type,
+`HapticPolicy`, tested to the millisecond.
 
-Nothing fires on hover, list movement, tab changes or incoming alerts. One on/off setting.
+- **Seven cues, three patterns.** detent, landmark, edge, commit and land play *alignment*; confirm plays
+  *generic*; level plays *level change*.
+- **On the frame that shows it.** `.drawCompleted` by default; `.now` only to answer a press (hold to talk).
+- **Each gesture its own channel**, with a 35 ms floor (25 ms for an edge, so a range end comes through right
+  after a detent) and one confirm per action (250 ms). This replaces the single 80 ms throttle that let a confirm
+  swallow a range end.
+- **No buzz.** Detents are thinned by speed: every N-th fires, N = ⌈v / 25⌉. Above 60 a second only landmarks
+  and edges fire. Felt detents never exceed 25 a second.
+- **Only when touched.** A cue plays only if, in the last 120 ms, there was a scroll, a press or release, a
+  drag or a Force Touch pressure event, or a button is held; a landing also counts the pointer's motion in
+  the last 0.75 s, since it answers the pointer coming to rest. Key presses, timers and alerts are never felt.
+
+| Event | Cue | Why |
+|---|---|---|
+| Island settles open under the pointer | land, at arrival | snapped to where the pointer rests |
+| Pull open, swipe up to close, Home ↔ sheet, sideways tabs | commit | crossed the point where letting go completes it |
+| Slider, volume, seek bar reaches 0 or 1 (drag or scroll) | edge | Apple's documented scrubber case |
+| Rewind scrub | detent per moment (thinned); landmark at an hour mark or a change of app; edge at either end | |
+| StandBy page or stack turned by a swipe | commit; edge past the ends | |
+| Widget drag snaps to a neighbour | landmark, through `NSAlignmentFeedbackFilter` | AppKit leaves out snaps too fast to feel |
+| Dragged file enters a drop target | edge | snapped into a target |
+| Drop taken, copied, saved, checked off, long work finished | confirm | something handed off is done |
+| Hold to talk engages | level, now | a stepped state, answering the press |
+
+Nothing fires on hover, list movement, tab clicks, the arrow keys, incoming alerts, a rubber band at its
+limit, the release of hold to talk, or a plain button press (launch, open, start, run, reopen, answer): the
+click is the feedback, and a second pulse on the release would double it. One on/off setting.
+
+**Force Touch.** `ForceTouch` (`Core/ForceTouch.swift`) reads pressure stages and how far a press has gone
+toward a force click, and remembers whether this Mac has ever reported pressure. Rewind's arrows are AppKit
+multi-level accelerators: click for a moment, hold for one a second, press harder for 2×, 4×, 8× and 16×.
+The trackpad plays its own click at each level, so the app adds none.
+
+**What a Mac can't do, honestly.** Three patterns, nothing more: no intensity or sharpness, no custom
+waveforms (Core Haptics on the Mac drives game controllers only). Nothing is felt unless a finger is on a
+Force Touch trackpad; a mouse feels nothing. People can turn Force Click off, and no API says a Force Touch
+trackpad is attached, so "press harder" hints stay hidden until the first pressure event arrives. Mouse users
+get the same meaning through motion: the snap, the stop at the end, the page turning.
 
 ## Accessibility
 - Every glyph button has an accessibility label; the island exposes a single summary element

@@ -102,7 +102,7 @@ enum HapticEvent: String, CaseIterable, Sendable {
         case .copied:
             HapticRule(.confirm, .ui, why: "Something went onto the clipboard, which you can't see.")
         case .saved:
-            HapticRule(.confirm, .ui, why: "A file was written: a day card saved to Pictures.")
+            HapticRule(.confirm, .ui, why: "Something was saved where you can't see it: a day card to Pictures, a reminder to Reminders.")
         case .checkedOff:
             HapticRule(.confirm, .tasks, why: "A reminder was checked off: done.")
         case .workFinished:
