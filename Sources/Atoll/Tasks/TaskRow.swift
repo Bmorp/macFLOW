@@ -101,7 +101,8 @@ struct TaskRow: View {
     let list: TaskList
     let selected: Bool
     var editing = false
-    @ObservedObject var model: TasksModel
+    /// For actions only: rows don't redraw when the place's state changes.
+    let model: TasksModel
     @ObservedObject var active: ActiveTask
     var focus: FocusState<TasksModel.Field?>.Binding
     @Environment(\.islandShowing) private var showing
@@ -114,7 +115,7 @@ struct TaskRow: View {
         HStack(spacing: 6) {
             CompletionCircle(done: task.isDone, active: active.task?.id == task.id) { model.toggle(task.id) }
             if editing {
-                TextField("", text: $model.editText)
+                TextField("", text: Binding(get: { model.editText }, set: { model.editText = $0 }))
                     .textFieldStyle(.plain)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(DS.Ink.primary)

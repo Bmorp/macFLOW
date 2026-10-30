@@ -1,6 +1,18 @@
 import AppKit
 import SwiftUI
 
+/// The quick-add line, on its own so typing redraws the line and its preview, not the list.
+@MainActor
+final class QuickAddLine: ObservableObject {
+    @Published var text = ""
+
+    /// What it means so far.
+    var parsed: TaskDraft? {
+        let t = text.trimmingCharacters(in: .whitespaces)
+        return t.isEmpty ? nil : TaskParser.parse(t)
+    }
+}
+
 /// The Tasks place's state — which list, what's selected, what's being typed — and its keyboard. Kept apart from the
 /// view so the island's key monitor can drive it, and so it survives the place being hidden and shown.
 @MainActor
@@ -12,25 +24,38 @@ final class TasksModel: ObservableObject {
     @Published var segment: TaskList = .today
     @Published var selection: UUID?
     @Published var editing: UUID?
-    @Published var editText = ""
-    /// The quick-add line.
-    @Published var draft = ""
+    /// The title being edited. Not published: the field keeps its own text, and the list needn't redraw per key.
+    var editText = ""
+    let line = QuickAddLine()
+    /// The quick-add line's text.
+    var draft: String {
+        get { line.text }
+        set { line.text = newValue }
+    }
     /// Which text field should have the keyboard; the view mirrors it into `@FocusState`.
     @Published var field: Field?
     /// The last deletion, offered back for a few seconds.
     @Published private(set) var undo: FlowTask?
     private var undoWork: DispatchWorkItem?
+    private var cache: (key: String, sections: [TaskStore.Section])?
 
-    private var store: TaskStore { TaskStore.shared }
+    private let injected: TaskStore?
+    private var store: TaskStore { injected ?? TaskStore.shared }
 
-    /// What the quick-add line means so far.
-    var parsed: TaskDraft? {
-        let text = draft.trimmingCharacters(in: .whitespaces)
-        return text.isEmpty ? nil : TaskParser.parse(text)
+    /// Tests hand in their own store; the app uses the shared one.
+    init(store: TaskStore? = nil) { injected = store }
+
+    /// The current list as shown, worked out once per change (not on every redraw, drag step or keystroke).
+    var sections: [TaskStore.Section] {
+        let key = "\(store.revision)|\(segment.rawValue)|\(DayPlan.key())"
+        if let cache, cache.key == key { return cache.sections }
+        let s = store.sections(segment)
+        cache = (key, s)
+        return s
     }
 
     /// The rows of the current list, top to bottom.
-    var rows: [UUID] { store.sections(segment).flatMap { $0.tasks.map(\.id) } }
+    var rows: [UUID] { sections.flatMap { $0.tasks.map(\.id) } }
 
     // MARK: Opening
 
@@ -153,7 +178,7 @@ final class TasksModel: ObservableObject {
     /// ⌘↑ / ⌘↓.
     func reorder(_ delta: Int) {
         guard let id = selection else { return }
-        let section = store.sections(segment).first { $0.tasks.contains { $0.id == id } }
+        let section = sections.first { $0.tasks.contains { $0.id == id } }
         guard let ids = section?.tasks.map(\.id), let i = ids.firstIndex(of: id) else { return }
         let target = i + delta
         guard target >= 0, target < ids.count else { return }

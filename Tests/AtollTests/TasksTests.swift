@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import AppKit
 @testable import Atoll
 
 /// A fixed week for every task test: Wednesday 4 November 2026, 10:00, UTC.
@@ -632,5 +633,69 @@ struct TaskCaptureTests {
         #expect(TaskCapture.lines(in: text) == ["Launch checklist", "Send the deck to Sam by Friday", "Book the room", "Draft the post 45m", "Already done"])
         #expect(TaskCapture.lines(in: "   \n\n").isEmpty)
         #expect(TaskCapture.lines(in: String(repeating: "x", count: 300)).isEmpty)   // a paragraph isn't a task
+    }
+}
+
+// MARK: - The keyboard
+
+@Suite("Flow Tasks: keyboard") @MainActor
+struct TaskKeyboardTests {
+    typealias C = TaskClock
+
+    func key(_ code: UInt16, _ chars: String = "", _ flags: NSEvent.ModifierFlags = []) -> NSEvent {
+        NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil,
+                         characters: chars, charactersIgnoringModifiers: chars, isARepeat: false, keyCode: code)!
+    }
+
+    @Test func listKeys() throws {
+        let s = makeStore()
+        s.clock = { Date() }
+        s.calendar = .current
+        let m = TasksModel(store: s)
+        for title in ["One", "Two", "Three"] { _ = s.add(TaskDraft(title: title), source: .typed, in: .today) }
+        m.opened()
+        let ids = m.rows
+        #expect(m.selection == ids[0])
+        #expect(m.handle(key(125), typing: false))                    // ↓
+        #expect(m.selection == ids[1])
+        #expect(m.handle(key(125, "", .command), typing: false))      // ⌘↓: Two moves below Three
+        #expect(m.rows.map { s.task(id: $0)?.title } == ["One", "Three", "Two"])
+        #expect(m.handle(key(126, "", .command), typing: false))      // ⌘↑: back
+        #expect(m.rows.map { s.task(id: $0)?.title } == ["One", "Two", "Three"])
+        #expect(m.handle(key(49, " "), typing: false))                // Space completes
+        #expect(s.task(id: ids[1])?.isDone == true)
+        #expect(m.selection == ids[2])                                 // and the selection moves on
+        #expect(m.handle(key(51), typing: false))                     // ⌫ deletes…
+        #expect(s.task(id: ids[2]) == nil)
+        #expect(m.handle(key(6, "z", .command), typing: false))       // …⌘Z brings it back
+        #expect(s.task(id: ids[2]) != nil)
+        #expect(m.handle(key(36), typing: false))                     // Return edits
+        #expect(m.editing == ids[2])
+        m.editText = "Three, tomorrow 9am"
+        #expect(m.handle(key(36), typing: true))                      // Return again: saved, words read
+        #expect(s.task(id: ids[2])?.title == "Three")
+        #expect(m.editing == nil)
+        #expect(!m.handle(key(53), typing: false))                    // Esc in the list: the island closes
+    }
+
+    @Test func typingStartsATask() throws {
+        let s = makeStore()
+        s.clock = { Date() }
+        s.calendar = .current
+        let m = TasksModel(store: s)
+        #expect(m.handle(key(4, "h"), typing: false))
+        #expect(m.field == .quickAdd)
+        #expect(m.draft == "h")
+        m.draft = "hang the shelf 30m"
+        #expect(m.line.parsed?.estimate == 30)
+        #expect(m.handle(key(36), typing: true))
+        #expect(m.draft.isEmpty)
+        let t = try #require(s.tasks.first)
+        #expect(t.title == "Hang the shelf")
+        #expect(t.list() == .today)                                   // typed in Today: for today
+        #expect(m.handle(key(45, "n", .command), typing: false))      // ⌘N
+        #expect(m.field == .quickAdd)
+        #expect(m.handle(key(53), typing: true))                      // Esc leaves the empty line
+        #expect(m.field == nil)
     }
 }

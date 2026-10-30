@@ -29,12 +29,12 @@ struct TasksPlace: View {
 
     var body: some View {
         let size = model.expandedSize(.tasks)
-        let sections = store.sections(tasks.segment)
+        let sections = tasks.sections
         VStack(spacing: 0) {
             header
                 .frame(height: model.notch.height)
                 .padding(.horizontal, inset)
-            quickAdd
+            QuickAddField(line: tasks.line, list: tasks.segment, typing: focus == .quickAdd, focus: $focus) { tasks.add() }
                 .padding(.horizontal, inset - 10)
                 .padding(.top, 8)
             list(sections)
@@ -166,59 +166,6 @@ struct TasksPlace: View {
         case .syncing: "Syncing with Reminders…"
         default: "Synced with Reminders · \(sync.listName ?? ReminderSync.defaultListTitle) list"
         }
-    }
-
-    // MARK: Adding
-
-    private var prompt: String {
-        switch tasks.segment {
-        case .today: "Add to Today, like “review deck 3pm 45m #launch”"
-        case .upcoming: "Add a task, like “call Sam friday 4pm”"
-        case .someday: "Park an idea for some day"
-        }
-    }
-
-    private var quickAdd: some View {
-        let typing = focus == .quickAdd
-        let parsed = tasks.parsed
-        return HStack(spacing: 6) {
-            Image(systemName: "plus")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(typing ? TaskStyle.tint : DS.Ink.tertiary)
-                .frame(width: 28, height: 28)
-            TextField("", text: $tasks.draft, prompt: Text(prompt).foregroundColor(DS.Ink.tertiary))
-                .textFieldStyle(.plain)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(DS.Ink.primary)
-                .focused($focus, equals: .quickAdd)
-                .onSubmit { tasks.add() }
-                .accessibilityLabel("New task")
-            if let parsed, parsed.hasDetails {
-                // What it understood, before you press Return.
-                HStack(spacing: 4) {
-                    ForEach(TaskFormat.parts(of: parsed), id: \.self) { part in
-                        Text(part)
-                            .font(.system(size: 10.5, weight: .semibold).monospacedDigit())
-                            .foregroundStyle(TaskStyle.tint)
-                            .padding(.horizontal, 7)
-                            .frame(height: 20)
-                            .background(Capsule().fill(TaskStyle.tint.opacity(0.16)))
-                            .fixedSize()
-                    }
-                }
-                .transition(.scale(scale: 0.9, anchor: .trailing))
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Understood: " + TaskFormat.parts(of: parsed).joined(separator: ", "))
-            } else if !typing, tasks.draft.isEmpty {
-                KeyCap(text: "⌘N")
-            }
-        }
-        .animation(Motion.morph, value: parsed?.hasDetails ?? false)
-        .padding(.leading, 2)
-        .padding(.trailing, 8)
-        .frame(height: 34)
-        .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color.white.opacity(typing ? 0.09 : 0.06)))
-        .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.white.opacity(typing ? 0.18 : 0.05), lineWidth: 0.5))
     }
 
     // MARK: The list
@@ -376,5 +323,64 @@ struct TasksPlace: View {
             Text(what).font(.system(size: 10.5, weight: .medium)).foregroundStyle(DS.Ink.tertiary)
         }
         .accessibilityHidden(true)
+    }
+}
+
+/// The line at the top: type a task the way you'd say it; what it understood shows beside it before you press Return.
+private struct QuickAddField: View {
+    @ObservedObject var line: QuickAddLine
+    let list: TaskList
+    let typing: Bool
+    var focus: FocusState<TasksModel.Field?>.Binding
+    let onSubmit: () -> Void
+
+    private var prompt: String {
+        switch list {
+        case .today: "Add to Today, like “review deck 3pm 45m #launch”"
+        case .upcoming: "Add a task, like “call Sam friday 4pm”"
+        case .someday: "Park an idea for some day"
+        }
+    }
+
+    var body: some View {
+        let parsed = line.parsed
+        return HStack(spacing: 6) {
+            Image(systemName: "plus")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(typing ? TaskStyle.tint : DS.Ink.tertiary)
+                .frame(width: 28, height: 28)
+            TextField("", text: $line.text, prompt: Text(prompt).foregroundColor(DS.Ink.tertiary))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(DS.Ink.primary)
+                .focused(focus, equals: .quickAdd)
+                .onSubmit(onSubmit)
+                .accessibilityLabel("New task")
+            if let parsed, parsed.hasDetails {
+                // What it understood, before you press Return.
+                HStack(spacing: 4) {
+                    ForEach(TaskFormat.parts(of: parsed), id: \.self) { part in
+                        Text(part)
+                            .font(.system(size: 10.5, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(TaskStyle.tint)
+                            .padding(.horizontal, 7)
+                            .frame(height: 20)
+                            .background(Capsule().fill(TaskStyle.tint.opacity(0.16)))
+                            .fixedSize()
+                    }
+                }
+                .transition(.scale(scale: 0.9, anchor: .trailing))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Understood: " + TaskFormat.parts(of: parsed).joined(separator: ", "))
+            } else if !typing, line.text.isEmpty {
+                KeyCap(text: "⌘N")
+            }
+        }
+        .animation(Motion.morph, value: parsed?.hasDetails ?? false)
+        .padding(.leading, 2)
+        .padding(.trailing, 8)
+        .frame(height: 34)
+        .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color.white.opacity(typing ? 0.09 : 0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).strokeBorder(Color.white.opacity(typing ? 0.18 : 0.05), lineWidth: 0.5))
     }
 }
