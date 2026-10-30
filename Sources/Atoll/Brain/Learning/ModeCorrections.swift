@@ -128,8 +128,12 @@ final class ModeCorrections: @unchecked Sendable {
 
     // MARK: What it knows
 
+    /// Returns once corrections made before the call have been learned.
+    func flush() { queue.sync {} }
+
     /// Corrections, grouped by app: "Notion is for writing", with how many times you said so.
     func summary() -> [(bundle: String, app: String, mode: WorkMode, count: Int)] {
+        flush()
         loadIfNeeded()
         lock.lock()
         let all = records
