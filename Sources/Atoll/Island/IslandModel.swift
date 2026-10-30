@@ -475,7 +475,7 @@ final class IslandModel {
     var tabs: [IslandFocus] {
         // Controls is a tab while you're in it, so you can step back to Home or an activity.
         // Flow's waiting items live on Home, so they aren't a tab either.
-        [.glance] + ([IslandFocus.sheet, .plan, .tasks, .rewind, .day].filter { mode == .expanded($0) }) + (mode == .expanded(.brain) ? [.brain] : [])
+        [.glance, .tasks] + ([IslandFocus.sheet, .plan, .rewind, .day].filter { mode == .expanded($0) }) + (mode == .expanded(.brain) ? [.brain] : [])
             + (mode == .expanded(.controls) ? [.controls] : [])
             + live.filter { $0 != .nowPlaying && $0 != .flow }.map { .activity($0) }
     }
