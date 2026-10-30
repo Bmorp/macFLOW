@@ -76,7 +76,7 @@ enum ActivityKind: String, CaseIterable, Hashable {
     @MainActor var rowHeight: CGFloat {
         switch self {
         case .shelf: 96
-        case .nowPlaying: 78
+        case .nowPlaying: NowPlayingPresentation.Expanded.rowHeight
         case .download: 74
         case .call, .meeting: DS.Size.rowHeight + (MeetingCompanion.shared.showsStrip ? MeetingCompanionStrip.height : 0)
         default: DS.Size.rowHeight
