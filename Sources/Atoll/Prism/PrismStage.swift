@@ -15,8 +15,8 @@ struct RibbonUniforms {
     var spec: Float = 0.5
     var sparks: Float = 0
     var seed: Float = 0
-    var omega: Float = RibbonSpring.omega
-    var zeta: Float = RibbonSpring.damping
+    var omega: Float = RibbonPace.clock.omega
+    var zeta: Float = RibbonPace.clock.damping
     var lag: Float = RibbonSpring.lag
     var curl: Float = 6
     var fade: Float = 1
@@ -47,6 +47,8 @@ struct RibbonScene: Equatable, @unchecked Sendable {
     /// The wallpaper, blurred: what the glass shows of what's behind it.
     var frost: CGImage?
     var env: PrismEnvironment
+    /// How quickly figures flow: the clock once a minute, a count every second.
+    var pace: RibbonPace = .clock
 
     var outline: CGPath { TimeGlyphs.path(hour: lead, minute: trail, size: fontSize, in: layout) }
 
@@ -57,7 +59,7 @@ struct RibbonScene: Equatable, @unchecked Sendable {
 
     static func == (a: Self, b: Self) -> Bool {
         a.sameShape(b) && a.canvas == b.canvas && a.style == b.style && a.tint == b.tint && a.night == b.night
-            && a.frost === b.frost && a.env == b.env
+            && a.frost === b.frost && a.env == b.env && a.pace == b.pace
     }
 
     var morph: RibbonLayout.Morph { env.morphs ? .spring : env.crossFades ? .crossFade : .cut }
@@ -75,6 +77,8 @@ struct RibbonScene: Equatable, @unchecked Sendable {
         u.sparks = Float(style.sparks)
         u.seed = Float(style.seed % 65536)
         u.curl = Float(style.pitch) * 1.2
+        u.omega = pace.omega
+        u.zeta = pace.damping
         u.fade = min(1, time / RibbonSpring.crossFade)
         u.top = columns.top
         u.foot = columns.foot
@@ -330,11 +334,11 @@ final class PrismStage: NSObject, CAMetalDisplayLinkDelegate, @unchecked Sendabl
         var old = columns
         // A change that arrives mid-flight starts from where the strips are now.
         if let s = start, !idle, let c = columns {
-            old = RibbonLayout.evaluate(strips, at: Float(CACurrentMediaTime() - s), pitch: c.pitch, top: c.top, foot: c.foot)
+            old = RibbonLayout.evaluate(strips, at: Float(CACurrentMediaTime() - s), pitch: c.pitch, top: c.top, foot: c.foot, pace: next.pace)
         }
         // A new size or layout (or the first time) appears at rest; only a change of figures moves.
         let moves = previous.map { $0.canvas == next.canvas && $0.layout.size == next.layout.size && $0.fontSize == next.fontSize } ?? false
-        let built = RibbonLayout.strips(from: moves ? old : nil, to: new, morph: next.morph)
+        let built = RibbonLayout.strips(from: moves ? old : nil, to: new, morph: next.morph, pace: next.pace)
         columns = new
         strips = built.strips
         duration = built.duration

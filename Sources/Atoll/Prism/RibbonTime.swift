@@ -45,7 +45,7 @@ struct RibbonCount: View {
         // TimeGlyphs puts the cap height's middle at 38.5 % of the rect it's given; centre it in this frame.
         let layout = CGRect(x: 0, y: box.height / 2 - box.height * ClockLayout.timeY, width: box.width, height: box.height)
         return RibbonSurface(scene: RibbonScene(lead: lead, trail: trail, fontSize: fontSize, canvas: box, layout: layout,
-                                                style: style, env: conditions.current), maxFrameRate: 60)
+                                                style: style, env: conditions.current, pace: .count), maxFrameRate: 60)
             .frame(width: box.width, height: box.height)
             .accessibilityElement()
             .accessibilityLabel("\(lead):\(trail)")

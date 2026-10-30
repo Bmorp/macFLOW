@@ -158,7 +158,7 @@ enum PrismBench {
         /// What the timing thread needs, handed over whole.
         final class Run: @unchecked Sendable {
             let target: MTLTexture, buffer: MTLBuffer?, backdrop: MTLTexture?
-            var gpu: [Double] = [], cpu: [Double] = []
+            var gpu: [Double] = [], cpu: [Double] = [], cold: Double = 0
             init(target: MTLTexture, buffer: MTLBuffer?, backdrop: MTLTexture?) { self.target = target; self.buffer = buffer; self.backdrop = backdrop }
         }
         let run = Run(target: r.device.makeTexture(descriptor: d)!, buffer: r.makeStrips(strips), backdrop: b.frost.flatMap { r.texture($0) })
@@ -176,6 +176,7 @@ enum PrismBench {
                     // One frame in flight at a time, as a display paces it, so GPU times don't overlap.
                     cb.waitUntilCompleted()
                     if pass == 2 { run.gpu.append(cb.gpuEndTime - cb.gpuStartTime) }
+                    if pass == 0, i == 0 { run.cold = cb.gpuEndTime - cb.gpuStartTime }
                 }
             }
             done.signal()
@@ -183,6 +184,7 @@ enum PrismBench {
         thread.qualityOfService = .userInteractive
         thread.start()
         done.wait()
+        print(String(format: "prism budget · stage GPU, first frame from an idle GPU: %.3f ms", run.cold * 1000))
         return (Timing(samples: run.gpu), Timing(samples: run.cpu), strips.count)
     }
 
@@ -232,7 +234,9 @@ enum PrismBench {
         let target = device.makeTexture(descriptor: td)!
         var size = SIMD4<Float>(Float(w) / 2, Float(h) / 2, 2, 0)
         var times: [Double] = []
-        for i in 0..<60 {
+        // 60 frames back to back bring the GPU to its working clock (as the window server's own compositing does
+        // when the island changes); then 60 measured one at a time.
+        for i in 0..<120 {
             let cb = queue.makeCommandBuffer()!
             let pass = MTLRenderPassDescriptor()
             pass.colorAttachments[0].texture = target
@@ -245,8 +249,8 @@ enum PrismBench {
             enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             enc.endEncoding()
             cb.commit()
-            cb.waitUntilCompleted()
-            if i >= 10 { times.append(cb.gpuEndTime - cb.gpuStartTime) }
+            if i >= 59 { cb.waitUntilCompleted() }
+            if i >= 60 { times.append(cb.gpuEndTime - cb.gpuStartTime) }
         }
         return Timing(samples: times)
     }

@@ -129,7 +129,12 @@ struct RibbonTests {
         #expect(strips.filter { $0.index == 0 }.allSatisfy { $0.delay == 0 && $0.y0a == $0.y0b && $0.y1a == $0.y1b })
         let d1 = strips.first { $0.index == 1 }!.delay, d4 = strips.first { $0.index == 4 }!.delay
         #expect(d1 == 0 && d4 > d1)
-        #expect(duration >= RibbonSpring.settle && duration < 2)
+        #expect(duration >= RibbonPace.clock.settle && duration < 2)
+        // A count that ticks every second settles inside the second, even when every column changes.
+        let wide = RibbonColumns(pitch: 2, runs: Dictionary(uniqueKeysWithValues: (0..<60).map { ($0, [RibbonRun(top: 0, foot: 10)]) }), top: 0, foot: 10)
+        var moved = wide
+        for k in moved.runs.keys { moved.runs[k] = [RibbonRun(top: 4, foot: 10)] }
+        #expect(RibbonLayout.strips(from: wide, to: moved, morph: .spring, pace: .count).duration < 0.9)
         // Settled, the strips are exactly the new columns.
         #expect(RibbonLayout.evaluate(strips, at: duration + 0.01, pitch: 5, top: 0, foot: 10).runs.mapValues { $0.count } == new.runs.mapValues { $0.count })
     }
@@ -147,7 +152,7 @@ struct RibbonTests {
 
     @Test func theClosedFormSpringMatchesTheSpring() {
         // Integrate x'' = −ω²x − 2ζωx' from x = 1 at rest and compare with the shader's closed form.
-        let w = Double(RibbonSpring.omega), z = Double(RibbonSpring.damping)
+        let w = Double(RibbonPace.clock.omega), z = Double(RibbonPace.clock.damping)
         var x = 1.0, v = 0.0, t = 0.0
         let dt = 1e-5
         for check in stride(from: 0.05, through: 1.0, by: 0.05) {
@@ -155,7 +160,8 @@ struct RibbonTests {
             #expect(abs(Double(RibbonSpring.progress(Float(t))) - (1 - x)) < 2e-3)
         }
         #expect(RibbonSpring.progress(0) == 0)
-        #expect(abs(RibbonSpring.progress(RibbonSpring.settle) - 1) < 0.003)
+        #expect(abs(RibbonPace.clock.progress(RibbonPace.clock.settle) - 1) < 0.003)
+        #expect(abs(RibbonPace.count.progress(RibbonPace.count.settle) - 1) < 0.003)
     }
 
     @Test func theTimeBecomesAboutAThousandStrips() {

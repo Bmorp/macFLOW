@@ -139,14 +139,17 @@ enum PrismLibrary {
 
     /// macOS compiles a SwiftUI shader the first time it draws. On macOS 15 this does it ahead of time, off the main
     /// thread; on 14, `PrismWarmup` draws each effect once instead (in the island's 2.5 s prewarm).
+    /// Call once at launch; everything happens off the main thread (finding the library included).
     static func prewarm() {
-        guard let loaded = shared else { return }
-        PrismRenderer.warm()
-        guard #available(macOS 15.0, *), let lib = loaded.effects else { return }
-        let flutes = PrismEffect.flutes(lib, .island), solid = PrismEffect.solid(lib, .island)
-        Task.detached(priority: .utility) {
-            try? await flutes.compile(as: .layerEffect)
-            try? await solid.compile(as: .colorEffect)
+        DispatchQueue.global(qos: .utility).async {
+            guard let loaded = shared else { return }
+            PrismRenderer.warm()
+            guard #available(macOS 15.0, *), let lib = loaded.effects else { return }
+            let flutes = PrismEffect.flutes(lib, .island), solid = PrismEffect.solid(lib, .island)
+            Task.detached(priority: .utility) {
+                try? await flutes.compile(as: .layerEffect)
+                try? await solid.compile(as: .colorEffect)
+            }
         }
     }
 }

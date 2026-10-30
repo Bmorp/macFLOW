@@ -38,17 +38,14 @@ struct RibbonStrip: Equatable, Sendable {
 /// The spring every run end rides: underdamped a touch, so strips settle like ribbon, not like a counter. Ribbon.metal
 /// evaluates the same closed form.
 enum RibbonSpring {
-    static let response: Float = 0.5
-    static let damping: Float = 0.8
-    static var omega: Float { 2 * .pi / response }
     /// The foot of each run follows its top by this much, so a strip rolls rather than slides.
     static let lag: Float = 0.035
-    /// Columns start one after another, left to right, `stagger` apart, but a whole change sweeps in at most `sweep`.
+    /// Columns start one after another, left to right, `stagger` apart, but a whole change sweeps in at most the
+    /// pace's `sweep`.
     static let stagger: Float = 0.008
-    static let sweep: Float = 0.45
     static let crossFade: Float = 0.2
 
-    static func progress(_ t: Float, omega: Float = omega, zeta: Float = damping) -> Float {
+    static func progress(_ t: Float, omega: Float = RibbonPace.clock.omega, zeta: Float = RibbonPace.clock.damping) -> Float {
         guard t > 0 else { return 0 }
         let x: Float
         if zeta < 1 {
@@ -59,10 +56,26 @@ enum RibbonSpring {
         }
         return 1 - x
     }
+}
+
+/// How quickly figures flow into the next ones.
+struct RibbonPace: Equatable, Sendable {
+    var response: Float
+    var damping: Float
+    var sweep: Float
+
+    /// The clock, once a minute: unhurried, a whisper of overshoot.
+    static let clock = RibbonPace(response: 0.5, damping: 0.8, sweep: 0.45)
+    /// A count that ticks every second: done well inside the second.
+    static let count = RibbonPace(response: 0.3, damping: 0.86, sweep: 0.12)
+
+    var omega: Float { 2 * .pi / response }
+
+    func progress(_ t: Float) -> Float { RibbonSpring.progress(t, omega: omega, zeta: damping) }
 
     /// When the spring is within 0.2 % of rest (sub-pixel on any run).
-    static var settle: Float {
-        let z = damping
+    var settle: Float {
+        let z = min(damping, 0.999)
         return -log(0.002 * (1 - z * z).squareRoot()) / (z * omega)
     }
 }
@@ -212,7 +225,7 @@ enum RibbonLayout {
 
     /// The strips for a change from `old` to `new` (nil `old`: the first frame, drawn at rest). Columns that don't
     /// change stay still; the rest start left to right as one wave.
-    static func strips(from old: RibbonColumns?, to new: RibbonColumns, morph: Morph) -> (strips: [RibbonStrip], duration: Float) {
+    static func strips(from old: RibbonColumns?, to new: RibbonColumns, morph: Morph, pace: RibbonPace = .clock) -> (strips: [RibbonStrip], duration: Float) {
         let p = new.pitch
         var out: [RibbonStrip] = []
         out.reserveCapacity(new.stripCount + (old?.stripCount ?? 0))
@@ -229,7 +242,7 @@ enum RibbonLayout {
             for (c, r) in new.runs.sorted(by: { $0.key < $1.key }) { still(c, r) }
             return (out, 0)
         }
-        let stagger = min(RibbonSpring.stagger, RibbonSpring.sweep / Float(max(1, lastChanged - firstChanged)))
+        let stagger = min(RibbonSpring.stagger, pace.sweep / Float(max(1, lastChanged - firstChanged)))
         let changedSet = Set(changed)
         for c in columns {
             let a = old.runs[c] ?? [], b = new.runs[c] ?? []
@@ -247,7 +260,7 @@ enum RibbonLayout {
             }
         }
         let duration = morph == .crossFade ? RibbonSpring.crossFade
-            : Float(lastChanged - firstChanged) * stagger + RibbonSpring.lag + RibbonSpring.settle
+            : Float(lastChanged - firstChanged) * stagger + RibbonSpring.lag + pace.settle
         return (out, duration)
     }
 
@@ -256,7 +269,7 @@ enum RibbonLayout {
     }
 
     /// Where every strip is at `t` into a change, as columns: the starting point when a change interrupts another.
-    static func evaluate(_ strips: [RibbonStrip], at t: Float, pitch: Float, top: Float, foot: Float) -> RibbonColumns {
+    static func evaluate(_ strips: [RibbonStrip], at t: Float, pitch: Float, top: Float, foot: Float, pace: RibbonPace = .clock) -> RibbonColumns {
         var runs: [Int: [RibbonRun]] = [:]
         for s in strips {
             var r: RibbonRun
@@ -264,7 +277,7 @@ enum RibbonLayout {
             case 0: continue
             case 1: r = RibbonRun(top: s.y0b, foot: s.y1b)
             default:
-                let p0 = RibbonSpring.progress(t - s.delay), p1 = RibbonSpring.progress(t - s.delay - RibbonSpring.lag)
+                let p0 = pace.progress(t - s.delay), p1 = pace.progress(t - s.delay - RibbonSpring.lag)
                 r = RibbonRun(top: s.y0a + (s.y0b - s.y0a) * p0, foot: s.y1a + (s.y1b - s.y1a) * p1)
             }
             if r.length > 0.01 { runs[Int(s.index), default: []].append(r) }
