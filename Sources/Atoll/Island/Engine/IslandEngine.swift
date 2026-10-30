@@ -20,6 +20,8 @@ final class IslandEngine {
     private let back = EngineLayerView(frame: .zero)
     private let front = EngineLayerView(frame: .zero)
     private let lightView = EngineLayerView(frame: .zero)
+    private let bridgeView = EngineLayerView(frame: .zero)
+    private let bridge = LiquidBridge()
     private let clip = ContentClipView(frame: .zero)
     let compactHost: IslandHostView<CompactRoot>
     let openHost: IslandHostView<OpenRoot>
@@ -79,7 +81,7 @@ final class IslandEngine {
         self.container = container
         compactHost = IslandHostView(rootView: CompactRoot(model: model))
         openHost = IslandHostView(rootView: OpenRoot(model: model))
-        bubbleHost = IslandHostView(rootView: BubbleRoot(model: model, drawsBridge: true))
+        bubbleHost = IslandHostView(rootView: BubbleRoot(model: model, drawsBridge: false))
         model.engineDriven = true
         build()
         observe()
@@ -103,8 +105,11 @@ final class IslandEngine {
         compactHost.sizingOptions = []
         openHost.sizingOptions = []
         bubbleHost.sizingOptions = []
-        for v in [back, front, clip] as [NSView] { v.frame = b }
+        for v in [back, front, clip, bridgeView] as [NSView] { v.frame = b }
         lightView.frame = b
+        // The bridge sits under the bubble's icon (which SwiftUI draws) and under the island.
+        container.addSubview(bridgeView)
+        bridgeView.root.addSublayer(bridge.layer)
         container.addSubview(bubbleHost)
         container.addSubview(back)
         container.addSubview(clip)
@@ -189,6 +194,10 @@ final class IslandEngine {
             _ = model.presentationKey
             _ = model.compactSize
             _ = model.previewMode
+            _ = model.showsBubble
+            _ = model.splitProgress
+            _ = model.bubbleOffset
+            _ = model.bubbleDiameter
         } onChange: { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, !self.dirty else { return }
@@ -247,6 +256,7 @@ final class IslandEngine {
         openVisible = shownOpen
         updateLight()
         updateRimColor()
+        syncBridge(now: now)
 
         var (start, velocity) = flight?.state(at: now) ?? (target, .zero)
         if flight == nil { start = target }
@@ -268,6 +278,27 @@ final class IslandEngine {
             return
         }
         bake(from: start, velocity: velocity, to: to, curve: curve, now: now, holdOpen: holdOpen || holdingOpen(at: now))
+    }
+
+    private var bridgeWasVisible = false
+
+    /// The liquid neck to the bubble: it springs out once the island has closed over (as `LiquidSplit` did), follows
+    /// the activity count when it changes, and is gone the moment the island opens.
+    private func syncBridge(now: CFTimeInterval) {
+        let visible = model.showsBubble
+        let target = visible ? Double(model.splitProgress) : 0
+        let params = LiquidBridge.Params(centerX: centerX, islandWidth: model.compactSize.width, height: model.notch.height,
+                                         diameter: model.bubbleDiameter, restOffset: model.bubbleOffset,
+                                         softness: reduceMotion ? 0.5 : 13)
+        var token: SpringToken?
+        var delay = 0.0
+        if visible {
+            token = Motion.Token.split
+            if !bridgeWasVisible { delay = IslandView.bubbleReturn }
+        }
+        bridgeWasVisible = visible
+        bridge.update(params, target: target, visible: visible, token: token, delay: delay, reduceMotion: reduceMotion,
+                      now: now, frameRate: frameRate)
     }
 
     /// Whether a close's hand-over is still pending (a retarget while closing keeps it).
