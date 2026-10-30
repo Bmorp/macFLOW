@@ -30,6 +30,11 @@ enum AtollMain {
             SurfaceHarness.runStandBy(outDir: CommandLine.arguments[i + 1])
             return
         }
+        if let i = CommandLine.arguments.firstIndex(of: "--prism"), CommandLine.arguments.count > i + 1 {
+            app.setActivationPolicy(.accessory)
+            PrismBench.run(outDir: CommandLine.arguments[i + 1])
+            return
+        }
         if let i = CommandLine.arguments.firstIndex(of: "--surfaces"), CommandLine.arguments.count > i + 1 {
             app.setActivationPolicy(.accessory)
             SurfaceHarness.run(outDir: CommandLine.arguments[i + 1])

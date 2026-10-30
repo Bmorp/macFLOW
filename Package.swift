@@ -8,6 +8,8 @@ let package = Package(
         .executableTarget(
             name: "Atoll",
             path: "Sources/Atoll",
+            // Prism's shaders are compiled by scripts/shaders.sh (Metal 2.4, macOS 14) into Prism.metallib.
+            exclude: ["Prism/Shaders"],
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI"),
