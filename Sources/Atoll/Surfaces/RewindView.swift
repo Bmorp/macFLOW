@@ -65,15 +65,73 @@ final class RewindModel: ObservableObject {
         return moments.indices.min { abs(moments[$0].ts.timeIntervalSince(t)) < abs(moments[$1].ts.timeIntervalSince(t)) }
     }
 
-    /// Moves the playhead to the moment nearest a point on the ribbon (0…1).
-    func scrub(to fraction: Double) {
+    /// Moves the playhead to the moment nearest a point on the ribbon (0…1). `felt: false` for the press that starts
+    /// a drag: the trackpad's own click already marks it.
+    func scrub(to fraction: Double, felt: Bool = true) {
         let t = dayStart.addingTimeInterval(dayEnd.timeIntervalSince(dayStart) * min(1, max(0, fraction)))
-        if let i = nearest(t), i != index { index = i }
+        if let i = nearest(t), i != index { move(to: i, feel: felt ? .all : .none) }
     }
 
-    func step(_ delta: Int) {
+    func step(_ delta: Int) { step(delta, feel: .all) }
+
+    /// What a move is felt as: every moment, only reaching either end, or nothing (the click that started it).
+    private enum Feel { case all, endsOnly, none }
+
+    private func step(_ delta: Int, feel: Feel) {
         let next = min(max(0, index + delta), max(0, moments.count - 1))
-        if next != index { index = next }
+        if next != index { move(to: next, feel: feel) }
+    }
+
+    private func move(to next: Int, feel: Feel) {
+        let old = index
+        index = next
+        guard feel != .none, let event = Self.feel(moments, from: old, to: next),
+              feel == .all || event == .rewindEnd else { return }
+        HapticEngine.shared.play(event, steps: abs(next - old))
+    }
+
+    /// What moving the playhead feels like: reaching the start of the day or now, crossing an hour mark or a change
+    /// of app (a landmark, even inside a jump over several moments), or one more moment.
+    nonisolated static func feel(_ moments: [BrainStore.Moment], from old: Int, to new: Int,
+                                 calendar: Calendar = .current) -> HapticEvent? {
+        guard old != new, moments.indices.contains(new), moments.indices.contains(old) else { return nil }
+        if new == 0 || new == moments.count - 1 { return .rewindEnd }
+        for i in (min(old, new) + 1)...max(old, new) {
+            let a = moments[i - 1], b = moments[i]
+            if a.app != b.app || !calendar.isDate(a.ts, equalTo: b.ts, toGranularity: .hour) { return .rewindLandmark }
+        }
+        return .rewindMoment
+    }
+
+    // MARK: Pressure-scaled scrub
+
+    private var acceleration = 0
+    private var accelerationTimer: Timer?
+
+    /// The Rewind arrows: pressed, the playhead takes a step and keeps going; pressing harder on a Force Touch
+    /// trackpad goes faster. `level` 0 stops. The press is felt as the trackpad's click and each speed as its level
+    /// click, so of the moments that follow only reaching an end is felt.
+    func accelerate(_ direction: Int, level: Int) {
+        guard level > 0 else {
+            accelerationTimer?.invalidate()
+            accelerationTimer = nil
+            acceleration = 0
+            return
+        }
+        if acceleration == 0 { step(direction, feel: .none) }
+        guard level != acceleration else { return }
+        acceleration = level
+        accelerationTimer?.invalidate()
+        let t = Timer(timeInterval: 1 / Self.acceleratedRate(level: level), repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.step(direction, feel: .endsOnly) }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        accelerationTimer = t
+    }
+
+    /// Moments per second at each pressure level: 1, 2, 4, 8, 16.
+    nonisolated static func acceleratedRate(level: Int) -> Double {
+        pow(2, Double(min(max(level, 1), 5) - 1))
     }
 
     /// Consecutive moments of one mode become one span (each lasting until the next moment, capped at 10 minutes).
@@ -112,7 +170,6 @@ final class RewindModel: ObservableObject {
     func reopen() {
         guard let m = current else { return }
         RoomStore.shared.restore(room(for: m), hideOthers: false)
-        Haptics.confirm()
     }
 
     /// "What was I doing at 3?" in words, for Flow.
@@ -166,10 +223,14 @@ struct RewindView: View {
             }
             Spacer(minLength: 0)
             if !rewind.moments.isEmpty {
-                Ribbon(rewind: rewind)
-                    .frame(height: 46)
-                    .padding(.horizontal, inset)
-                    .padding(.bottom, 18)
+                HStack(alignment: .top, spacing: 4) {
+                    RewindArrow(direction: -1, rewind: rewind)
+                    Ribbon(rewind: rewind)
+                    RewindArrow(direction: 1, rewind: rewind)
+                }
+                .frame(height: 46)
+                .padding(.horizontal, inset - 6)
+                .padding(.bottom, 18)
             }
         }
         .frame(width: size.width, height: size.height, alignment: .top)
@@ -268,8 +329,8 @@ private struct Ribbon: View {
             }
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { v in
+                rewind.scrub(to: Double(v.location.x / max(1, w)), felt: dragging)
                 dragging = true
-                rewind.scrub(to: Double(v.location.x / max(1, w)))
             }.onEnded { _ in dragging = false })
         }
         .accessibilityElement()
@@ -285,6 +346,51 @@ private struct Ribbon: View {
         guard last >= first else { return [] }
         let step = max(1, (last - first + 1) / 5)
         return stride(from: first, through: last, by: step).compactMap { cal.date(bySettingHour: $0, minute: 0, second: 0, of: rewind.dayStart) }
+    }
+}
+
+/// An arrow at either end of the ribbon. Click for one moment; hold to keep going, a moment a second; on a Force Touch
+/// trackpad press harder for 2×, 4×, 8× and 16×, each level with the trackpad's own click.
+private struct RewindArrow: View {
+    let direction: Int
+    @ObservedObject var rewind: RewindModel
+    @ObservedObject private var force = ForceTouch.shared
+    @State private var level = 0
+    @State private var hover = false
+
+    private var atEnd: Bool { direction < 0 ? rewind.index == 0 : rewind.index >= rewind.moments.count - 1 }
+
+    var body: some View {
+        let name = direction < 0 ? "Earlier" : "Later"
+        VStack(spacing: 4) {
+            Image(systemName: direction < 0 ? "chevron.left" : "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(level > 0 || hover ? DS.Ink.primary : DS.Ink.tertiary)
+                .scaleEffect(level > 0 ? 0.86 : 1)
+                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: level > 0)
+                .frame(width: 20, height: 30)
+            // The speed, while pressing harder: the same quiet type as the hour marks.
+            Text(level > 1 ? "\(Int(RewindModel.acceleratedRate(level: level)))×" : "")
+                .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                .foregroundStyle(DS.Ink.tertiary)
+                .contentTransition(.numericText())
+                .animation(.smooth(duration: 0.15), value: level)
+                .frame(height: 11)
+        }
+        .frame(width: 20)
+        .accessibilityHidden(true)
+        .opacity(atEnd && level == 0 ? 0.4 : 1)
+        .overlay {
+            // AppKit's accelerator button does the pressing (and is what VoiceOver sees); SwiftUI only draws.
+            if !RenderMode.snapshot {
+                ForceAccelerator(label: "\(name) moment",
+                                 help: force.hintsVisible ? "\(name) — press harder to go faster" : name) { l in
+                    level = l
+                    rewind.accelerate(direction, level: l)
+                }
+            }
+        }
+        .onHover { h in withAnimation(Motion.hover) { hover = h } }
     }
 }
 

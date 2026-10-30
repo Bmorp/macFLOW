@@ -64,7 +64,7 @@ private struct DropTile: View {
             model.handleDrop(providers, target: target)
         })
         .onChange(of: targeted) { _, on in
-            if on { model.dropTarget = target } else if model.dropTarget == target { model.dropTarget = nil }
+            if on { model.dropTarget = target; HapticEngine.shared.play(.dropTargetEntered) } else if model.dropTarget == target { model.dropTarget = nil }
         }
         .accessibilityElement(children: .combine)
     }

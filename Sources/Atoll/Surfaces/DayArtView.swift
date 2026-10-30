@@ -102,7 +102,7 @@ final class DayArtModel: ObservableObject {
         let url = dir.appendingPathComponent("Day \(DayPlan.key(for: story.date)).png")
         guard let data = NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:]), (try? data.write(to: url)) != nil else { return }
         savedTo = url
-        Haptics.confirm()
+        HapticEngine.shared.play(.saved)
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 

@@ -132,6 +132,10 @@ struct ControlSlider: View {
     @State private var drag: Double?
     @State private var hover = false
     @State private var startValue = 0.0
+    /// The last value a scroll set: the bound value can lag a scroll by a few events, and the end must be felt once.
+    @State private var scrolled = ScrollMemory()
+
+    private final class ScrollMemory { var last: Double? }
 
     var body: some View {
         GeometryReader { geo in
@@ -157,12 +161,17 @@ struct ControlSlider: View {
                     if drag == nil { startValue = value }
                     // Relative drag (like Control Center): grab anywhere, move by the distance travelled.
                     let next = min(1, max(0, startValue + Double(g.translation.width / w)))
-                    if (next == 0 || next == 1) && next != drag { Haptics.snap() }
+                    if HapticEvent.reachedEnd(from: drag ?? startValue, to: next) { HapticEngine.shared.play(.sliderEnd) }
                     drag = next
                     onChange(next)
                 }
                 .onEnded { _ in drag = nil })
-            .background(ScrollCatcher { dy in onChange(min(1, max(0, value + dy * 0.006))) })
+            .background(ScrollCatcher { dy in
+                let next = min(1, max(0, value + dy * 0.006))
+                if HapticEvent.reachedEnd(from: scrolled.last ?? value, to: next) { HapticEngine.shared.play(.sliderEnd) }
+                scrolled.last = next
+                onChange(next)
+            })
             .onHover { h in withAnimation(.easeOut(duration: 0.12)) { hover = h } }
         }
         .frame(height: 24)

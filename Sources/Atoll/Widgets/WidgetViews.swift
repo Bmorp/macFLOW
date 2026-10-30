@@ -747,7 +747,6 @@ struct TimerWidget: View {
     private func preset(_ i: Int) -> some View {
         let p = FocusTimer.presets[i]
         return PresetTile(minutes: p.minutes, label: p.label) {
-            Haptics.confirm()
             timer.start(minutes: p.minutes, label: p.label)
         }
     }
@@ -901,7 +900,7 @@ private struct ReminderRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Button {
-                Haptics.confirm()
+                if !item.done { HapticEngine.shared.play(.checkedOff) }
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) { RemindersService.shared.complete(item) }
             } label: {
                 ZStack {
@@ -1046,7 +1045,6 @@ private struct ShortcutTile: View {
 
     var body: some View {
         Button {
-            Haptics.confirm()
             ShortcutsService.shared.run(name)
             withAnimation(Motion.duo) { ran = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) { withAnimation(Motion.duo) { ran = false } }
@@ -1116,8 +1114,11 @@ struct ShelfWidget: View {
         }
         .background(ContainerRelativeShape().fill(DS.Palette.indigo.opacity(targeted ? 0.1 : 0)).padding(-6))
         .fileDropTarget(isTargeted: $targeted) { providers in
-            shelf.add(providers: providers)
+            let taken = shelf.add(providers: providers)
+            if taken { HapticEngine.shared.play(.dropAccepted) }
+            return taken
         }
+        .onChange(of: targeted) { _, on in if on { HapticEngine.shared.play(.dropTargetEntered) } }
         .animation(.easeOut(duration: 0.15), value: targeted)
     }
 }

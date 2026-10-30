@@ -1,24 +1,12 @@
 import AppKit
 
-/// Force Touch feedback, used only where Apple documents a meaning for it
-/// (`playing-haptics.md › Desktop`): alignment for snapping and range ends, generic for completion.
-/// Nothing fires on hover, list movement or incoming alerts.
+/// The 8.x haptics API, kept while call sites move to `HapticEngine` and `HapticEvent`. Both calls go through the
+/// engine's rules (Settings, per-channel floors, a finger on the trackpad); new code names an event instead.
 @MainActor
 enum Haptics {
-    private static var last: TimeInterval = 0
+    /// An unconverted snap: played as an alignment on the shared channel, on the frame that shows the change.
+    static func snap() { HapticEngine.shared.play(.legacySnap) }
 
-    private static func perform(_ pattern: NSHapticFeedbackManager.FeedbackPattern, minInterval: TimeInterval = 0.08) {
-        guard Prefs.shared.haptics else { return }
-        let now = ProcessInfo.processInfo.systemUptime
-        guard now - last >= minInterval else { return }
-        last = now
-        NSHapticFeedbackManager.defaultPerformer.perform(pattern, performanceTime: .now)
-    }
-
-    /// The island settles open under the pointer, a gesture crosses its commit point,
-    /// or a scrubber reaches either end.
-    static func snap() { perform(.alignment) }
-
-    /// A discrete action completed: a drop was accepted, an item was copied.
-    static func confirm() { perform(.generic) }
+    /// An unconverted confirm.
+    static func confirm() { HapticEngine.shared.play(.legacyConfirm) }
 }
