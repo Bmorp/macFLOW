@@ -89,7 +89,7 @@ private struct DockDropTile: View {
         .scaleEffect(targeted ? 1.05 : 1)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: targeted)
         .fileDropTarget(isTargeted: $targeted, perform: perform)
-        .onChange(of: targeted) { _, on in if on { Haptics.snap() } }
+        .onChange(of: targeted) { _, on in if on { HapticEngine.shared.play(.dropTargetEntered) } }
         .accessibilityElement(children: .combine)
     }
 }
@@ -192,7 +192,7 @@ final class DockDropController: NSObject, NSSharingServicePickerDelegate {
     }
 
     private func drop(_ target: DockDropTarget, _ providers: [NSItemProvider]) -> Bool {
-        Haptics.confirm()
+        HapticEngine.shared.play(.dropAccepted)
         switch target {
         case .shelf:
             return ShelfModel.shared.add(providers: providers) { urls in
@@ -215,7 +215,7 @@ final class DockDropController: NSObject, NSSharingServicePickerDelegate {
                 let items = urls.map { ShelfItem(path: $0.path, added: Date()) }
                 ShelfModel.shared.zip(items) { out in
                     guard out != nil else { return }
-                    Haptics.confirm()
+                    HapticEngine.shared.play(.workFinished)
                     IslandManager.shared.confirm("doc.zipper", "Compressed to Shelf", tint: DS.Palette.orange)
                 }
             }

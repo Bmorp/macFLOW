@@ -436,7 +436,7 @@ final class BrainEngine: ObservableObject {
         case .openRewind: IslandManager.shared.primary?.model.open(.rewind)
         case .openDay: IslandManager.shared.primary?.model.open(.day)
         case .addToTomorrow(let items, let source):
-            PlanStore.shared.carry(items, from: source)
+            PlanStore.shared.carry(items, from: source, as: .meeting)
             IslandManager.shared.primary?.model.showAlert(.message(symbol: "sun.horizon.fill",
                 text: items.count == 1 ? "Added to tomorrow’s plan" : "\(items.count) added to tomorrow’s plan", tint: PlanView.morning), duration: 2.4)
         case .openFile(let url): NSWorkspace.shared.open(url)

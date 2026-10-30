@@ -97,12 +97,17 @@ final class StandByModel: ObservableObject {
         }
     }
 
-    func turn(_ delta: Int) {
+    /// `bySwipe`: a two-finger swipe, felt as the page turning (or as the end). Arrow keys aren't felt.
+    func turn(_ delta: Int, bySwipe: Bool = false) {
         let list = pages
         let i = list.firstIndex(of: page) ?? 0
         let next = min(max(i + delta, 0), list.count - 1)
-        guard next != i else { Haptics.snap(); return }
+        guard next != i else {
+            if bySwipe { HapticEngine.shared.play(.standByEnd) }
+            return
+        }
         withAnimation(Motion.duo) { page = list[next] }
+        if bySwipe { HapticEngine.shared.play(.standByPageTurned) }
         flashChrome()
     }
 
@@ -111,11 +116,12 @@ final class StandByModel: ObservableObject {
         withAnimation(.spring(response: 0.9, dampingFraction: 0.9)) { page = p }
     }
 
-    func cycle(stack s: Int, by delta: Int) {
+    func cycle(stack s: Int, by delta: Int, bySwipe: Bool = false) {
         guard page == .widgets else { return }
         let count = stack(s).count
         guard count > 1 else { return }
         withAnimation(Motion.duo) { stacks[s] = (stacks[s] + delta + count) % count }
+        if bySwipe { HapticEngine.shared.play(.standByPageTurned) }
         flashChrome()
     }
 

@@ -496,7 +496,7 @@ enum ShelfPresentation {
                             }
                         }
                         HStack(spacing: 2) {
-                            GlyphButton(symbol: "doc.zipper", label: "Compress", size: 13) { shelf.zip(shelf.targets) { _ in Haptics.confirm() } }
+                            GlyphButton(symbol: "doc.zipper", label: "Compress", size: 13) { shelf.zip(shelf.targets) { out in if out != nil { HapticEngine.shared.play(.workFinished) } } }
                             GlyphButton(symbol: shelf.selection.isEmpty ? "trash" : "minus.circle", label: shelf.selection.isEmpty ? "Clear Shelf" : "Remove Selected",
                                         size: 13, tint: DS.Palette.secondary) {
                                 if shelf.selection.isEmpty { shelf.clear() } else { shelf.targets.forEach(shelf.remove) }

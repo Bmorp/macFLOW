@@ -371,7 +371,7 @@ struct ClaudeAnswerPanel: View {
                 SecondaryButton(title: "Copy", symbol: "doc.on.doc") {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(ask.answer, forType: .string)
-                    Haptics.confirm()
+                    HapticEngine.shared.play(.copied)
                 }
                 SecondaryButton(title: "Continue in Claude") { ask.openInClaude() }
             default:

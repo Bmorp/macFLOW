@@ -23,3 +23,6 @@ promo/**/.hyperframes/
 promo/**/.thumbnails/
 promo/**/.waveform-cache/
 node_modules/
+
+# Agent worktrees
+/.claude/worktrees/

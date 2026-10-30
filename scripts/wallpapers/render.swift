@@ -6,6 +6,11 @@
 //   /tmp/wallrender dunes                         → Resources/Wallpapers/dunes.heic (+ dunes-depth.heic)
 //   /tmp/wallrender dunes --preview --out /tmp/p  → a quick 960 × 600 JPEG
 //   options: --samples N, --size WxH, --out DIR, --crop x,y,w,h (render only a region, for 1:1 checks)
+//            --define NAME=VALUE (repeatable; a scene's variant), --name ID (the output's name), --quality 0…1 (HEIC)
+//   /tmp/wallrender fluted --define VARIANT=1 --name prism-ember   → one of the Prism pictures
+//
+// Every scene is compiled with common.metal and optics.metal (the spectral glass the app's Prism shaders share).
+// `#include "…"` lines are expanded here, relative to the file that has them.
 import Foundation
 import Metal
 import ImageIO
@@ -16,6 +21,9 @@ let args = CommandLine.arguments
 guard args.count > 1 else { print("usage: render <scene> [--preview] [--samples N] [--size WxH] [--out DIR]"); exit(1) }
 let scene = args[1]
 func opt(_ k: String) -> String? { args.firstIndex(of: k).flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } }
+let name = opt("--name") ?? scene
+let defines = args.indices.filter { args[$0] == "--define" && $0 + 1 < args.count }.map { args[$0 + 1] }
+let quality = Double(opt("--quality") ?? "") ?? 0.86
 let preview = args.contains("--preview")
 let here = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
 let repo = here.deletingLastPathComponent().deletingLastPathComponent()
@@ -32,11 +40,20 @@ if let c = opt("--crop") { let p = c.split(separator: ",").compactMap { Int($0) 
 // MARK: Compile
 
 guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else { fatalError("no Metal device") }
-func read(_ name: String) -> String {
-    guard let s = try? String(contentsOf: here.appendingPathComponent(name), encoding: .utf8) else { fatalError("missing \(name)") }
-    return s
+func read(_ file: String, from dir: URL = here) -> String {
+    let url = dir.appendingPathComponent(file).standardizedFileURL
+    guard let s = try? String(contentsOf: url, encoding: .utf8) else { fatalError("missing \(url.path)") }
+    return s.split(separator: "\n", omittingEmptySubsequences: false).map { line -> String in
+        let t = line.trimmingCharacters(in: .whitespaces)
+        guard t.hasPrefix("#include \""), let inc = t.split(separator: "\"").dropFirst().first else { return String(line) }
+        return read(String(inc), from: url.deletingLastPathComponent())
+    }.joined(separator: "\n")
 }
-let source = read("common.metal") + "\n#line 1 \"\(scene).metal\"\n" + read("\(scene).metal") + "\n" + read("kernels.metal")
+let header = defines.map { d -> String in
+    let kv = d.split(separator: "=", maxSplits: 1)
+    return "#define \(kv[0]) \(kv.count > 1 ? String(kv[1]) : "1")"
+}.joined(separator: "\n")
+let source = header + "\n" + read("common.metal") + "\n" + read("optics.metal") + "\n#line 1 \"\(scene).metal\"\n" + read("\(scene).metal") + "\n" + read("kernels.metal")
 let options = MTLCompileOptions()
 options.mathMode = .fast
 options.languageVersion = .version3_1
@@ -149,20 +166,20 @@ let hasFront: Bool = {
 let fullImage = image(full)
 let suffix = crop.w == W && crop.h == H ? "" : "-crop"
 if preview || !suffix.isEmpty {
-    write(fullImage, outDir.appendingPathComponent("\(scene)\(suffix).jpg"), .jpeg, quality: 0.92)
+    write(fullImage, outDir.appendingPathComponent("\(name)\(suffix).jpg"), .jpeg, quality: 0.92)
     if hasFront {
         // The foreground over magenta, to check its edge.
         let ctx = CGContext(data: nil, width: crop.w, height: crop.h, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
         ctx.setFillColor(CGColor(red: 1, green: 0, blue: 1, alpha: 1)); ctx.fill(CGRect(x: 0, y: 0, width: crop.w, height: crop.h))
         ctx.draw(image(front), in: CGRect(x: 0, y: 0, width: crop.w, height: crop.h))
-        write(ctx.makeImage()!, outDir.appendingPathComponent("\(scene)\(suffix)-depth.jpg"), .jpeg, quality: 0.9)
+        write(ctx.makeImage()!, outDir.appendingPathComponent("\(name)\(suffix)-depth.jpg"), .jpeg, quality: 0.9)
     }
 } else {
-    write(fullImage, outDir.appendingPathComponent("\(scene).heic"), .heic, quality: 0.86)
-    if hasFront { write(image(front), outDir.appendingPathComponent("\(scene)-depth.heic"), .heic, quality: 0.86) }
+    write(fullImage, outDir.appendingPathComponent("\(name).heic"), .heic, quality: quality)
+    if hasFront { write(image(front), outDir.appendingPathComponent("\(name)-depth.heic"), .heic, quality: quality) }
     let previews = here.appendingPathComponent("previews")
     try? FileManager.default.createDirectory(at: previews, withIntermediateDirectories: true)
-    write(scaled(fullImage, width: 960), previews.appendingPathComponent("\(scene)-final.jpg"), .jpeg, quality: 0.9)
+    write(scaled(fullImage, width: 960), previews.appendingPathComponent("\(name)-final.jpg"), .jpeg, quality: 0.9)
 }
 print(String(format: "%@ done in %.1fs → %@%@", scene, Date().timeIntervalSince(start), outDir.path, hasFront ? " (with depth layer)" : ""))

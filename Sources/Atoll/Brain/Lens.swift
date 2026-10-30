@@ -250,7 +250,7 @@ final class LensModel {
                     IslandManager.shared.confirm("checkmark.circle", "No tasks in it", tint: DS.Ink.secondary)
                     return
                 }
-                PlanStore.shared.carry(items, from: "From something you copied")
+                PlanStore.shared.carry(items, from: "From something you copied", as: .lens)
                 IslandManager.shared.confirm("checkmark.circle.fill", items.count == 1 ? "1 task for your next plan" : "\(items.count) tasks for your next plan",
                                              tint: PlanView.morning)
             }

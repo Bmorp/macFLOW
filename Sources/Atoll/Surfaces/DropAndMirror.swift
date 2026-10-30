@@ -64,7 +64,7 @@ private struct DropTile: View {
             model.handleDrop(providers, target: target)
         })
         .onChange(of: targeted) { _, on in
-            if on { model.dropTarget = target } else if model.dropTarget == target { model.dropTarget = nil }
+            if on { model.dropTarget = target; HapticEngine.shared.play(.dropTargetEntered) } else if model.dropTarget == target { model.dropTarget = nil }
         }
         .accessibilityElement(children: .combine)
     }
@@ -77,7 +77,7 @@ private struct DropTargetModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         if enabled {
-            content.onDrop(of: [.fileURL], isTargeted: $targeted, perform: perform)
+            content.onDrop(of: [.fileURL, .plainText], isTargeted: $targeted, perform: perform)
         } else {
             content
         }

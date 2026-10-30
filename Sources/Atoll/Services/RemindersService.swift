@@ -28,6 +28,8 @@ final class RemindersService: ObservableObject {
     @Published private(set) var items: [Item] = []
     private let store = EKEventStore()
     private var watching = false
+    /// The app's one event store (they're expensive), shared with Flow Tasks' sync.
+    var eventStore: EKEventStore { store }
 
     init() { updateAccess() }
 
@@ -49,16 +51,24 @@ final class RemindersService: ObservableObject {
         reload()
     }
 
-    func requestAccess() {
+    func requestAccess() { requestAccess { _ in } }
+
+    /// Asks once; once refused, opens the Reminders page of Privacy settings instead (macOS won't ask again).
+    func requestAccess(then done: @escaping @MainActor (Bool) -> Void) {
+        updateAccess()
+        if access == .granted { return done(true) }
         if access == .denied {
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders") { NSWorkspace.shared.open(url) }
-            return
+            return done(false)
         }
         NSApp.activate()
-        store.requestFullAccessToReminders { [weak self] _, _ in
+        store.requestFullAccessToReminders { [weak self] ok, _ in
             DispatchQueue.main.async {
-                self?.updateAccess()
-                self?.reload()
+                MainActor.assumeIsolated {
+                    self?.updateAccess()
+                    self?.reload()
+                    done(ok)
+                }
             }
         }
     }
@@ -112,7 +122,8 @@ final class RemindersService: ObservableObject {
         }
     }
 
-    /// Recognizes "remind me to …", "remind me …", "reminder …", "todo …".
+    /// Recognizes "remind me to …", "remind me …", "reminder …", "todo …". (Search offers "todo …" as a Flow task
+    /// instead — tasks sync to Reminders — so it doesn't show both.)
     nonisolated static func parse(_ query: String) -> Draft? {
         let lower = query.lowercased()
         let prefixes = ["remind me to ", "remind me ", "reminder ", "todo ", "to-do "]

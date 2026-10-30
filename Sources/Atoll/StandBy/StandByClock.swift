@@ -2,11 +2,12 @@ import SwiftUI
 import AppKit
 
 enum StandByClockStyle: Int, CaseIterable, Identifiable {
-    case glass = 3, digital = 0, analog = 1, float = 2
+    case glass = 3, prism = 4, digital = 0, analog = 1, float = 2
     var id: Int { rawValue }
     var label: String {
         switch self {
         case .glass: "Glass"
+        case .prism: "Prism"
         case .digital: "Digital"
         case .analog: "Analog"
         case .float: "Float"
@@ -66,6 +67,7 @@ struct StandByClockPage: View {
     @ObservedObject private var cal = CalendarModel.shared
     @ObservedObject private var weather = WeatherService.shared
     @ObservedObject private var battery = BatteryMonitor.shared
+    @ObservedObject private var prism = PrismConditions.shared
 
     private var accent: Color { (StandByAccent(rawValue: prefs.standByAccent) ?? .white).color }
     private var style: StandByClockStyle { StandByClockStyle(rawValue: prefs.standByClockStyle) ?? .glass }
@@ -99,6 +101,7 @@ struct StandByClockPage: View {
             Group {
                 switch style {
                 case .glass: GlassTime(hour: h, minute: m, size: size, frost: frost)
+                case .prism: prismTime(h, m, date)
                 case .float: solidTime(h, m, weight: .heavy, design: .rounded, minuteOpacity: 0.62)
                 default: solidTime(h, m, weight: .semibold, design: .rounded, minuteOpacity: 1)
                 }
@@ -120,8 +123,27 @@ struct StandByClockPage: View {
             }
         }
         .font(.system(size: max(17, size.height * 0.03), weight: .semibold))
-        .foregroundStyle(style == .glass ? Color.white.opacity(0.94) : accent)
+        .foregroundStyle(style == .glass || style == .prism ? Color.white.opacity(0.94) : accent)
         .shadow(color: .black.opacity(0.22), radius: 10, y: 1)
+    }
+
+    /// Prism: the time in Ribbon numerals. Without Prism's shaders it's the Glass face; on a Mac too hot for GPU
+    /// material, plain figures.
+    @ViewBuilder private func prismTime(_ h: String, _ m: String, _ date: Date) -> some View {
+        if !RibbonTime.available {
+            GlassTime(hour: h, minute: m, size: size, frost: frost)
+        } else if prism.current.tier == .flat {
+            solidTime(h, m, weight: .semibold, design: .default, minuteOpacity: 1)
+        } else {
+            RibbonTime(hour: h, minute: m, size: size, frost: frost, night: isNight(date), accent: accent)
+        }
+    }
+
+    /// Night Mode's hours, as StandByModel counts them: Metal draws its own dim red (SwiftUI's colour filters don't
+    /// reach into a Metal layer).
+    private func isNight(_ date: Date) -> Bool {
+        let hour = Calendar.current.component(.hour, from: date)
+        return prefs.standByNightMode && (hour >= 22 || hour < 6)
     }
 
     private func solidTime(_ h: String, _ m: String, weight: Font.Weight, design: Font.Design, minuteOpacity: Double) -> some View {
