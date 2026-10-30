@@ -85,10 +85,17 @@ final class TaskDatabase: @unchecked Sendable {
 
     // MARK: Reading (once, at launch)
 
-    func load() -> Contents {
+    /// Open tasks, and ones finished in the last `keepDone` days (what Today counts and Reminders still shows as
+    /// recently done). Older finished work stays on disk but out of memory, so launch doesn't grow with the years.
+    func load(keepDone days: Double = 30) -> Contents {
         queue.sync {
             var out = Contents()
-            run("SELECT id, title, notes, project, due, scheduled, estimate, estimate_user, priority, status, source, actual, created, completed, reminder, ord, someday, context, repeats, stamps, base FROM tasks", []) { s in
+            let since = Date().addingTimeInterval(-days * 86_400).timeIntervalSince1970
+            run("""
+            SELECT id, title, notes, project, due, scheduled, estimate, estimate_user, priority, status, source, actual, created, completed,
+                reminder, ord, someday, context, repeats, stamps, base FROM tasks
+            WHERE status IN ('open', 'active') OR completed IS NULL OR completed >= ?
+            """, [since]) { s in
                 guard let id = Self.text(s, 0).flatMap(UUID.init(uuidString:)) else { return }
                 var t = FlowTask(id: id, title: Self.text(s, 1) ?? "")
                 t.notes = Self.text(s, 2) ?? ""

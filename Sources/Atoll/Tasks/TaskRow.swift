@@ -75,7 +75,7 @@ struct CompletionCircle: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .strokeBorder(done || active ? TaskStyle.tint : Color.white.opacity(hover ? 0.62 : 0.34), lineWidth: 1.3)
+                    .strokeBorder(done || active ? TaskStyle.tint : Color.white.opacity(hover ? 0.62 : Access.increaseContrast ? 0.55 : 0.34), lineWidth: 1.3)
                 // Grows from nothing: no fades inside the island.
                 Circle()
                     .fill(TaskStyle.tint)
