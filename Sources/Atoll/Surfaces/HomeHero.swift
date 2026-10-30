@@ -40,6 +40,22 @@ enum HomeHeroKind: Equatable {
 
 // MARK: - Hero
 
+/// The hero's readings, as (figure, unit): what the big number says.
+enum HeroReading {
+    /// Time spent: 42 sec, 12 min, 1:04 h.
+    static func elapsed(_ seconds: TimeInterval) -> (String, String) {
+        let s = max(0, Int(seconds))
+        if s < 60 { return ("\(s)", "sec") }
+        if s < 3600 { return ("\(s / 60)", "min") }
+        return (String(format: "%d:%02d", s / 3600, (s % 3600) / 60), "h")
+    }
+
+    /// Time to go: 6 min, and for a meeting hours off, 1:20 h.
+    static func minutes(_ m: Int) -> (String, String) {
+        m < 60 ? ("\(m)", "min") : (String(format: "%d:%02d", m / 60, m % 60), "h")
+    }
+}
+
 /// The hero slot: draws the kind Home resolved on a Prism card.
 struct HomeHero: View {
     let kind: HomeHeroKind
@@ -134,7 +150,7 @@ private struct TaskHero: View {
                 if let since = active.since {
                     // Seconds in the first minute, then once a minute: it never ticks while the island is closed.
                     TimelineView(ElapsedSchedule(since: since, showing: showing)) { ctx in
-                        let (v, u) = Self.reading(active.elapsed(at: ctx.date))
+                        let (v, u) = HeroReading.elapsed(active.elapsed(at: ctx.date))
                         HeroFigure(value: v, unit: u)
                     }
                 }
@@ -155,14 +171,6 @@ private struct TaskHero: View {
         if let e = t.estimate { parts.append("About \(TaskFormat.length(e))") }
         if let p = t.project { parts.append(p) }
         return parts.joined(separator: " · ")
-    }
-
-    /// 42 sec, 12 min, 1:04 h.
-    static func reading(_ seconds: TimeInterval) -> (String, String) {
-        let s = max(0, Int(seconds))
-        if s < 60 { return ("\(s)", "sec") }
-        if s < 3600 { return ("\(s / 60)", "min") }
-        return (String(format: "%d:%02d", s / 3600, (s % 3600) / 60), "h")
     }
 }
 
@@ -198,7 +206,7 @@ private struct MeetingHero: View {
             let now = ctx.date
             let underway = event.start <= now
             let mins = underway ? max(0, Int(event.end.timeIntervalSince(now) / 60)) : max(1, Int((event.start.timeIntervalSince(now) / 60).rounded(.up)))
-            let (value, unit) = Self.reading(minutes: mins)
+            let (value, unit) = HeroReading.minutes(mins)
             HeroShell(tint: event.color, eyebrow: underway ? "Happening now" : "Up next", dot: underway, title: event.title,
                       detail: CalendarModel.timeRange(event) + (event.location.map { " · " + $0 } ?? ""), figure: {
                 HeroFigure(value: value, unit: underway ? unit + " left" : unit)
@@ -211,11 +219,6 @@ private struct MeetingHero: View {
                 Spacer(minLength: 0)
             })
         }
-    }
-
-    /// 6 min, 1:20 h, and for a meeting later today, its hours.
-    static func reading(minutes m: Int) -> (String, String) {
-        m < 60 ? ("\(m)", "min") : (String(format: "%d:%02d", m / 60, m % 60), "h")
     }
 }
 
@@ -282,27 +285,7 @@ private struct FlowHero: View {
     @ObservedObject private var inbox = FlowInbox.shared
 
     var body: some View {
-        let more = max(0, inbox.items.count - 1)
-        switch item.body {
-        case .suggestion(let s):
-            PrismAsk(eyebrow: "Flow suggests", title: s.title, why: s.detail, waited: Self.waited(item), more: more,
-                     primary: .init(title: s.actionTitle) {
-                FlowInbox.shared.accept(s)
-                if s.action != .none, !FlowInboxCard.staysInIsland(s.action) { onLeave() }
-            }, secondary: .init(title: "Not now") { FlowInbox.shared.dismiss(s) })
-        case .question(let q):
-            PrismAsk(eyebrow: "Flow asks", title: q.text, why: q.detail, waited: Self.waited(item), more: more,
-                     options: q.options.map { o in .init(title: o.label) {
-                FlowInbox.shared.answer(q, o)
-                if q.key.hasPrefix("plan.checkin"), o.value == "replan" { onLeave() }
-            } }, secondary: .init(title: "Don’t ask again") { FlowInbox.shared.skip(q) })
-        }
-    }
-
-    /// How long it has waited, so a missed one reads as missed.
-    static func waited(_ item: FlowInbox.Item) -> String {
-        let s = Date().timeIntervalSince(item.added)
-        return s < 90 ? "" : s < 3600 ? "\(Int(s / 60)) min ago" : item.added.formatted(date: .omitted, time: .shortened)
+        FlowAskCard(item: item, more: max(0, inbox.items.count - 1), onLeave: onLeave)
     }
 }
 

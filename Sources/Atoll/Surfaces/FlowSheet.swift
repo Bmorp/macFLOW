@@ -13,11 +13,12 @@ struct FlowSheet: View {
     @ObservedObject private var learned = PatternsModel.shared
     @ObservedObject private var news = NewsStore.shared
     @ObservedObject private var learn = LearnStore.shared
+    @ObservedObject private var inbox = FlowInbox.shared
     @State private var page: Page
     /// Which page the sheet opens on (debug renders set it).
     nonisolated(unsafe) static var startPage: Page = .today
 
-    enum Page: String, CaseIterable { case today = "Today", brief = "Brief", learn = "Learn" }
+    enum Page: String, CaseIterable { case today = "Today", inbox = "Inbox", brief = "Brief", learn = "Learn" }
     @Environment(\.islandShowing) private var showing
     @FocusState private var asking: Bool
     @State private var draft = ""
@@ -48,6 +49,7 @@ struct FlowSheet: View {
                 Group {
                     switch page {
                     case .today: today
+                    case .inbox: inboxPage
                     case .brief: brief
                     case .learn: learning
                     }
@@ -68,7 +70,7 @@ struct FlowSheet: View {
         }
         .frame(width: size.width, height: size.height, alignment: .top)
         .background(alignment: .top) {
-            ArtField(clearTop: model.notch.height / max(1, size.height), strength: 0.9, ambient: true)
+            ArtField(clearTop: model.notch.height / max(1, size.height), strength: 0.72, ambient: true)
         }
         .onChange(of: showing, initial: true) { _, on in
             guard on, model.mode == .expanded(.sheet), !RenderMode.snapshot else { if !on { asking = false }; return }
@@ -89,7 +91,13 @@ struct FlowSheet: View {
                     withAnimation(Motion.morph) { page = p }
                     if p == .brief { news.refresh() }
                 } label: {
-                    Text(p.rawValue)
+                    HStack(spacing: 4) {
+                        Text(p.rawValue)
+                        // Something of Flow's is waiting: a violet dot, nothing more.
+                        if p == .inbox, !inbox.items.isEmpty {
+                            Circle().fill(BrainStyle.tint).frame(width: 5, height: 5)
+                        }
+                    }
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(page == p ? Color.black : DS.Ink.secondary)
                         .padding(.horizontal, 10)
@@ -98,6 +106,7 @@ struct FlowSheet: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(p == .inbox && !inbox.items.isEmpty ? "Inbox, \(inbox.items.count) waiting" : p.rawValue)
                 .accessibilityAddTraits(page == p ? .isSelected : [])
             }
         }
@@ -184,20 +193,29 @@ struct FlowSheet: View {
 
     // MARK: Today
 
+    /// What Flow is waiting on, when it's allowed to wait: the one on show.
+    private var waiting: FlowInbox.Item? { Prefs.shared.brainSuggestions ? inbox.top : nil }
+
     private var today: some View {
         let s = art.story
+        let ask = waiting
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 16) {
-                DayRing(story: s, progress: drawn).frame(width: 132, height: 132)
+                // With something of Flow's waiting, the day steps back to make room for it.
+                DayRing(story: s, progress: drawn).frame(width: ask == nil ? 132 : 96, height: ask == nil ? 132 : 96)
                 VStack(alignment: .leading, spacing: 5) {
                     Text(s.date.formatted(.dateTime.weekday(.wide).day().month(.wide)).uppercased())
                         .font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(DS.Ink.tertiary)
-                    Text(s.headline).font(.system(size: 17, weight: .semibold)).foregroundStyle(DS.Ink.primary)
+                    Text(s.headline).font(.system(size: ask == nil ? 19 : 17, weight: .semibold)).tracking(-0.2).foregroundStyle(DS.Ink.primary)
                         .lineLimit(3).fixedSize(horizontal: false, vertical: true)
                     Text("\(DayArtView.length(s.focus)) focus · \(s.meetings.count) meetings · \(s.songs.count) songs")
                         .font(DS.Kit.caption).foregroundStyle(DS.Ink.secondary)
                 }
             }
+            if let ask {
+                FlowAskCard(item: ask, more: max(0, inbox.items.count - 1), onMore: { withAnimation(Motion.morph) { page = .inbox } },
+                            onLeave: { model.collapse() })
+            } else {
             VStack(alignment: .leading, spacing: 6) {
                 Text("NEXT").font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(DS.Ink.tertiary)
                 let upcoming = Self.upcoming(plan: plan.plan, events: calendar.events)
@@ -235,6 +253,36 @@ struct FlowSheet: View {
                     }
                 }
                 .padding(.top, 2)
+            }
+            }
+        }
+    }
+
+    // MARK: Inbox
+
+    /// Everything Flow has suggested or asked and is still waiting on, newest first, each on the same Prism card.
+    private var inboxPage: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("INBOX").font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(DS.Ink.tertiary)
+                Spacer()
+                Text(inbox.items.isEmpty ? "" : "\(inbox.items.count) waiting").font(DS.Kit.caption).foregroundStyle(DS.Ink.tertiary)
+            }
+            if inbox.items.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Nothing waiting").font(.system(size: 15, weight: .semibold)).foregroundStyle(DS.Ink.primary)
+                    Text("When Flow has a suggestion, or isn’t sure about something, it waits here.")
+                        .font(DS.Kit.caption).foregroundStyle(DS.Ink.tertiary).fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 6)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 10) {
+                        ForEach(inbox.items.reversed()) { item in
+                            FlowAskCard(item: item, onLeave: { model.collapse() })
+                        }
+                    }
+                }
             }
         }
     }

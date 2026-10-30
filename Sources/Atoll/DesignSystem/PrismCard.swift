@@ -90,6 +90,8 @@ struct PrismCard<Content: View>: View {
 struct PrismAsk: View {
     struct Action {
         let title: String
+        /// What VoiceOver says when it isn't the title ("Don’t ask again" for "Don’t ask").
+        var label: String? = nil
         let run: () -> Void
     }
 
@@ -100,8 +102,9 @@ struct PrismAsk: View {
     var why: String?
     /// How long it has waited ("12 min ago"); blank when it's new.
     var waited: String = ""
-    /// Others waiting behind this one.
+    /// Others waiting behind this one; with `onMore` the count opens them.
     var more = 0
+    var onMore: (() -> Void)?
     /// A suggestion's action. Questions use `options` instead.
     var primary: Action?
     var options: [Action] = []
@@ -121,14 +124,7 @@ struct PrismAsk: View {
                             .foregroundStyle(BrainStyle.tint)
                         if !waited.isEmpty { Text(waited).font(DS.Kit.eyebrow).foregroundStyle(DS.Ink.tertiary) }
                         Spacer(minLength: 0)
-                        if more > 0 {
-                            Text("+\(more)")
-                                .font(.system(size: 10, weight: .bold).monospacedDigit())
-                                .foregroundStyle(BrainStyle.tint)
-                                .padding(.horizontal, 6).frame(height: 17)
-                                .background(Capsule().fill(BrainStyle.tint.opacity(0.18)))
-                                .accessibilityLabel("\(more) more waiting")
-                        }
+                        if more > 0 { moreChip }
                     }
                     Text(title)
                         .font(.system(size: 15, weight: .semibold)).foregroundStyle(DS.Ink.primary)
@@ -146,7 +142,7 @@ struct PrismAsk: View {
                             ForEach(Array(options.enumerated()), id: \.offset) { _, o in
                                 FlowOptionButton(title: o.title, action: o.run)
                             }
-                            if let secondary { PrismQuiet(title: secondary.title, action: secondary.run) }
+                            if let secondary { PrismQuiet(title: secondary.title, label: secondary.label, action: secondary.run) }
                         }
                         .padding(.top, 8)
                     }
@@ -160,9 +156,62 @@ struct PrismAsk: View {
     }
 }
 
+extension PrismAsk {
+    /// "+2": how many more are waiting behind this one.
+    @ViewBuilder fileprivate var moreChip: some View {
+        let chip = Text("+\(more)")
+            .font(.system(size: 10, weight: .bold).monospacedDigit())
+            .foregroundStyle(BrainStyle.tint)
+            .padding(.horizontal, 6).frame(height: 17)
+            .background(Capsule().fill(BrainStyle.tint.opacity(0.18)))
+        if let onMore {
+            Button(action: onMore) { chip.contentShape(Capsule()) }
+                .buttonStyle(PressStyle(scale: 0.94))
+                .accessibilityLabel("\(more) more waiting. Show all")
+        } else {
+            chip.accessibilityLabel("\(more) more waiting")
+        }
+    }
+}
+
+/// A waiting item from Flow's inbox on the Prism card, with its answers wired up: a suggestion's action runs and the
+/// suggestion leaves the inbox; a question's answers are recorded. After an action that takes you somewhere else the
+/// caller closes the island (`onLeave`).
+struct FlowAskCard: View {
+    let item: FlowInbox.Item
+    var more = 0
+    var onMore: (() -> Void)?
+    var onLeave: () -> Void = {}
+
+    var body: some View {
+        switch item.body {
+        case .suggestion(let s):
+            PrismAsk(eyebrow: "Flow suggests", title: s.title, why: s.detail, waited: Self.waited(item), more: more, onMore: onMore,
+                     primary: .init(title: s.actionTitle) {
+                FlowInbox.shared.accept(s)
+                // Flow's own places (the conversation, the planner) open in the island; anything else leaves it.
+                if s.action != .none, !FlowInboxCard.staysInIsland(s.action) { onLeave() }
+            }, secondary: .init(title: "Not now") { FlowInbox.shared.dismiss(s) })
+        case .question(let q):
+            PrismAsk(eyebrow: "Flow asks", title: q.text, why: q.detail, waited: Self.waited(item), more: more, onMore: onMore,
+                     options: q.options.map { o in .init(title: o.label) {
+                FlowInbox.shared.answer(q, o)
+                if q.key.hasPrefix("plan.checkin"), o.value == "replan" { onLeave() }
+            } }, secondary: .init(title: "Don’t ask", label: "Don’t ask again") { FlowInbox.shared.skip(q) })
+        }
+    }
+
+    /// How long it has waited, so a missed one reads as missed, not new.
+    static func waited(_ item: FlowInbox.Item) -> String {
+        let s = Date().timeIntervalSince(item.added)
+        return s < 90 ? "" : s < 3600 ? "\(Int(s / 60)) min ago" : item.added.formatted(date: .omitted, time: .shortened)
+    }
+}
+
 /// A secondary action: words, no chrome, brighter under the pointer.
 struct PrismQuiet: View {
     let title: String
+    var label: String? = nil
     let action: () -> Void
     @State private var hover = false
 
@@ -177,6 +226,6 @@ struct PrismQuiet: View {
         }
         .buttonStyle(PressStyle(scale: 0.96))
         .onHover { h in withAnimation(.easeOut(duration: 0.12)) { hover = h } }
-        .accessibilityLabel(title)
+        .accessibilityLabel(label ?? title)
     }
 }

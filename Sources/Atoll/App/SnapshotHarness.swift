@@ -345,6 +345,18 @@ enum SnapshotHarness {
                 FlowInbox.shared.debugSet(Self.demoAsks())
                 NowModel.shared.debugRelease()
                 m.debugSetMode(.expanded(.glance)) },
+            Case(name: "86-sheet-ask", live: true) { m in
+                FlowSheet.startPage = .today
+                NowModel.shared.debugRelease(); track(); FlowInbox.shared.debugSet(Self.demoAsks())
+                m.debugSetMode(.expanded(.sheet)) },
+            Case(name: "86b-sheet-inbox", live: true) { m in
+                FlowSheet.startPage = .inbox
+                NowModel.shared.debugRelease(); track(); FlowInbox.shared.debugSet(Self.demoAsks())
+                m.debugSetMode(.expanded(.sheet)) },
+            Case(name: "86c-sheet-today", live: true) { m in
+                FlowSheet.startPage = .today
+                NowModel.shared.debugRelease(); track(); FlowInbox.shared.debugSet([])
+                m.debugSetMode(.expanded(.sheet)) },
         ]
 
         // ATOLL_SNAP_ONLY=10b,1c renders just those (by name prefix) — for iterating on one screen.
