@@ -70,6 +70,17 @@ final class BrainAgent: ObservableObject {
         }
     }
 
+    /// A task spoken to the notch and taken by Tasks without the language model: what you said, and what was added.
+    func captured(heard: String, task: TaskSnapshot?) {
+        messages.append(Message(role: .you, text: heard))
+        guard let task else {
+            messages.append(Message(role: .atoll, text: "I couldn’t add that task."))
+            return
+        }
+        noteAction("Task added: \(task.title)", symbol: "checklist")
+        messages.append(Message(role: .atoll, text: "Added “\(task.title)”" + (task.due.map { ", due \($0.formatted(date: .abbreviated, time: .shortened))" } ?? "") + "."))
+    }
+
     /// A page summarized or explained: a short line for what you asked, then the answer streaming in. Apart from the chat
     /// session (whose tools and context leave no room for a page), so it works even while Flow is mid-answer.
     func page(_ label: String, instruction: String, title: String, text: String) {
@@ -237,7 +248,6 @@ enum AtollTools {
             return await MainActor.run {
                 let (reply, task) = BrainTaskTools.complete(arguments.task, ledger: TaskLinks.ledger)
                 if let task {
-                    HapticEngine.shared.play(.confirm)
                     BrainAgent.shared.noteAction("Done: \(task.title)", symbol: "checkmark.circle.fill")
                 }
                 return reply

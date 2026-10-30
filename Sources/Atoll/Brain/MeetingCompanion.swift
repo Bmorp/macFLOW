@@ -118,7 +118,6 @@ final class MeetingCompanion: ObservableObject {
         rollover = r
         startedAt = Date()
         withAnimation(Motion.morph) { state = .recording }
-        HapticEngine.shared.play(.confirm)
     }
 
     private func heard(_ text: String, from side: Speaker) {

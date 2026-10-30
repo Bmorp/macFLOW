@@ -55,4 +55,18 @@ enum BrainTaskTools {
         guard let best = scored.max(by: { $0.0 < $1.0 }), best.0 >= 0.5 else { return nil }
         return best.1
     }
+
+    // MARK: Spoken tasks
+
+    /// "Add a task review the deck tomorrow 3pm": the words after the command, or nil when this isn't one. Only
+    /// plain, explicit phrases count, so a question about your tasks still goes to Flow.
+    nonisolated static func spokenTask(_ heard: String) -> String? {
+        let pattern = #"^\s*(?:(?:hey )?flow[,.]?\s+)?(?:please\s+)?(?:(?:add|create|make|new)\s+(?:me\s+)?(?:a\s+|an\s+|another\s+)?(?:new\s+)?(?:task|to-?do|to do)|(?:task|to-?do|to do)(?=\s*:)|add\s+(?:this\s+)?to\s+my\s+(?:tasks|to-?do list|to do list|todo list|list))\b[\s:,.\-–—]*(?:to\s+|called\s+|named\s+|that\s+says\s+|for\s+me\s+to\s+)?(.+?)[.!\s]*$"#
+        guard let re = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+              let m = re.firstMatch(in: heard, range: NSRange(heard.startIndex..., in: heard)),
+              let r = Range(m.range(at: 1), in: heard) else { return nil }
+        let words = String(heard[r]).trimmingCharacters(in: .whitespacesAndNewlines)
+        return words.count >= 3 ? words : nil
+    }
 }
+

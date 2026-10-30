@@ -207,7 +207,7 @@ struct BrainAnswerPanel: View {
                     SecondaryButton(title: "Copy", symbol: "doc.on.doc") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(chat.answer, forType: .string)
-                        HapticEngine.shared.play(.confirm)
+                        HapticEngine.shared.play(.copied)
                     }
                 }
                 Spacer(minLength: 0)

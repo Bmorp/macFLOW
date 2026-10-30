@@ -509,7 +509,6 @@ final class BrainEngine: ObservableObject {
     /// An answer: a strong label, applied at once. Returns what to say back ("Got it — no more break nudges before 5").
     @discardableResult
     func answer(_ q: BrainQuestion, _ option: BrainQuestion.Option) -> String? {
-        HapticEngine.shared.play(.confirm)
         store.noteQuestion(q.key, answer: option.value)
         let probe = asking.removeValue(forKey: q.key) ?? QuestionBank.candidates(world()).first { $0.key == q.key }
         guard let probe else {

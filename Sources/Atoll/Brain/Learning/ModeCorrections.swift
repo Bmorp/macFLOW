@@ -51,6 +51,11 @@ final class ModeCorrections: @unchecked Sendable {
 
     // MARK: Correcting
 
+    /// `ModeCorrections.correct(moment:to:)`: what Rewind and the day ring call when you say "this was writing".
+    static func correct(moment: BrainStore.Moment, to mode: WorkMode, alongWith run: [BrainStore.Moment] = []) {
+        shared.correct(moment: moment, to: mode, alongWith: run)
+    }
+
     /// You said this moment (and the run of moments like it after it) was really `mode`. Rewrites them in the
     /// record, and learns from it at once.
     func correct(moment: BrainStore.Moment, to mode: WorkMode, alongWith run: [BrainStore.Moment] = []) {
