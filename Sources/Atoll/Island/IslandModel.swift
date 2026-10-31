@@ -197,9 +197,12 @@ final class IslandModel {
             .sink { [weak self] list in self?.liveChanged(list) }
             .store(in: &cancellables)
 
-        // The home grows a Claude strip when you have sessions.
-        ClaudeSessions.shared.$sessions
-            .map(\.isEmpty)
+        // Home grows its activity stack when there's something in it (Claude, a download, finished work), and loses it
+        // when there isn't.
+        Publishers.Merge3(ClaudeSessions.shared.$sessions.map { _ in () }, ActivityCenter.shared.$live.map { _ in () },
+                          NoticeLog.shared.$notices.map { _ in () })
+            .receive(on: RunLoop.main)
+            .map { HomeView.showsStrip }
             .removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
@@ -369,7 +372,7 @@ final class IslandModel {
 
     func rowHeight(_ focus: IslandFocus) -> CGFloat {
         switch focus {
-        case .glance: DS.Size.homeHeight + (HomeView.showsClaude ? HomeView.claudeStripHeight : 0) + HomeView.momentHeight
+        case .glance: DS.Size.homeHeight + (HomeView.showsStrip ? HomeView.claudeStripHeight : 0) + HomeView.momentHeight
         case .controls: ControlsView.height
         case .brain: BrainPlace.height
         case .plan: PlanView.height
@@ -387,7 +390,7 @@ final class IslandModel {
         return switch focus {
         case .glance:
             CGSize(width: max(DS.Size.homeWidth, notch.width + 380) + Self.expandedFlare * 2,
-                   height: notch.height + DS.Size.homeHeight + (HomeView.showsClaude ? HomeView.claudeStripHeight : 0) + HomeView.momentHeight)
+                   height: notch.height + DS.Size.homeHeight + (HomeView.showsStrip ? HomeView.claudeStripHeight : 0) + HomeView.momentHeight)
         case .controls:
             CGSize(width: max(DS.Size.homeWidth, notch.width + 380) + Self.expandedFlare * 2,
                    height: notch.height + ControlsView.height)
@@ -657,6 +660,9 @@ final class IslandModel {
     // MARK: - Alerts
 
     func showAlert(_ kind: IslandAlert, duration: TimeInterval) {
+        // Remembered first: an alert that can't show now (the island is open, or you're focusing) still reaches the
+        // notice history, and finished work waits in the activity stack.
+        if isPrimary, let notice = NoticeLog.shared.record(kind), notice.held { return }
         // Never interrupt something the person is doing.
         guard mode == .compact || mode == .alert else {
             if case let .message(_, text, _) = kind, mode == .search { SearchModel.shared.confirm(text) }

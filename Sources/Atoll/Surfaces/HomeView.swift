@@ -23,6 +23,8 @@ struct HomeView: View {
     @State private var timerLabel: String? = FocusTimer.shared.isActive ? FocusTimer.shared.label : nil
 
     static let claudeStripHeight: CGFloat = 40
+    /// The strip along the foot: the activity stack (running activities, finished work, Claude sessions).
+    @MainActor static var showsStrip: Bool { !ActivityStack.isEmpty }
     @MainActor static var showsClaude: Bool { Prefs.shared.claude && !ClaudeSessions.shared.sessions.isEmpty }
 
     static let heroWidth: CGFloat = 322
@@ -32,7 +34,7 @@ struct HomeView: View {
     /// Everything between the status row and the Claude strip. The island sizes Home as `DS.Size.homeHeight` plus
     /// this much more: `momentHeight` is that difference, so the island's own arithmetic keeps working.
     static let bodyHeight: CGFloat = 4 + heroHeight + dockHeight
-    @MainActor static var momentHeight: CGFloat { bodyHeight - DS.Size.homeHeight + (showsClaude ? 0 : footRoom) }
+    @MainActor static var momentHeight: CGFloat { bodyHeight - DS.Size.homeHeight + (showsStrip ? 0 : footRoom) }
     /// Air under the carousel for the sheet's grabber when the Claude strip isn't there to hold it.
     static let footRoom: CGFloat = 10
 
@@ -67,11 +69,11 @@ struct HomeView: View {
 
             HomeDock(model: model, showsPlayer: kind != .music && media.mode != .idle)
                 .padding(.horizontal, inset)
-                .frame(height: Self.dockHeight - (Self.showsClaude ? 12 : 0))
+                .frame(height: Self.dockHeight - (Self.showsStrip ? 12 : 0))
 
-            if !Self.showsClaude { Color.clear.frame(height: Self.footRoom) }
-            if Self.showsClaude {
-                ClaudeStrip { model.collapse() }
+            if !Self.showsStrip { Color.clear.frame(height: Self.footRoom) }
+            if Self.showsStrip {
+                ActivityStack(model: model) { model.collapse() }
                     .padding(.horizontal, inset)
                     .padding(.bottom, 14)
                     .frame(height: Self.claudeStripHeight + 12)

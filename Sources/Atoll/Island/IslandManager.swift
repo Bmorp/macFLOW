@@ -453,6 +453,11 @@ final class IslandManager {
             if model.mode == .expanded(.workspace) { model.select(.glance) } else { model.collapse() }
             return true
         }
+        // Return runs the open activity's primary action: Pause, Join, Open.
+        if !typing, !cmd, e.keyCode == 36 || e.keyCode == 76, case .expanded(.activity(let k)) = model.mode, let action = k.snapshot()?.primary {
+            action.run()
+            return true
+        }
         // ← → move between the island's places, as two fingers sideways do.
         if !typing, !cmd, case .expanded = model.mode, model.tabs.count > 1, e.keyCode == 123 || e.keyCode == 124 {
             model.cycleFocus(e.keyCode == 124 ? 1 : -1)

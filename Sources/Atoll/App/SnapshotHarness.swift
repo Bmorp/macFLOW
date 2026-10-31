@@ -59,7 +59,17 @@ enum SnapshotHarness {
             Case(name: "12-expanded-music-app", live: false) { m in app(); ActivityCenter.shared.debugSet([.nowPlaying]); m.debugSetMode(.expanded(.activity(.nowPlaying))) },
             Case(name: "13-expanded-timer", live: false) { m in
                 FocusTimer.shared.start(minutes: 25, label: "Focus"); ActivityCenter.shared.debugSet([.timer]); m.debugSetMode(.expanded(.activity(.timer))) },
-            Case(name: "90-workspace-overview", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .overview; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "80c-home-stack", live: true) { m in
+                Self.demoWorkspace()
+                ActivityCenter.shared.debugSet([.download, .shelf])
+                DownloadsWatcher.shared.debugSet(.init(name: "Xcode_26.xip", progress: 0.62, bytes: 0))
+                m.debugSetMode(.expanded(.glance)) },
+            Case(name: "90-workspace-overview", live: true) { m in
+                Self.demoWorkspace()
+                ActivityCenter.shared.debugSet([.timer, .download])
+                FocusTimer.shared.start(minutes: 25, label: "Write the launch post")
+                WorkspaceModel.shared.section = .overview
+                m.debugSetMode(.expanded(.workspace)) },
             Case(name: "91-workspace-system", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .system; m.debugSetMode(.expanded(.workspace)) },
             Case(name: "92-workspace-devices", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .devices; m.debugSetMode(.expanded(.workspace)) },
             Case(name: "93-workspace-clipboard", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .clipboard; m.debugSetMode(.expanded(.workspace)) },
@@ -392,6 +402,17 @@ enum SnapshotHarness {
             servers: [.init(pid: 1, process: "node", port: 3000), .init(pid: 2, process: "python3", port: 8000)],
             reviews: [.init(title: "Cache artwork per album", repo: "Bmorp/macFLOW", number: 42, url: "https://github.com/Bmorp/macFLOW/pull/42")],
             github: .ready)
+        let now = Date()
+        NoticeLog.shared.debugSet([
+            Notice(date: now.addingTimeInterval(-120), group: "Claude", title: "Rebuild the notch island", detail: "Finished · 12m 14s", symbol: "asterisk",
+                   tint: ClaudeSessions.tint, importance: .normal, completion: true, canWait: true, actionTitle: "Open", action: {}, held: true),
+            Notice(date: now.addingTimeInterval(-600), group: "Downloads", title: "Keynote-Template.key", detail: "Downloaded", symbol: "arrow.down.circle.fill",
+                   tint: DS.Palette.blue, importance: .normal, completion: true, canWait: true, actionTitle: "Show", action: {}),
+            Notice(date: now.addingTimeInterval(-1500), group: "Calendar", title: "Design Review", detail: "In 5 min", symbol: "calendar",
+                   tint: DS.Palette.green, importance: .important, completion: false, canWait: false, actionTitle: "Join", action: {}),
+            Notice(date: now.addingTimeInterval(-2400), group: "Devices", title: "AirPods Pro", detail: "L 92% · R 88% · Case 64%", symbol: "airpodspro",
+                   tint: DS.Palette.green, importance: .normal, completion: false, canWait: false),
+        ])
     }
 
     /// A question and a suggestion waiting in Flow's inbox.

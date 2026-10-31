@@ -140,85 +140,180 @@ struct WorkspacePlace: View {
 private struct OverviewSection: View {
     var model: IslandModel
     @ObservedObject private var center = ActivityCenter.shared
+    @ObservedObject private var log = NoticeLog.shared
     @ObservedObject private var calendar = CalendarModel.shared
     @ObservedObject private var store = TaskStore.shared
     @ObservedObject private var stats = SystemStats.shared
     @ObservedObject private var battery = BatteryMonitor.shared
-    @ObservedObject private var dev = DevStatus.shared
 
     var body: some View {
-        let next = calendar.events.first { $0.start > Date() || $0.isNow }
-        let open = store.list(.today).filter(\.isOpen).count
-        Grid(horizontalSpacing: FlowTone.Space.s, verticalSpacing: FlowTone.Space.s) {
-            GridRow {
-                ToneTile {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ToneHeader(symbol: "dot.radiowaves.left.and.right", title: "Live", trailing: "\(center.live.count)")
-                        if center.live.isEmpty {
-                            Text("Nothing running").font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary)
-                        } else {
-                            ForEach(center.live.prefix(3), id: \.self) { k in
-                                Label(k.rawValue.capitalized, systemImage: k.tabSymbol).font(FlowTone.body).foregroundStyle(FlowTone.ink)
-                            }
-                        }
-                    }
-                }
-                ToneTile {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ToneHeader(symbol: "calendar", title: "Next")
-                        if let next {
-                            Text(next.title).font(FlowTone.heading).foregroundStyle(FlowTone.ink).lineLimit(2)
-                            Text(next.isNow ? "Now" : next.start.formatted(date: .omitted, time: .shortened))
-                                .font(FlowTone.mono).foregroundStyle(FlowTone.accent)
-                        } else {
-                            Text("Nothing else today").font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary)
-                        }
-                    }
-                }
-                ToneTile {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ToneHeader(symbol: "checklist", title: "Today")
-                        LiveFigure(value: "\(open)", unit: open == 1 ? "task open" : "tasks open", size: 28)
-                        Text("\(store.doneToday) done").font(FlowTone.mono).foregroundStyle(FlowTone.inkTertiary)
-                    }
-                }
-                .onTapGesture { model.select(.tasks) }
+        HStack(alignment: .top, spacing: FlowTone.Space.s) {
+            VStack(spacing: FlowTone.Space.s) {
+                activities
+                notifications
             }
-            GridRow {
-                ToneTile {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ToneHeader(symbol: "cpu", title: "Mac")
-                        HStack(spacing: FlowTone.Space.m) {
-                            mini("CPU", stats.cpu, FlowTone.accent)
-                            mini("Memory", stats.memory, stats.pressure == .normal ? FlowTone.good : FlowTone.caution)
-                            if battery.hasBattery { mini("Battery", Double(battery.level) / 100, battery.level <= 20 ? FlowTone.bad : FlowTone.good) }
-                        }
-                    }
-                }
-                .gridCellColumns(2)
-                ToneTile {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ToneHeader(symbol: "chevron.left.forwardslash.chevron.right", title: "Developer")
-                        Text(dev.repos.isEmpty ? "No repositories seen yet" : "\(dev.repos.count) repos · \(dev.repos.reduce(0) { $0 + $1.changes }) changes")
-                            .font(FlowTone.body).foregroundStyle(FlowTone.ink)
-                        Text(dev.servers.isEmpty ? "No local servers" : "\(dev.servers.count) server\(dev.servers.count == 1 ? "" : "s") running")
-                            .font(FlowTone.mono).foregroundStyle(FlowTone.inkTertiary)
-                    }
-                }
-                .onTapGesture { WorkspaceModel.shared.section = .developer }
+            VStack(spacing: FlowTone.Space.s) {
+                next
+                today
+                mac
             }
+            .frame(width: 210)
         }
-        .onAppear { SystemStats.shared.start(); DevStatus.shared.refresh() }
+        .onAppear { SystemStats.shared.start() }
         .onDisappear { SystemStats.shared.stop() }
     }
 
-    private func mini(_ label: String, _ value: Double, _ tint: Color) -> some View {
-        HStack(spacing: 8) {
-            ArcGauge(value: value, tint: tint, lineWidth: 4) {
-                Text("\(Int((value * 100).rounded()))").font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit()).foregroundStyle(FlowTone.ink)
+    // The activity stack in full: each live activity with its value, progress and actions.
+    private var activities: some View {
+        ToneTile {
+            VStack(alignment: .leading, spacing: FlowTone.Space.s) {
+                ToneHeader(symbol: "dot.radiowaves.left.and.right", title: "Activities", trailing: center.live.isEmpty ? nil : "\(center.live.count) live")
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    let snaps = center.live.compactMap { $0.snapshot(now: ctx.date) }
+                    if snaps.isEmpty {
+                        Text("Nothing running. Timers, downloads, calls, music and builds show up here.")
+                            .font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary).fixedSize(horizontal: false, vertical: true)
+                    }
+                    VStack(spacing: 2) {
+                        ForEach(snaps.prefix(4)) { s in activityRow(s) }
+                    }
+                }
             }
-            .frame(width: 40, height: 40)
-            Text(label).font(FlowTone.label).foregroundStyle(FlowTone.inkSecondary)
+        }
+    }
+
+    private func activityRow(_ s: ActivitySnapshot) -> some View {
+        HStack(spacing: FlowTone.Space.s) {
+            ZStack {
+                if let p = s.progress { ArcGauge(value: p, tint: s.tint, lineWidth: 2.5, sweep: 1) }
+                Image(systemName: s.symbol).font(.system(size: s.progress == nil ? 12 : 9, weight: .bold)).foregroundStyle(s.tint)
+            }
+            .frame(width: 24, height: 24)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(s.title).font(FlowTone.title).foregroundStyle(FlowTone.ink).lineLimit(1)
+                Text(s.detail).font(.system(size: 11)).foregroundStyle(FlowTone.inkTertiary).lineLimit(1)
+            }
+            Spacer(minLength: FlowTone.Space.s)
+            if !s.value.isEmpty { Text(s.value).font(FlowTone.mono).foregroundStyle(s.tint).contentTransition(.numericText()) }
+            if let p = s.primary {
+                Button { p.run() } label: {
+                    Image(systemName: p.symbol ?? "arrow.up.forward").font(.system(size: 11, weight: .bold)).foregroundStyle(FlowTone.ink)
+                        .frame(width: 26, height: 26).background(Circle().fill(FlowTone.raised))
+                }
+                .buttonStyle(PressStyle(scale: 0.92))
+                .help(p.title)
+                .accessibilityLabel(p.title)
+            }
+        }
+        .frame(height: 36)
+        .contentShape(Rectangle())
+        .onTapGesture { model.select(.activity(s.kind)) }
+        .contextMenu { ForEach(s.secondary) { a in Button(a.title) { a.run() } } }
+    }
+
+    // What the island told you, grouped by where it came from; what waited while you focused is marked.
+    private var notifications: some View {
+        ToneTile {
+            VStack(alignment: .leading, spacing: FlowTone.Space.s) {
+                HStack {
+                    ToneHeader(symbol: "bell", title: "Notifications",
+                               trailing: log.heldCount > 0 ? "\(log.heldCount) while you focused" : nil, tint: log.heldCount > 0 ? FlowTone.accent : FlowTone.inkSecondary)
+                    if !log.grouped.isEmpty {
+                        Button("Clear") { withAnimation(Motion.Token.content.animation) { log.clearAll() } }
+                            .buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.inkSecondary)
+                    }
+                }
+                if log.grouped.isEmpty {
+                    Text("Nothing yet. Finished downloads, Claude, meetings and devices are kept here, so nothing is lost while the island is busy or you're focusing.")
+                        .font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary).fixedSize(horizontal: false, vertical: true)
+                }
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: FlowTone.Space.s) {
+                        ForEach(log.grouped, id: \.group) { g in
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(g.group.uppercased()).font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(FlowTone.inkTertiary)
+                                ForEach(g.notices.prefix(3)) { n in noticeRow(n) }
+                                if g.notices.count > 3 {
+                                    Text("\(g.notices.count - 3) more").font(FlowTone.mono).foregroundStyle(FlowTone.inkTertiary)
+                                }
+                            }
+                        }
+                    }
+                    .scrollTicks(pitch: 30)
+                }
+            }
+        }
+    }
+
+    private func noticeRow(_ n: Notice) -> some View {
+        HStack(spacing: FlowTone.Space.s) {
+            Image(systemName: n.symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(n.tint).frame(width: 16)
+            Text(n.title).font(n.importance == .important ? FlowTone.title : FlowTone.body).foregroundStyle(FlowTone.ink).lineLimit(1)
+            Text(n.detail).font(.system(size: 11)).foregroundStyle(FlowTone.inkTertiary).lineLimit(1)
+            if n.held { Circle().fill(FlowTone.accent).frame(width: 5, height: 5).help("Waited while you were focusing") }
+            Spacer(minLength: FlowTone.Space.s)
+            Text(n.date.formatted(date: .omitted, time: .shortened)).font(FlowTone.mono).foregroundStyle(FlowTone.inkTertiary)
+            if let title = n.actionTitle, let action = n.action {
+                Button(title) { action() }.buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.accent)
+            }
+            Button { withAnimation(Motion.Token.content.animation) { log.dismiss(n.id) } } label: {
+                Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(FlowTone.inkTertiary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
+        }
+        .frame(height: 26)
+    }
+
+    private var next: some View {
+        let next = calendar.events.first { $0.start > Date() || $0.isNow }
+        return ToneTile {
+            VStack(alignment: .leading, spacing: 6) {
+                ToneHeader(symbol: "calendar", title: "Next")
+                if let next {
+                    Text(next.title).font(FlowTone.title).foregroundStyle(FlowTone.ink).lineLimit(2)
+                    Text(next.isNow ? "Now" : next.start.formatted(date: .omitted, time: .shortened)).font(FlowTone.mono).foregroundStyle(FlowTone.accent)
+                } else {
+                    Text("Nothing else today").font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary)
+                }
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var today: some View {
+        let open = store.list(.today).filter(\.isOpen).count
+        return ToneTile {
+            VStack(alignment: .leading, spacing: 4) {
+                ToneHeader(symbol: "checklist", title: "Today", trailing: "\(store.doneToday) done")
+                LiveFigure(value: "\(open)", unit: open == 1 ? "task open" : "tasks open", size: 24)
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .onTapGesture { model.select(.tasks) }
+    }
+
+    private var mac: some View {
+        ToneTile {
+            VStack(alignment: .leading, spacing: 8) {
+                ToneHeader(symbol: "cpu", title: "Mac")
+                HStack(spacing: FlowTone.Space.s) {
+                    mini("CPU", stats.cpu, FlowTone.accent)
+                    mini("Mem", stats.memory, stats.pressure == .normal ? FlowTone.good : FlowTone.caution)
+                    if battery.hasBattery { mini("Batt", Double(battery.level) / 100, battery.level <= 20 ? FlowTone.bad : FlowTone.good) }
+                }
+            }
+        }
+        .onTapGesture { WorkspaceModel.shared.section = .system }
+    }
+
+    private func mini(_ label: String, _ value: Double, _ tint: Color) -> some View {
+        VStack(spacing: 3) {
+            ArcGauge(value: value, tint: tint, lineWidth: 3.5) {
+                Text("\(Int((value * 100).rounded()))").font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit()).foregroundStyle(FlowTone.ink)
+            }
+            .frame(width: 38, height: 38)
+            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(FlowTone.inkTertiary)
         }
     }
 }
