@@ -59,6 +59,13 @@ enum SnapshotHarness {
             Case(name: "12-expanded-music-app", live: false) { m in app(); ActivityCenter.shared.debugSet([.nowPlaying]); m.debugSetMode(.expanded(.activity(.nowPlaying))) },
             Case(name: "13-expanded-timer", live: false) { m in
                 FocusTimer.shared.start(minutes: 25, label: "Focus"); ActivityCenter.shared.debugSet([.timer]); m.debugSetMode(.expanded(.activity(.timer))) },
+            Case(name: "90-workspace-overview", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .overview; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "91-workspace-system", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .system; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "92-workspace-devices", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .devices; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "93-workspace-clipboard", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .clipboard; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "94-workspace-developer", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .developer; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "95-workspace-flow", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .intelligence; m.debugSetMode(.expanded(.workspace)) },
+            Case(name: "96-workspace-settings", live: true) { m in Self.demoWorkspace(); WorkspaceModel.shared.section = .settings; m.debugSetMode(.expanded(.workspace)) },
             Case(name: "14-expanded-meeting", live: false) { m in
                 FocusTimer.shared.stop(); ActivityCenter.shared.debugSet([.meeting], meeting: meeting); m.debugSetMode(.expanded(.activity(.meeting))) },
             Case(name: "15-expanded-download", live: false) { m in ActivityCenter.shared.debugSet([.download]); m.debugSetMode(.expanded(.activity(.download))) },
@@ -376,6 +383,16 @@ enum SnapshotHarness {
     }
 
     private static func spin(_ t: TimeInterval) { RunLoop.main.run(until: Date().addingTimeInterval(t)) }
+
+    /// Repositories, servers and reviews for the workspace's Developer section (live reads are off in snapshots).
+    private static func demoWorkspace() {
+        DevStatus.shared.debugSet(
+            repos: [.init(path: "/x/MACdyna", name: "MACdyna", branch: "pro", ahead: 3, behind: 0, changes: 4, lastCommit: "Smart Workspace: seven sections", lastWhen: "2 minutes ago"),
+                    .init(path: "/x/api", name: "api", branch: "main", ahead: 0, behind: 2, changes: 0, lastCommit: "Rate-limit the export endpoint", lastWhen: "3 hours ago")],
+            servers: [.init(pid: 1, process: "node", port: 3000), .init(pid: 2, process: "python3", port: 8000)],
+            reviews: [.init(title: "Cache artwork per album", repo: "Bmorp/macFLOW", number: 42, url: "https://github.com/Bmorp/macFLOW/pull/42")],
+            github: .ready)
+    }
 
     /// A question and a suggestion waiting in Flow's inbox.
     private static func demoAsks() -> [FlowInbox.Item] {

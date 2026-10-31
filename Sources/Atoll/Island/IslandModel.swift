@@ -19,6 +19,8 @@ enum IslandFocus: Hashable {
     case sheet
     /// Flow Tasks: today, next, someday.
     case tasks
+    /// The Smart Workspace: overview, system, devices, clipboard, developer, Flow, settings.
+    case workspace
 }
 
 enum IslandMode: Equatable {
@@ -268,6 +270,7 @@ final class IslandModel {
         case .expanded(.day): "day"
         case .expanded(.sheet): "sheet"
         case .expanded(.tasks): "tasks"
+        case .expanded(.workspace): "workspace"
         case .expanded(.activity(let k)): "activity.\(k.rawValue)"
         case .alert: "alert.\(alert?.id.uuidString ?? "")"
         case .search: "search"
@@ -299,7 +302,7 @@ final class IslandModel {
             return .tint(np.mode == .track ? np.accent : Color(red: 0.55, green: 0.66, blue: 1))
         case .expanded(.activity(let k)): return .tint(k.tint)
         case .expanded(.controls): return .tint(Color(red: 0.55, green: 0.66, blue: 1))
-        case .expanded(.brain), .expanded(.plan), .expanded(.rewind), .expanded(.day), .expanded(.sheet), .expanded(.tasks): return .tint(.clear)
+        case .expanded(.brain), .expanded(.plan), .expanded(.rewind), .expanded(.day), .expanded(.sheet), .expanded(.tasks), .expanded(.workspace): return .tint(.clear)
         case .compact: return .tint(primary?.tint ?? .white)
         case .alert:
             switch alert?.kind {
@@ -374,6 +377,7 @@ final class IslandModel {
         case .day: DayArtView.height
         case .sheet: FlowSheet.height
         case .tasks: TasksPlace.height
+        case .workspace: WorkspacePlace.height
         case .activity(let k): k.rowHeight
         }
     }
@@ -405,6 +409,9 @@ final class IslandModel {
         case .tasks:
             CGSize(width: max(DS.Size.searchWidth, notch.width + 360) + Self.expandedFlare * 2,
                    height: notch.height + TasksPlace.height)
+        case .workspace:
+            CGSize(width: max(WorkspacePlace.width, notch.width + 540) + Self.expandedFlare * 2,
+                   height: notch.height + WorkspacePlace.height)
         case .activity:
             CGSize(width: expandedWidth, height: notch.height + rowHeight(focus))
         }
@@ -533,7 +540,7 @@ final class IslandModel {
     var tabs: [IslandFocus] {
         // Controls is a tab while you're in it, so you can step back to Home or an activity.
         // Flow's waiting items live on Home, so they aren't a tab either.
-        [.glance, .tasks] + ([IslandFocus.sheet, .plan, .rewind, .day].filter { mode == .expanded($0) }) + (mode == .expanded(.brain) ? [.brain] : [])
+        [.glance, .tasks] + ([IslandFocus.sheet, .plan, .rewind, .day, .workspace].filter { mode == .expanded($0) }) + (mode == .expanded(.brain) ? [.brain] : [])
             + (mode == .expanded(.controls) ? [.controls] : [])
             + live.filter { $0 != .nowPlaying && $0 != .flow }.map { .activity($0) }
     }
@@ -544,7 +551,7 @@ final class IslandModel {
     /// Go to one of the island's places.
     func select(_ focus: IslandFocus) {
         guard case .expanded(let current) = mode, current != focus else { return }
-        let fixed: [IslandFocus] = [.glance, .sheet, .plan, .tasks, .rewind, .day, .brain, .controls]
+        let fixed: [IslandFocus] = [.glance, .sheet, .plan, .tasks, .rewind, .day, .workspace, .brain, .controls]
         let order = fixed + tabs.filter { !fixed.contains($0) }
         if let a = order.firstIndex(of: current), let b = order.firstIndex(of: focus) {
             switchDirection = b > a ? 1 : -1

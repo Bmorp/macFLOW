@@ -198,7 +198,7 @@ private struct CarouselFeature: View {
 
 /// Mac Flow's own places and tools, one tap from Home.
 enum HomeFeature: String, CaseIterable, Identifiable {
-    case focus, tasks, plan, rewind, day, mirror, awake, flow
+    case workspace, focus, tasks, plan, rewind, day, mirror, awake, flow
 
     var id: String { rawValue }
 
@@ -209,6 +209,7 @@ enum HomeFeature: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .workspace: "Workspace"
         case .focus: "Focus"
         case .tasks: "Tasks"
         case .plan: "Plan Your Day"
@@ -222,6 +223,7 @@ enum HomeFeature: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
+        case .workspace: "square.grid.2x2"
         case .focus: "timer"
         case .tasks: "checklist"
         case .plan: "sun.horizon.fill"
@@ -235,6 +237,7 @@ enum HomeFeature: String, CaseIterable, Identifiable {
 
     @MainActor var tint: Color {
         switch self {
+        case .workspace: FlowTone.accent
         case .focus: DS.Palette.orange
         case .tasks: TaskStyle.tint
         case .plan: PlanView.morning
@@ -251,6 +254,7 @@ enum HomeFeature: String, CaseIterable, Identifiable {
         case .focus:
             if !FocusTimer.shared.isActive { FocusTimer.shared.start(minutes: 25, label: "Focus") }
             model.select(.activity(.timer))
+        case .workspace: model.openWorkspace()
         case .tasks: model.select(.tasks)
         case .plan: model.openPlan()
         case .rewind: model.open(.rewind)

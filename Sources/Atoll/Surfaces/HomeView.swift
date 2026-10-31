@@ -137,6 +137,9 @@ private struct HomeStatusTrailing: View {
             if Mind.shared.isAvailable {
                 FlowButton { model.openBrain() }
             }
+            GlyphButton(symbol: "square.grid.2x2", label: "Workspace", size: 12, tint: DS.Palette.label, hit: 26) {
+                model.openWorkspace()
+            }
             GlyphButton(symbol: "slider.horizontal.3", label: "Sound & Display", size: 12, tint: DS.Palette.label, hit: 26) {
                 model.select(.controls)
             }
