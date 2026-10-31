@@ -91,10 +91,14 @@ struct AlertView: View {
             .accessibilityLabel("Brightness \(Int(level * 100)) percent")
         case .charging(let level):
             Text("\(level)%").monospacedDigit().foregroundStyle(DS.Palette.green)
-            BatteryGlyph(level: level, charging: true, width: 24)
+            ArcGauge(value: Double(level) / 100, tint: DS.Palette.green, lineWidth: 2.5, sweep: 1) {
+                Image(systemName: "bolt.fill").font(.system(size: 8, weight: .bold)).foregroundStyle(DS.Palette.green)
+            }
+            .frame(width: 20, height: 20)
         case .lowBattery(let level):
             Text("\(level)%").monospacedDigit().foregroundStyle(DS.Palette.red)
-            BatteryGlyph(level: level, charging: false, width: 24)
+            ArcGauge(value: Double(level) / 100, tint: DS.Palette.red, lineWidth: 2.5, sweep: 1)
+                .frame(width: 20, height: 20)
         case .privacy(_, let app):
             Text(app ?? "In Use").foregroundStyle(DS.Palette.label).lineLimit(1).minimumScaleFactor(0.7)
         case .message(_, let text, _):

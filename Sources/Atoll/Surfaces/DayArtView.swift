@@ -27,6 +27,21 @@ struct DayStory: Equatable {
     }
 
     /// Angle (radians, 0 at the top, clockwise) of a moment on the ring.
+    /// Deep work in each hour from the day's first hour to its last, as a share of the hour (at most 18 hours).
+    var focusByHour: [Double] {
+        guard let first = Calendar.current.dateInterval(of: .hour, for: start)?.start, end > first else { return [] }
+        let deep = spans.filter { $0.mode.isDeepWork }
+        var hours: [Double] = []
+        var h = first
+        while h < end, hours.count < 18 {
+            let next = h.addingTimeInterval(3600)
+            let seconds = deep.reduce(0.0) { $0 + max(0, min($1.end, next).timeIntervalSince(max($1.start, h))) }
+            hours.append(min(1, seconds / 3600))
+            h = next
+        }
+        return hours
+    }
+
     func angle(_ t: Date) -> Double {
         let f = min(1, max(0, t.timeIntervalSince(start) / max(1, end.timeIntervalSince(start))))
         return f * 2 * .pi
@@ -117,7 +132,7 @@ struct DayArtView: View {
     @Environment(\.islandShowing) private var showing
     @State private var drawn: Double
 
-    static let height: CGFloat = 262
+    static let height: CGFloat = 278
     private var inset: CGFloat { IslandModel.expandedFlare + DS.Island.rowLeading + 2 }
 
     init(model: IslandModel) {
@@ -148,6 +163,7 @@ struct DayArtView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 5)
                     stats(s).padding(.top, 14)
+                    if s.focus > 0 { focusBars(s).padding(.top, 12) }
                     Spacer(minLength: 8)
                     HStack(spacing: 6) {
                         QuietButton(title: art.savedTo == nil ? "Save Image" : "Saved") { art.save() }
@@ -157,7 +173,7 @@ struct DayArtView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 204)
+                .frame(height: 222)
             }
             .padding(.horizontal, inset)
             .padding(.top, 6)
@@ -194,6 +210,32 @@ struct DayArtView: View {
                 }
             }
         }
+    }
+
+    /// Focus hour by hour: the day's shape at a glance, its sharpest hour lit.
+    private func focusBars(_ s: DayStory) -> some View {
+        // Scaled to the day's own peak, so the shape reads even on a light day.
+        let raw = s.focusByHour
+        let top = max(raw.max() ?? 0, 0.01)
+        let bars = raw.map { $0 / top }
+        let peak = bars.indices.max { bars[$0] < bars[$1] }
+        func hour(_ d: Date) -> String { d.formatted(.dateTime.hour()) }
+        return VStack(alignment: .leading, spacing: 4) {
+            BarSpark(values: bars, tint: BrainStyle.tint, highlight: peak, maxBar: 5)
+                .frame(height: 26)
+            HStack {
+                Text(hour(s.start))
+                Spacer()
+                if let peak { Text("Sharpest \(hour(Calendar.current.date(byAdding: .hour, value: peak, to: Calendar.current.dateInterval(of: .hour, for: s.start)?.start ?? s.start) ?? s.start))") }
+                Spacer()
+                Text(hour(s.end))
+            }
+            .font(.system(size: 9.5, weight: .semibold))
+            .foregroundStyle(DS.Ink.tertiary)
+        }
+        .frame(maxWidth: 260)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Focus by hour")
     }
 
     private func stat(_ value: String, _ label: String, _ tint: Color) -> some View {

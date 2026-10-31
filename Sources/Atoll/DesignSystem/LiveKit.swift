@@ -67,8 +67,9 @@ struct ArcGauge<Center: View>: View {
     @ViewBuilder var center: () -> Center
 
     var body: some View {
-        // A trimmed circle starts at 3 o'clock and runs clockwise; turning it so the gap is centred on 6 o'clock.
-        let turn = 90 + (1 - sweep) * 180
+        // A trimmed circle starts at 3 o'clock and runs clockwise. A dial turns so its gap is centred on 6 o'clock;
+        // a full ring starts at 12, like a watch.
+        let turn = sweep >= 1 ? -90 : 90 + (1 - sweep) * 180
         ZStack {
             Group {
                 Circle()
@@ -116,7 +117,7 @@ struct BarSpark: View {
                 ForEach(values.indices, id: \.self) { i in
                     let v = min(1, max(0, values[i]))
                     Capsule()
-                        .fill(highlight == nil || highlight == i ? tint : tint.opacity(0.38))
+                        .fill(highlight == nil || highlight == i ? tint : tint.opacity(0.5))
                         .frame(width: w, height: max(w, geo.size.height * (risen ? max(v, 0.04) : 0.04)))
                         .animation(.spring(response: 0.5, dampingFraction: 0.8).delay(Double(i) * 0.012), value: risen)
                 }
