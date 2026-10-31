@@ -31,6 +31,9 @@ struct IslandView: View {
     @State private var planBuilt = false
     /// Rewind and your day, likewise (they load their data when shown, so keeping them costs little).
     @State private var flowPlacesBuilt = false
+    /// The Smart Workspace is the largest place and the least visited: built on its first open (one frame's work),
+    /// kept after, never prebuilt.
+    @State private var workspaceBuilt = false
 
     struct Shown {
         let key: String
@@ -63,7 +66,8 @@ struct IslandView: View {
                     if controlsBuilt, !p.contains(.controls) { p.append(.controls) }
                     if brainBuilt, !p.contains(.brain) { p.append(.brain) }
                     if planBuilt, !p.contains(.plan) { p.append(.plan) }
-                    if flowPlacesBuilt { for f in [IslandFocus.rewind, .day, .sheet, .tasks, .workspace] where !p.contains(f) { p.append(f) } }
+                    if flowPlacesBuilt { for f in [IslandFocus.rewind, .day, .sheet, .tasks] where !p.contains(f) { p.append(f) } }
+                    if workspaceBuilt, !p.contains(.workspace) { p.append(.workspace) }
                     return p
                 }()
                 let inPlace: Bool = { if case .expanded(let f) = display.mode { return places.contains(f) }; return false }()
@@ -152,7 +156,8 @@ struct IslandView: View {
             if model.mode == .expanded(.controls) { controlsBuilt = true }
             if model.mode == .expanded(.brain) { brainBuilt = true }
             if model.mode == .expanded(.plan) { planBuilt = true }
-            if [IslandFocus.rewind, .day, .sheet, .tasks, .workspace].contains(where: { model.mode == .expanded($0) }) { flowPlacesBuilt = true }
+            if [IslandFocus.rewind, .day, .sheet, .tasks].contains(where: { model.mode == .expanded($0) }) { flowPlacesBuilt = true }
+            if model.mode == .expanded(.workspace) { workspaceBuilt = true }
             present()
         }
     }

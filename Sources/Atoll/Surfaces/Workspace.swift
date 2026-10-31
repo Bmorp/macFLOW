@@ -136,6 +136,8 @@ struct WorkspacePlace: View {
             Spacer(minLength: 0)
         }
         .frame(width: 148)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Workspace sections")
     }
 
     @ViewBuilder private var content: some View {
@@ -331,6 +333,9 @@ private struct OverviewSection: View {
             .frame(width: 38, height: 38)
             Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(FlowTone.inkTertiary)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(["Mem": "Memory", "Batt": "Battery"][label] ?? label)
+        .accessibilityValue("\(Int((value * 100).rounded())) percent")
     }
 }
 
@@ -499,6 +504,9 @@ private struct DevicesSection: View {
             .frame(width: 38, height: 38)
             if !label.isEmpty { Text(label.uppercased()).font(DS.Kit.eyebrow).foregroundStyle(FlowTone.inkTertiary) }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(["L": "Left", "R": "Right", "Case": "Case", "": "Battery"][label] ?? label)
+        .accessibilityValue("\(v) percent")
     }
 }
 

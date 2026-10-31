@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import IOKit
 
 /// The Force Touch trackpad's motor, driven directly.
@@ -41,6 +41,13 @@ final class TrackpadActuator {
         open = unsafeBitCast(o, to: Open.self)
         actuate = unsafeBitCast(a, to: Actuate.self)
         reopen()
+        // After sleep the motor's handle can go stale, and a Magic Trackpad may have arrived: look again on wake.
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated {
+                TrackpadActuator.shared.lastOpen = -.infinity
+                TrackpadActuator.shared.reopen()
+            }
+        }
     }
 
     /// Plays one actuation on every Force Touch trackpad attached (the built-in one, a Magic Trackpad).
