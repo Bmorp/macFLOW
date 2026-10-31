@@ -7,7 +7,6 @@ import SwiftUI
 struct HomeCarousel: View {
     var model: IslandModel
     @ObservedObject private var catalog = AppCatalog.shared
-    @State private var position: String?
 
     static let icon: CGFloat = 40
     static let spacing: CGFloat = 16
@@ -68,14 +67,13 @@ struct HomeCarousel: View {
             .scrollTargetLayout()
             .padding(.horizontal, 6)
             .padding(.vertical, 8)
+            .background(alignment: .leading) { CarouselTicker(items: items) }
         }
         .scrollTargetBehavior(.viewAligned)
-        .scrollPosition(id: $position, anchor: .leading)
         .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.035),
                                      .init(color: .black, location: 0.965), .init(color: .clear, location: 1)],
                              startPoint: .leading, endPoint: .trailing))
         .claimsHorizontalScroll("home.carousel")
-        .onChange(of: position) { old, new in tick(items, from: old, to: new) }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Apps and features")
     }
@@ -90,18 +88,43 @@ struct HomeCarousel: View {
         }
     }
 
-    /// One tick per item that passes the leading edge; crossing into or out of the features is a landmark.
-    private func tick(_ items: [Item], from old: String?, to new: String?) {
-        guard let old, let new,
-              let a = items.firstIndex(where: { $0.id == old }), let b = items.firstIndex(where: { $0.id == new }), a != b
-        else { return }
-        let crossedSeam = items[min(a, b)...max(a, b)].contains(where: \.isSeam)
-        HapticEngine.shared.play(crossedSeam ? .landmark : .detent, channel: .carousel, timing: .withFrame, steps: abs(b - a))
-    }
 }
 
 extension HapticChannel {
     static let carousel = HapticChannel("carousel")
+}
+
+/// Feels the strip go by: reads how far it has scrolled and ticks the moment each item crosses the leading edge,
+/// mid-scroll, like a crown clicking through detents. Crossing into or out of the features is firmer. One division
+/// per scrolled frame; nothing else re-renders.
+private struct CarouselTicker: View {
+    let items: [HomeCarousel.Item]
+
+    /// Where each item's centre sits along the strip (icons and tiles are one width, the seam a hairline).
+    private var centres: [CGFloat] {
+        var x: CGFloat = 6, out: [CGFloat] = []
+        for item in items {
+            let w: CGFloat = item.isSeam ? 1.5 : HomeCarousel.icon
+            out.append(x + w / 2)
+            x += w + HomeCarousel.spacing
+        }
+        return out
+    }
+
+    var body: some View {
+        GeometryReader { g in
+            // The item whose centre has most recently passed the strip's leading edge (plus half an icon).
+            let travelled = -g.frame(in: .scrollView).minX + 6 + HomeCarousel.icon / 2
+            let index = max(0, (centres.lastIndex { $0 <= travelled }) ?? 0)
+            Color.clear.onChange(of: index) { old, new in
+                guard !RenderMode.snapshot else { return }
+                let crossedSeam = items[min(old, new)...max(old, new)].contains(where: \.isSeam)
+                HapticEngine.shared.play(crossedSeam ? .landmark : .detent, channel: .carousel, timing: .now, steps: abs(new - old))
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 }
 
 // MARK: - Cells
