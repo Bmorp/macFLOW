@@ -7,7 +7,9 @@ struct IslandTabs: View {
     let current: IslandFocus
 
     var body: some View {
-        let tabs = Array(model.tabs.prefix(5))
+        let wing = model.wing(for: current, inset: IslandModel.expandedFlare + DS.Island.rowLeading)
+        let fit = max(2, Int((wing - 4) / 30))
+        let tabs = Array(model.tabs.prefix(min(5, fit)))
         HStack(spacing: 0) {
             ForEach(tabs, id: \.self) { focus in
                 Tab(focus: focus, selected: focus == current) { model.select(focus) }

@@ -49,14 +49,18 @@ struct HomeView: View {
     var body: some View {
         let kind = kind
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
+            NotchRow(model: model, place: .glance, inset: inset) {
                 // With live activities, the tab switcher sits here instead (drawn by the island).
-                if model.tabs.count > 1 { Color.clear.frame(width: 1) } else { HomeStatusLeading() }
-                Spacer(minLength: model.notch.width + 24)
-                HomeStatusTrailing(model: model)
+                if model.tabs.count > 1 { Color.clear } else { HomeStatusLeading() }
+            } trailing: {
+                // The fullest set that fits beside the notch: the battery's figure goes first, then Flow's star
+                // (Flow is a tab and a carousel tile too).
+                ViewThatFits(in: .horizontal) {
+                    HomeStatusTrailing(model: model, level: 0)
+                    HomeStatusTrailing(model: model, level: 1)
+                    HomeStatusTrailing(model: model, level: 2)
+                }
             }
-            .padding(.horizontal, inset)
-            .frame(height: model.notch.height)
 
             HStack(alignment: .top, spacing: 20) {
                 HomeHero(kind: kind, model: model)
@@ -121,22 +125,26 @@ private struct HomeStatusLeading: View {
 
 private struct HomeStatusTrailing: View {
     var model: IslandModel
+    /// 0: everything; 1: the battery without its figure; 2: and without Flow's star.
+    var level = 0
     @ObservedObject private var battery = BatteryMonitor.shared
 
     var body: some View {
         HStack(spacing: 6) {
             if battery.hasBattery {
                 HStack(spacing: 5) {
-                    Text("\(battery.level)%")
-                        .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(DS.Palette.secondary)
-                        .fixedSize()
+                    if level == 0 {
+                        Text("\(battery.level)%")
+                            .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(DS.Palette.secondary)
+                            .fixedSize()
+                    }
                     BatteryGlyph(level: battery.level, charging: battery.isCharging, width: 22)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Battery \(battery.level) percent\(battery.isCharging ? ", charging" : "")")
             }
-            if Mind.shared.isAvailable {
+            if Mind.shared.isAvailable, level < 2 {
                 FlowButton { model.openBrain() }
             }
             GlyphButton(symbol: "square.grid.2x2", label: "Workspace", size: 12, tint: DS.Palette.label, hit: 26) {
@@ -149,6 +157,7 @@ private struct HomeStatusTrailing: View {
                 model.openSearch()
             }
         }
+        .fixedSize()
     }
 }
 

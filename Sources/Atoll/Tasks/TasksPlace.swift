@@ -31,9 +31,7 @@ struct TasksPlace: View {
         let size = model.expandedSize(.tasks)
         let sections = tasks.sections
         VStack(spacing: 0) {
-            header
-                .frame(height: model.notch.height)
-                .padding(.horizontal, inset)
+            NotchRow(model: model, place: .tasks, inset: inset) { Color.clear } trailing: { header }
             QuickAddField(line: tasks.line, list: tasks.segment, typing: focus == .quickAdd, focus: $focus) { tasks.add() }
                 .padding(.horizontal, inset - 10)
                 .padding(.top, 8)
@@ -88,33 +86,19 @@ struct TasksPlace: View {
 
     // MARK: Header (beside the notch)
 
+    /// Right of the notch: the lists and Reminders sync, in the fullest form that fits beside the camera.
     private var header: some View {
-        HStack(spacing: 10) {
-            Spacer(minLength: model.notch.width + 24)
-            picker
-            syncControl
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { picker(.full); syncControl }
+            HStack(spacing: 8) { picker(.tight); syncControl }
+            HStack(spacing: 8) { picker(.named); syncControl }
+            HStack(spacing: 8) { picker(.symbols); syncControl }
         }
     }
 
-    private var picker: some View {
-        HStack(spacing: 2) {
-            ForEach(TaskList.allCases) { l in
-                Button { tasks.select(l) } label: {
-                    Text(l.rawValue)
-                        .font(.system(size: 11.5, weight: .semibold))
-                        .foregroundStyle(tasks.segment == l ? Color.black : DS.Ink.secondary)
-                        .padding(.horizontal, 10)
-                        .frame(height: 22)
-                        .background(Capsule().fill(tasks.segment == l ? Color.white : .clear))
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(tasks.segment == l ? .isSelected : [])
-                .help("\(l.rawValue) (⌘\((TaskList.allCases.firstIndex(of: l) ?? 0) + 1))")
-            }
-        }
-        .padding(2)
-        .background(Capsule().fill(Color.white.opacity(0.08)))
+    private func picker(_ fit: SegmentPill<TaskList>.Fit) -> some View {
+        SegmentPill(items: TaskList.allCases, selection: tasks.segment, fit: fit, title: { $0.rawValue },
+                    symbol: { l in l == .today ? "sun.max" : l == .upcoming ? "calendar" : "tray" }) { tasks.select($0) }
     }
 
     /// Reminders sync: one glyph. Off, it offers to start; on, a menu to sync now, pick the list, or stop.

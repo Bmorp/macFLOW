@@ -34,7 +34,11 @@ struct ActivityStack: View {
                     }
                 }
                 .padding(.vertical, 2)
+                .padding(.trailing, 16)
             }
+            // A chip that runs past the island's edge fades out instead of being cut.
+            .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.94),
+                                         .init(color: .clear, location: 1)], startPoint: .leading, endPoint: .trailing))
             .claimsHorizontalScroll("home.stack")
         }
     }

@@ -38,6 +38,23 @@ final class CustomActivity: ObservableObject {
         func value(_ name: String) -> String? { query.first { $0.name == name }?.value.map(Self.clean) }
 
         switch command {
+        case "open":
+            // atoll://open?place=tasks — opens one of the island's places (for Shortcuts, Raycast, a keyboard tool).
+            // Display only, like everything a link can do: it shows a place, it never acts.
+            guard let model = IslandManager.shared.primary?.model else { return }
+            switch value("place")?.lowercased() ?? "home" {
+            case "tasks": model.open(.tasks)
+            case "workspace": model.openWorkspace()
+            case "sheet", "today": model.open(.sheet)
+            case "plan": model.openPlan()
+            case "rewind": model.open(.rewind)
+            case "day": model.open(.day)
+            case "controls": model.open(.controls)
+            case "flow": model.openBrain()
+            case "search": model.openSearch()
+            case "close": model.collapse()
+            default: model.expand(.glance, sticky: true)
+            }
         case "diagnose":
             // Atoll's own state, written to its own folder — for checking a build without guessing.
             let np = NowPlayingModel.shared

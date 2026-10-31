@@ -37,13 +37,14 @@ struct FlowSheet: View {
     var body: some View {
         let size = model.expandedSize(.sheet)
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Spacer(minLength: model.notch.width + 24)
-                pagePicker
-                GlyphButton(symbol: "chevron.up", label: "Put Away", size: 11, tint: DS.Ink.secondary, hit: 26) { model.select(.glance) }
+            NotchRow(model: model, place: .sheet, inset: inset) { Color.clear } trailing: {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) { pagePicker(.full); putAway }
+                    HStack(spacing: 8) { pagePicker(.tight); putAway }
+                    HStack(spacing: 8) { pagePicker(.named); putAway }
+                    HStack(spacing: 8) { pagePicker(.symbols); putAway }
+                }
             }
-            .frame(height: model.notch.height)
-            .padding(.horizontal, inset)
 
             HStack(alignment: .top, spacing: 18) {
                 Group {
@@ -84,34 +85,17 @@ struct FlowSheet: View {
 
     // MARK: Pages
 
-    private var pagePicker: some View {
-        HStack(spacing: 2) {
-            ForEach(Page.allCases, id: \.self) { p in
-                Button {
-                    withAnimation(Motion.morph) { page = p }
-                    if p == .brief { news.refresh() }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(p.rawValue)
-                        // Something of Flow's is waiting: a violet dot, nothing more.
-                        if p == .inbox, !inbox.items.isEmpty {
-                            Circle().fill(BrainStyle.tint).frame(width: 5, height: 5)
-                        }
-                    }
-                        .font(.system(size: 11.5, weight: .semibold))
-                        .foregroundStyle(page == p ? Color.black : DS.Ink.secondary)
-                        .padding(.horizontal, 10)
-                        .frame(height: 22)
-                        .background(Capsule().fill(page == p ? Color.white : .clear))
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(p == .inbox && !inbox.items.isEmpty ? "Inbox, \(inbox.items.count) waiting" : p.rawValue)
-                .accessibilityAddTraits(page == p ? .isSelected : [])
-            }
+    private var putAway: some View {
+        GlyphButton(symbol: "chevron.up", label: "Put Away", size: 11, tint: DS.Ink.secondary, hit: 26) { model.select(.glance) }
+    }
+
+    private func pagePicker(_ fit: SegmentPill<Page>.Fit) -> some View {
+        SegmentPill(items: Page.allCases, selection: page, fit: fit, title: { $0.rawValue },
+                    symbol: { p in p == .today ? "sun.max" : p == .inbox ? "tray" : p == .brief ? "newspaper" : "book" },
+                    marked: { $0 == .inbox && !inbox.items.isEmpty }) { p in
+            withAnimation(Motion.morph) { page = p }
+            if p == .brief { news.refresh() }
         }
-        .padding(2)
-        .background(Capsule().fill(Color.white.opacity(0.08)))
     }
 
     // MARK: Brief
