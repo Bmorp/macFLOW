@@ -234,7 +234,7 @@ struct AlertView: View {
                         Text(d.name).font(DS.Kit.title).foregroundStyle(DS.Ink.primary).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    HStack(spacing: 18) {
+                    HStack(spacing: 14) {
                         if let l = d.left { level(l, "L") }
                         if let r = d.right { level(r, "R") }
                         if let c = d.caseLevel { level(c, "Case") }
@@ -250,17 +250,20 @@ struct AlertView: View {
 
     // MARK: Pieces
 
-    /// A battery level as a figure with a hairline beneath — the level is the instrument.
+    /// A battery level as a small dial with the figure inside, coloured by how much is left.
     private func level(_ value: Int, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Figure(value: "\(value)", size: 22, tint: value <= 15 ? DS.Palette.red : DS.Ink.primary)
-                if !label.isEmpty { Text(label).font(DS.Kit.eyebrow).foregroundStyle(DS.Ink.tertiary) }
+        let tint = value <= 15 ? DS.Palette.red : value <= 30 ? DS.Palette.orange : DS.Palette.green
+        return VStack(spacing: 3) {
+            ArcGauge(value: Double(value) / 100, tint: tint, lineWidth: 3.5) {
+                Text("\(value)")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                    .foregroundStyle(value <= 15 ? DS.Palette.red : DS.Ink.primary)
+                    .contentTransition(.numericText())
             }
-            Capsule().fill(DS.Ink.well).frame(width: 34, height: 3)
-                .overlay(alignment: .leading) {
-                    Capsule().fill(value <= 15 ? DS.Palette.red : DS.Palette.green).frame(width: 34 * CGFloat(value) / 100, height: 3)
-                }
+            .frame(width: 42, height: 42)
+            if !label.isEmpty {
+                Text(label.uppercased()).font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(DS.Ink.tertiary)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label.isEmpty ? "Battery" : label) \(value) percent")

@@ -63,6 +63,10 @@ enum TimerPresentation {
                     Figure(value: timer.clock, size: 40, tint: paused ? DS.Ink.secondary : DS.Ink.primary, countsDown: true)
                         .accessibilityLabel("\(timer.clock) remaining")
                         .islandReveal(1)
+                    TintPill(title: "+5", tint: brand) { timer.add(minutes: 5) }
+                        .help("Add 5 Minutes")
+                        .accessibilityLabel("Add 5 minutes")
+                        .islandReveal(2)
                     Button { timer.togglePause() } label: {
                         Dial(fraction: timer.progress, tint: brand, diameter: 40) {
                             Image(systemName: paused ? "play.fill" : "pause.fill")
@@ -152,7 +156,7 @@ enum MeetingPresentation {
                             countdown(e).islandReveal(1)
                             Group {
                                 if e.meetingURL != nil {
-                                    Pill(title: "Join", symbol: "video.fill") {
+                                    TintPill(title: "Join", symbol: "video.fill", tint: brand, prominent: true) {
                                         CalendarModel.shared.open(e)
                                         model.collapse()
                                     }

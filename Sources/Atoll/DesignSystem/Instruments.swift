@@ -99,7 +99,8 @@ struct ContentLight: View {
 struct Eyebrow: View {
     let text: String
     var dot: Color? = nil
-    var tint: Color = DS.Ink.tertiary
+    /// Without one, a live label (one with a dot) reads in the dot's colour, and a quiet one in grey.
+    var tint: Color? = nil
 
     var body: some View {
         HStack(spacing: 6) {
@@ -107,7 +108,7 @@ struct Eyebrow: View {
             Text(text.uppercased())
                 .font(DS.Kit.eyebrow)
                 .tracking(DS.Kit.eyebrowTracking)
-                .foregroundStyle(tint)
+                .foregroundStyle(tint ?? dot.map { $0.opacity(Access.increaseContrast ? 1 : 0.92) } ?? DS.Ink.tertiary)
                 .lineLimit(1)
         }
     }
