@@ -11,6 +11,12 @@ protocol HapticClock: AnyObject {
 @MainActor
 protocol HapticPerformer: AnyObject {
     func perform(_ pattern: HapticPattern, timing: HapticTiming)
+    /// With the cue, so a performer that can vary strength makes steps lighter than moments.
+    func perform(_ pattern: HapticPattern, cue: HapticCue, timing: HapticTiming)
+}
+
+extension HapticPerformer {
+    func perform(_ pattern: HapticPattern, cue: HapticCue, timing: HapticTiming) { perform(pattern, timing: timing) }
 }
 
 /// What the hands were just doing.
@@ -52,7 +58,7 @@ final class HapticEngine {
     @discardableResult
     func play(_ cue: HapticCue, channel: HapticChannel, timing: HapticTiming, steps: Int) -> HapticDecision {
         let decision = decide(cue, channel: channel, timing: timing, steps: steps)
-        if case .play(let pattern, let timing) = decision { performer.perform(pattern, timing: timing) }
+        if case .play(let pattern, let timing) = decision { performer.perform(pattern, cue: cue, timing: timing) }
         return decision
     }
 
@@ -106,7 +112,11 @@ final class HapticAlignment {
               let token = filter.alignmentFeedbackTokenForMovement(in: nil, previousPoint: previous, alignedPoint: aligned, defaultPoint: unaligned),
               let cue = event.rule.cue,
               engine.decide(cue, channel: event.rule.channel, timing: .withFrame).plays else { return }
-        filter.performFeedback([token], performanceTime: .drawCompleted)
+        if TrackpadActuator.shared.available {
+            TrackpadActuator.shared.play(cue == .detent ? .tick : .firm)
+        } else {
+            filter.performFeedback([token], performanceTime: .drawCompleted)
+        }
     }
 }
 
@@ -119,6 +129,19 @@ final class SystemHapticClock: HapticClock {
 
 @MainActor
 final class TrackpadPerformer: HapticPerformer {
+    /// The trackpad's motor when it can be reached (Mac Flow is never the app in front, and macOS drops standard
+    /// haptics from apps that aren't); the standard call otherwise. Steps are a light tick, moments a firm one.
+    func perform(_ pattern: HapticPattern, cue: HapticCue, timing: HapticTiming) {
+        let motor = TrackpadActuator.shared
+        guard motor.available else { return perform(pattern, timing: timing) }
+        let strength: TrackpadActuator.Strength = cue == .detent ? .tick : .firm
+        switch timing {
+        case .now: motor.play(strength)
+        // After this turn of the run loop has committed what the haptic answers: the frame and the feel arrive together.
+        case .withFrame: DispatchQueue.main.async { motor.play(strength) }
+        }
+    }
+
     func perform(_ pattern: HapticPattern, timing: HapticTiming) {
         let p: NSHapticFeedbackManager.FeedbackPattern = switch pattern {
         case .alignment: .alignment
