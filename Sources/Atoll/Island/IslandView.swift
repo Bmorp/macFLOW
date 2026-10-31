@@ -14,7 +14,6 @@ struct IslandView: View {
     private var parkedOpacity: Double { keyed ? 0 : Self.parked }
     var model: IslandModel
     @Namespace private var ns
-    @State private var sweep: CGFloat = 1
     /// What's drawn inside the shape. Usually the model's current state; while closing, the open content
     /// stays (shrinking with the shape) and is swapped only at the very end.
     @State private var shown: Shown?
@@ -48,6 +47,7 @@ struct IslandView: View {
     }
 
     var body: some View {
+        let _ = IslandTrace.countBody()
         let display = shown ?? current()
         // The live state keeps its live size (hover, growing search results); a held state keeps its own.
         let size = display.key == model.presentationKey ? model.spec.size : display.size
@@ -57,7 +57,7 @@ struct IslandView: View {
             }
 
             IslandSurface(spec: model.spec, notchHeight: model.notch.height, rim: model.rim,
-                          rimStrength: model.rimStrength, sweep: sweep, elevated: model.isOpen) {
+                          rimStrength: model.rimStrength, elevated: model.isOpen) {
                 let places: [IslandFocus] = {
                     var p = model.tabs
                     if controlsBuilt, !p.contains(.controls) { p.append(.controls) }
@@ -192,16 +192,6 @@ struct IslandView: View {
                 withAnimation(Motion.morph) { slide = 0 }
             }
         }
-        playSweep()
-    }
-
-    /// One pass of light around the rim each time the island opens onto something new.
-    private func playSweep() {
-        guard model.isOpen, !Access.reduceMotion, !RenderMode.snapshot else { return }
-        var t = Transaction()
-        t.disablesAnimations = true
-        withTransaction(t) { sweep = 0 }
-        withAnimation(.easeInOut(duration: 0.6).delay(0.05)) { sweep = 1 }
     }
 
     // MARK: Bubble (minimal presentation)
@@ -212,47 +202,46 @@ struct IslandView: View {
     static let bubbleReturn: Double = 0.28
 
     private func bubble(_ kind: ActivityKind) -> some View {
+        IslandBubble(model: model, kind: kind)
+    }
+
+    // MARK: Interaction
+
+    private func tapped() { model.tap() }
+}
+
+/// The second live activity's bubble beside the closed island, pulled out of it like liquid (`LiquidSplit`).
+struct IslandBubble: View {
+    var model: IslandModel
+    let kind: ActivityKind
+    /// The engine draws the liquid bridge itself; the SwiftUI canvas is for the legacy surface and snapshots.
+    var drawsBridge = true
+
+    var body: some View {
         let d = model.bubbleDiameter
         let visible = model.showsBubble
-        return ZStack(alignment: .top) {
-            LiquidSplit(islandWidth: model.compactSize.width,
-                        height: model.notch.height,
-                        diameter: d,
-                        restOffset: model.bubbleOffset,
-                        progress: visible ? model.splitProgress : 0)
-                // Blur + threshold cost scales with area: draw a strip under the bezel, not the whole panel
-                // (the canvas used to fill all of it — ~16× the pixels — on every frame of a hover).
-                .frame(height: model.notch.height + 12)
-                .animation(visible ? Motion.split.delay(Self.bubbleReturn) : nil, value: visible)
+        ZStack(alignment: .top) {
+            if drawsBridge {
+                LiquidSplit(islandWidth: model.compactSize.width,
+                            height: model.notch.height,
+                            diameter: d,
+                            restOffset: model.bubbleOffset,
+                            progress: visible ? model.splitProgress : 0)
+                    // Blur + threshold cost scales with area: draw a strip under the bezel, not the whole panel
+                    // (the canvas used to fill all of it — ~16× the pixels — on every frame of a hover).
+                    .frame(height: model.notch.height + 12)
+                    .animation(visible ? Motion.split.delay(IslandView.bubbleReturn) : nil, value: visible)
+            }
             ActivityMinimal(kind: kind, diameter: d)
                 .offset(x: model.bubbleOffset)
                 .opacity(visible ? 1 : 0)
                 .scaleEffect(visible ? 1 : 0.5)
-                .animation(visible ? Motion.split.delay(Self.bubbleReturn + 0.1) : nil, value: visible)
+                .animation(visible ? Motion.split.delay(IslandView.bubbleReturn + 0.1) : nil, value: visible)
                 .onTapGesture { model.expandSecondary() }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint("Shows details")
         }
         .frame(maxWidth: .infinity, alignment: .top)
-    }
-
-    // MARK: Interaction
-
-    private func tapped() {
-        switch model.mode {
-        case .compact:
-            model.expand(sticky: true)
-        case .alert:
-            if case .trackChanged = model.alert?.kind {
-                model.expand(.activity(.nowPlaying), sticky: true)
-            } else if case .tip = model.alert?.kind {
-                IslandManager.shared.advanceTour()
-            } else {
-                model.dismissAlert()
-            }
-        default:
-            break
-        }
     }
 }
 
@@ -262,7 +251,6 @@ struct IslandSurface<Content: View>: View {
     let notchHeight: CGFloat
     let rim: RimStyle
     let rimStrength: Double
-    var sweep: CGFloat = 1
     var elevated: Bool
     @ViewBuilder var content: () -> Content
 
@@ -283,7 +271,7 @@ struct IslandSurface<Content: View>: View {
         // never drift vertically with it.
         .frame(width: spec.size.width, height: spec.size.height, alignment: .top)
         .clipShape(shape)
-        .overlay(RimLight(spec: spec, notchHeight: notchHeight, style: rim, strength: rimStrength, sweep: sweep))
+        .overlay(RimLight(spec: spec, notchHeight: notchHeight, style: rim, strength: rimStrength))
         .contentShape(shape)
     }
 }
@@ -385,7 +373,7 @@ struct IslandPresentation: View {
 /// File drags aren't caught here: an island-wide drop destination makes SwiftUI re-reduce drop preferences across
 /// the whole tree on every change (measured at ~7 ms a switch). IslandController sees a file drag coming and opens
 /// the drop view, whose own targets take it.
-private struct IslandChrome: ViewModifier {
+struct IslandChrome: ViewModifier {
     let enabled: Bool
     var model: IslandModel
 

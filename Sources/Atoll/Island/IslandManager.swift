@@ -55,8 +55,7 @@ final class IslandManager {
         guard let model = primary?.model else { return }
         let duration: TimeInterval = { if case .brainQuestion = alert { return 30 }; return 18 }()
         model.showAlert(alert, duration: duration)
-        // Only when it actually popped (an open island keeps it for Home, silently).
-        if model.mode == .alert, model.alert?.kind == alert { Haptics.snap() }
+        // No haptic: nobody's finger asked for it (HapticEvent.alertArrived).
     }
 
     /// Plan your day, in the island.
@@ -199,7 +198,7 @@ final class IslandManager {
         case .colorPicker:
             collapseAll()
             SystemActions.pickColor { [weak self] hex in
-                Haptics.confirm()
+                HapticEngine.shared.play(.copied)
                 self?.confirm("eyedropper.halffull", "Copied \(hex)", tint: Color(hex: hex) ?? .white)
             }
         case .screenshot:
@@ -238,13 +237,11 @@ final class IslandManager {
         ClaudeSessions.shared.onFinish = { [weak self] s, took in
             guard Prefs.shared.claudeAlerts, !Self.lookingAt(s) else { return }
             self?.alert(.claudeFinished(id: s.id, name: s.name, duration: took), 5)
-            Haptics.confirm()
             if Prefs.shared.sounds { NSSound(named: "Glass")?.play() }
         }
         ClaudeSessions.shared.onNeedsYou = { [weak self] s in
             guard Prefs.shared.claudeAlerts, !Self.lookingAt(s) else { return }
             self?.alert(.claudeNeedsYou(id: s.id, name: s.name, folder: s.folder), 8)
-            Haptics.confirm()
             if Prefs.shared.sounds { NSSound(named: "Ping")?.play() }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { ClaudeAsk.shared.refreshSignIn() }
@@ -286,7 +283,7 @@ final class IslandManager {
             let failed = item.state == .failed
             self?.alert(.message(symbol: failed ? "xmark.octagon.fill" : "checkmark.circle.fill", text: item.title,
                                  tint: failed ? DS.Palette.red : DS.Palette.green), 3.5)
-            if !failed { Haptics.confirm() }
+            if !failed { HapticEngine.shared.play(.workFinished) }
         }
 
         NowPlayingModel.shared.$trackChangeTick

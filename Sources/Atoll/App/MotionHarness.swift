@@ -3,7 +3,7 @@ import AppKit
 import SwiftUI
 
 /// Debug-only: draws every in-between frame of the island's transitions at fixed moments, using the same
-/// springs, exit timing and reveal stagger as the live animation — so glitches can be seen, not guessed.
+/// springs (`Motion.Token`) and close swap as the live animation — so glitches can be seen, not guessed.
 @MainActor
 enum MotionHarness {
     struct Transition {
@@ -29,10 +29,9 @@ enum MotionHarness {
         ActivityCenter.shared.debugSet([.nowPlaying, .timer])
         RunLoop.main.run(until: Date().addingTimeInterval(0.4))
 
-        // Keep in step with `Motion`.
-        let open = Spring(response: 0.3, dampingRatio: 0.8)
-        let close = Spring(response: 0.26, dampingRatio: 1)
-        let morph = Spring(response: 0.3, dampingRatio: 0.88)
+        let open = Motion.Token.open.spring
+        let close = Motion.Token.close.spring
+        let morph = Motion.Token.morph.spring
         let transitions: [Transition] = [
             Transition(name: "m0-open-home", from: { _ in }, to: { $0.debugSetMode(.expanded(.glance)) }, spring: open, delay: 0),
             Transition(name: "m1-open-music", from: { _ in }, to: { $0.debugSetMode(.expanded(.activity(.nowPlaying))) }, spring: open, delay: 0),
@@ -78,13 +77,11 @@ enum MotionHarness {
         let rim = CGFloat(lerp(CGFloat(a.rimStrength), CGFloat(b.rimStrength), min(1, max(0, g))))
         // Same rule as the live view: closing holds the open content until `Motion.closeSwap`; otherwise swap at once.
         let showFrom = a.isOpen && !b.isOpen && time < Motion.closeSwap
-        let sweepT = max(0, time - 0.05) / 0.6
-        let sweep = b.isOpen ? CGFloat(min(1, sweepT < 0.5 ? 2 * sweepT * sweepT : 1 - pow(-2 * sweepT + 2, 2) / 2)) : 1
         let canvas = CGSize(width: 760, height: 190)
         return ZStack(alignment: .top) {
             LinearGradient(colors: [Color(red: 0.30, green: 0.36, blue: 0.56), Color(red: 0.55, green: 0.42, blue: 0.56)], startPoint: .top, endPoint: .bottom)
             Rectangle().fill(.white.opacity(0.2)).frame(height: a.notch.height)
-            IslandSurface(spec: spec, notchHeight: a.notch.height, rim: b.rim, rimStrength: Double(rim), sweep: sweep, elevated: b.isOpen || a.isOpen) {
+            IslandSurface(spec: spec, notchHeight: a.notch.height, rim: b.rim, rimStrength: Double(rim), elevated: b.isOpen || a.isOpen) {
                 if showFrom {
                     IslandPresentation(model: a, mode: a.mode, size: sa.size, alert: a.alert, primary: a.primary, ns: Namespace().wrappedValue)
                 } else {

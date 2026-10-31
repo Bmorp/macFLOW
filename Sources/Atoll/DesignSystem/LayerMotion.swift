@@ -42,6 +42,11 @@ class LoopLayerView: NSView {
     /// Add or remove the loops to match `running`. Must be idempotent.
     func applyRunning() {}
 
+    /// Slow ambient loops (a breathing dot, a waveform) ask for 24 fps and never more than 30, so an always-on loop
+    /// can't keep a ProMotion display at 120 Hz all day; things that visibly travel (a spinner, a marquee) get 60.
+    static let ambientRate = CAFrameRateRange(minimum: 10, maximum: 30, preferred: 24)
+    static let travelRate = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+
     static func loop(_ keyPath: String, values: [Any], duration: CFTimeInterval, offset: CFTimeInterval = 0) -> CAKeyframeAnimation {
         let a = CAKeyframeAnimation(keyPath: keyPath)
         a.values = values
@@ -50,6 +55,7 @@ class LoopLayerView: NSView {
         a.calculationMode = .linear
         a.timeOffset = offset
         a.isRemovedOnCompletion = false
+        a.preferredFrameRateRange = ambientRate
         return a
     }
 }
@@ -134,6 +140,7 @@ final class PulseView: LoopLayerView {
             group.timingFunction = CAMediaTimingFunction(name: .easeOut)
             group.repeatCount = .infinity
             group.isRemovedOnCompletion = false
+            group.preferredFrameRateRange = Self.ambientRate
             halo.add(group, forKey: "pulse")
         } else {
             halo.removeAnimation(forKey: "pulse")
@@ -414,6 +421,7 @@ final class SpinnerView: LoopLayerView {
             a.duration = 1
             a.repeatCount = .infinity
             a.isRemovedOnCompletion = false
+            a.preferredFrameRateRange = Self.travelRate
             arc.add(a, forKey: "spin")
         } else {
             arc.removeAnimation(forKey: "spin")
@@ -497,6 +505,7 @@ final class MarqueeStripView: LoopLayerView {
             a.duration = total
             a.repeatCount = .infinity
             a.isRemovedOnCompletion = false
+            a.preferredFrameRateRange = Self.travelRate
             strip.add(a, forKey: "scroll")
         } else {
             strip.removeAnimation(forKey: "scroll")
