@@ -25,6 +25,26 @@ enum SmartCommand: Equatable {
     case tasks
     /// An open task found by name.
     case openTask(id: UUID, title: String, detail: String)
+    /// The Smart Workspace on a section: "servers", "devices", "system", "clipboard", "summarise my active work".
+    case workspace(WorkspaceSection)
+    /// The newest file in Downloads, of a kind if asked ("latest pdf").
+    case latestDownload(url: URL, date: Date)
+    /// "focus mode": a focus block, with notifications held.
+    case focusMode
+    /// "stop 3000": stop a local server, after a confirmation.
+    case stopServer(pid: Int32, port: Int, process: String)
+
+    /// What kind of command this is (the brief's command architecture): reading something, changing something on this
+    /// Mac, or going through an integration. Anything that can lose work asks first.
+    enum Category { case readOnly, localAction, integration }
+    var category: Category {
+        switch self {
+        case .workspace, .latestDownload, .rewind, .day, .tasks, .openTask, .project, .claude: .readOnly
+        case .join: .integration
+        default: .localAction
+        }
+    }
+    var asksFirst: Bool { if case .stopServer = self { return true }; return false }
 
     var id: String {
         switch self {
@@ -47,6 +67,10 @@ enum SmartCommand: Equatable {
         case .day: "day"
         case .addTask(_, let typed): "task.add:\(typed)"
         case .tasks: "tasks"
+        case .workspace(let w): "ws:\(w.rawValue)"
+        case .latestDownload(let url, _): "latest:\(url.path)"
+        case .focusMode: "focus"
+        case .stopServer(_, let port, _): "stop:\(port)"
         case .openTask(let id, _, _): "task:\(id)"
         }
     }
@@ -72,6 +96,10 @@ enum SmartCommand: Equatable {
         case .day: "See Your Day"
         case .addTask(let d, _): "New Task: \(d.title)"
         case .tasks: "Tasks"
+        case .workspace(let w): w == .overview ? "Your Active Work" : w == .system ? "System Monitor" : w == .clipboard ? "Clipboard History" : w.title
+        case .latestDownload(let url, _): url.lastPathComponent
+        case .focusMode: "Start a Focus Block"
+        case .stopServer(_, let port, let process): "Stop \(process) on :\(port)"
         case .openTask(_, let t, _): t
         }
     }
@@ -98,6 +126,19 @@ enum SmartCommand: Equatable {
         case .day: "Today, drawn — focus, meetings and music"
         case .addTask(let d, _): d.hasDetails ? TaskFormat.parts(of: d).joined(separator: " · ") : "Add it to your tasks"
         case .tasks: TaskCapture.summary
+        case .workspace(let w):
+            switch w {
+            case .overview: "Activities, notifications and what's next"
+            case .system: "CPU, memory, network and heat"
+            case .devices: "Audio, AirPods and Bluetooth"
+            case .clipboard: "Search what you copied"
+            case .developer: "Repositories, servers, CI and reviews"
+            case .intelligence: "Ask Flow"
+            case .settings: "Mac Flow's settings"
+            }
+        case .latestDownload(_, let date): "Newest in Downloads · \(date.formatted(.relative(presentation: .named)))"
+        case .focusMode: "25 minutes · only important notifications interrupt"
+        case .stopServer: "Asks before stopping · like Ctrl-C in its terminal"
         case .openTask(_, _, let d): d
         }
     }
@@ -126,6 +167,10 @@ enum SmartCommand: Equatable {
         case .addTask: "plus.circle"
         case .tasks: "checklist"
         case .openTask: "circle"
+        case .workspace(let w): w.symbol
+        case .latestDownload: "arrow.down.doc"
+        case .focusMode: "timer"
+        case .stopServer: "stop.circle"
         }
     }
 
@@ -141,6 +186,10 @@ enum SmartCommand: Equatable {
         case .plan: PlanView.morning
         case .rewind, .day: BrainStyle.tint
         case .addTask, .tasks, .openTask: TaskStyle.tint
+        case .workspace: FlowTone.accent
+        case .latestDownload: DS.Palette.blue
+        case .focusMode: DS.Palette.orange
+        case .stopServer: DS.Palette.red
         }
     }
 
@@ -154,7 +203,9 @@ enum SmartCommand: Equatable {
 
     var actionHint: String {
         switch self {
-        case .project, .claude, .plan, .rewind, .day, .tasks, .openTask: "Open"
+        case .project, .claude, .plan, .rewind, .day, .tasks, .openTask, .workspace, .latestDownload: "Open"
+        case .focusMode: "Start"
+        case .stopServer: "Stop…"
         case .addTask: "Add"
         case .join: "Join"
         case .output: "Switch"
@@ -224,13 +275,41 @@ enum SmartCommand: Equatable {
         case .openTask(let id, _, _):
             TasksModel.shared.show(id)
             return nil
+        case .workspace(let w):
+            IslandManager.shared.primary?.model.openWorkspace(w)
+            return nil
+        case .latestDownload(let url, _):
+            NSWorkspace.shared.open(url)
+            return nil
+        case .focusMode:
+            if !FocusTimer.shared.isActive { FocusTimer.shared.start(minutes: 25, label: "Focus") }
+            IslandManager.shared.primary?.model.select(.activity(.timer))
+            return nil
+        case .stopServer(let pid, let port, let process):
+            DevStatus.shared.stop(DevStatus.Server(pid: pid, process: process, port: port))
+            return nil
         }
+    }
+
+    /// The newest file in Downloads (by when it arrived), optionally of one kind.
+    static func newestDownload(kind: Set<String>?) -> (URL, Date)? {
+        let fm = FileManager.default
+        guard let dir = fm.urls(for: .downloadsDirectory, in: .userDomainMask).first,
+              let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.addedToDirectoryDateKey, .creationDateKey],
+                                                       options: [.skipsHiddenFiles]) else { return nil }
+        return files.compactMap { url -> (URL, Date)? in
+            let ext = url.pathExtension.lowercased()
+            guard ext != "download", ext != "crdownload", kind.map({ $0.contains(ext) }) ?? true else { return nil }
+            let v = try? url.resourceValues(forKeys: [.addedToDirectoryDateKey, .creationDateKey])
+            return (url, v?.addedToDirectoryDate ?? v?.creationDate ?? .distantPast)
+        }
+        .max { $0.1 < $1.1 }
     }
 
     /// Commands that move the island to another of its places rather than closing it.
     var staysInIsland: Bool {
         switch self {
-        case .plan, .rewind, .day, .tasks, .openTask: true
+        case .plan, .rewind, .day, .tasks, .openTask, .workspace, .focusMode: true
         default: false
         }
     }
@@ -293,6 +372,33 @@ enum SmartCommand: Equatable {
         } else {
             if TaskCapture.opensTasks(lower) { out.append(.tasks) }
             out += TaskCapture.find(lower).map { .openTask(id: $0.id, title: $0.title, detail: $0.detail) }
+        }
+        // The workspace, by what you'd call each part.
+        let sections: [(WorkspaceSection, [String])] = [
+            (.overview, ["workspace", "overview", "active work", "summarise my active work", "summarize my active work", "what am i working on", "notifications"]),
+            (.system, ["system monitor", "system", "cpu", "memory", "ram", "network speed", "thermal", "activity monitor"]),
+            (.devices, ["devices", "bluetooth", "connected devices", "show my connected devices"]),
+            (.clipboard, ["clipboard", "clipboard history", "copied"]),
+            (.developer, ["developer", "servers", "running servers", "show my running servers", "repos", "repositories", "git", "ci",
+                          "deploys", "deployments", "pull requests", "prs", "reviews", "docker", "containers"]),
+        ]
+        for (section, words) in sections where lower.count >= 2 && words.contains(where: { $0 == lower || ($0.hasPrefix(lower) && lower.count >= 3) || (lower.count > 8 && lower.contains($0)) }) {
+            out.append(.workspace(section))
+        }
+        // "latest pdf", "find my latest downloaded pdf", "last download".
+        if ["latest", "last ", "newest", "recent download"].contains(where: lower.contains), ["download", "pdf", "file", "image", "zip", "dmg"].contains(where: lower.contains) {
+            let kind: Set<String>? = lower.contains("pdf") ? ["pdf"] : lower.contains("image") ? ["png", "jpg", "jpeg", "heic", "gif", "webp"]
+                : lower.contains("zip") ? ["zip"] : lower.contains("dmg") ? ["dmg"] : nil
+            if let (url, date) = newestDownload(kind: kind) { out.append(.latestDownload(url: url, date: date)) }
+        }
+        if ["focus mode", "switch to focus mode", "deep work", "start focus"].contains(where: { $0.hasPrefix(lower) && lower.count >= 5 || lower.contains($0) }) {
+            out.append(.focusMode)
+        }
+        // "stop 3000", "kill :8000": a local server, found by port.
+        let words = lower.split(separator: " ")
+        if words.count == 2, ["stop", "kill"].contains(String(words[0])), let port = Int(words[1].trimmingCharacters(in: CharacterSet(charactersIn: ":"))),
+           let server = DevStatus.listeningServers().first(where: { $0.port == port }) {
+            out.insert(.stopServer(pid: server.pid, port: port, process: server.process), at: 0)
         }
         // Planning the day.
         if lower.count >= 3, "plan my day".hasPrefix(lower) || lower.hasPrefix("plan") || ["my day", "today", "replan", "schedule"].contains(lower) {

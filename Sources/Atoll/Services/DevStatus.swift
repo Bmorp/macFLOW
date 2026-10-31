@@ -38,11 +38,43 @@ final class DevStatus: ObservableObject {
 
     enum GitHub: Equatable, Sendable { case unknown, notInstalled, signedOut, ready }
 
+    /// A GitHub Actions run (CI, a deployment) in one of your repositories.
+    struct Run: Identifiable, Equatable, Sendable {
+        let id: Int
+        let repo: String
+        let workflow: String
+        let title: String
+        let branch: String
+        let status: String
+        let conclusion: String?
+        let updated: Date?
+        let url: String
+        var running: Bool { status != "completed" }
+        var passed: Bool { conclusion == "success" }
+    }
+
+    struct Container: Identifiable, Equatable, Sendable {
+        let id: String
+        let name: String
+        let image: String
+        let status: String
+        let ports: String
+    }
+
+    enum Docker: Equatable, Sendable { case unknown, notInstalled, notRunning, ready }
+
     @Published private(set) var repos: [Repo] = []
     @Published private(set) var servers: [Server] = []
     @Published private(set) var reviews: [PullRequest] = []
     @Published private(set) var github: GitHub = .unknown
     @Published private(set) var loading = false
+    /// The latest runs of each repository's workflows, newest first.
+    @Published private(set) var runs: [Run] = []
+    @Published private(set) var containers: [Container] = []
+    @Published private(set) var docker: Docker = .unknown
+    /// Runs seen in progress: when one finishes, you hear about it.
+    private var watching: [Int: Run] = [:]
+    private var watchWork: DispatchWorkItem?
 
     private var lastLocal: TimeInterval = -.infinity
     private var lastGitHub: TimeInterval = -.infinity
@@ -66,20 +98,67 @@ final class DevStatus: ObservableObject {
         let candidates = Array(Set(ClaudeSessions.shared.sessions.map(\.cwd) + knownRepos))
         loading = true
         Task.detached(priority: .utility) {
-            let repos = local ? Self.repos(in: candidates) : nil
+            let repos = Self.repos(in: candidates)
             let servers = local ? Self.listeningServers() : nil
+            let docker = local ? Self.dockerContainers() : nil
             let gh = remote ? Self.reviewRequests() : nil
+            let runs = remote && gh?.0 == .ready ? Self.workflowRuns(for: repos.map(\.path)) : nil
             await MainActor.run {
                 let shared = DevStatus.shared
-                if let repos {
-                    shared.repos = repos
-                    shared.knownRepos = Array(Set(shared.knownRepos + repos.map(\.path))).sorted()
-                }
+                shared.repos = repos
+                shared.knownRepos = Array(Set(shared.knownRepos + repos.map(\.path))).sorted()
                 if let servers { shared.servers = servers }
+                if let docker { shared.docker = docker.0; shared.containers = docker.1 }
                 if let gh { shared.github = gh.0; shared.reviews = gh.1 }
+                if let runs { shared.received(runs) }
                 shared.loading = false
             }
         }
+    }
+
+    // MARK: Watching runs
+
+    /// New runs replace the old; a watched run that has finished is announced (it lands in the notice history as
+    /// finished work), and while any run is still going, runs are checked again in a minute — never otherwise.
+    private func received(_ fresh: [Run]) {
+        for run in fresh {
+            if let was = watching[run.id], was.running, !run.running { announce(run) }
+            if run.running { watching[run.id] = run } else { watching[run.id] = nil }
+        }
+        runs = fresh
+        watchWork?.cancel()
+        guard watching.values.contains(where: \.running) else { return }
+        let paths = repos.map(\.path)
+        let work = DispatchWorkItem {
+            Task.detached(priority: .utility) {
+                let runs = Self.workflowRuns(for: paths)
+                await MainActor.run { DevStatus.shared.received(runs) }
+            }
+        }
+        watchWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60, execute: work)
+    }
+
+    private func announce(_ run: Run) {
+        let name = run.repo.split(separator: "/").last.map(String.init) ?? run.repo
+        IslandManager.shared.primary?.model.showAlert(
+            .message(symbol: run.passed ? "checkmark.circle.fill" : "xmark.octagon.fill",
+                     text: "\(run.workflow) \(run.passed ? "passed" : run.conclusion == "cancelled" ? "was cancelled" : "failed") · \(name)",
+                     tint: run.passed ? DS.Palette.green : DS.Palette.red),
+            duration: 4)
+    }
+
+    /// Stops a local server after you confirm: the same quit signal Ctrl-C sends in its terminal.
+    func stop(_ server: Server) {
+        let alert = NSAlert()
+        alert.messageText = "Stop \(server.process) on port \(server.port)?"
+        alert.informativeText = "Mac Flow sends it the standard quit signal, as Ctrl-C in its terminal would. Anything it hasn't saved may be lost."
+        alert.addButton(withTitle: "Stop").hasDestructiveAction = true
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        kill(server.pid, SIGTERM)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { DevStatus.shared.refresh(force: true) }
     }
 
     /// Asks for a folder and watches it if it's a Git repository.
@@ -207,6 +286,64 @@ final class DevStatus: ObservableObject {
             return PullRequest(title: title, repo: repo, number: number, url: url)
         }
         return (.ready, prs)
+    }
+
+    // MARK: GitHub Actions
+
+    /// `owner/name` for a GitHub remote (https, ssh or scp-style), nil for anything else.
+    nonisolated static func githubSlug(_ remote: String) -> String? {
+        var r = remote.trimmingCharacters(in: .whitespacesAndNewlines)
+        for prefix in ["https://github.com/", "http://github.com/", "ssh://git@github.com/", "git@github.com:"] where r.hasPrefix(prefix) {
+            r = String(r.dropFirst(prefix.count))
+            if r.hasSuffix(".git") { r = String(r.dropLast(4)) }
+            let parts = r.split(separator: "/")
+            return parts.count == 2 ? "\(parts[0])/\(parts[1])" : nil
+        }
+        return nil
+    }
+
+    nonisolated static func workflowRuns(for repoPaths: [String]) -> [Run] {
+        guard let gh = ["/opt/homebrew/bin/gh", "/usr/local/bin/gh"].first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return [] }
+        var out: [Run] = []
+        for path in repoPaths {
+            guard let remote = run("/usr/bin/git", ["-C", path, "remote", "get-url", "origin"]), let slug = githubSlug(remote),
+                  let json = run(gh, ["run", "list", "--repo", slug, "--limit", "2", "--json",
+                                      "databaseId,workflowName,displayTitle,status,conclusion,headBranch,updatedAt,url"], timeout: 10) else { continue }
+            out += parseRuns(json, repo: slug)
+        }
+        return out.sorted { ($0.updated ?? .distantPast) > ($1.updated ?? .distantPast) }
+    }
+
+    nonisolated static func parseRuns(_ json: String, repo: String) -> [Run] {
+        guard let data = json.data(using: .utf8), let rows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return [] }
+        let iso = ISO8601DateFormatter()
+        return rows.compactMap { r in
+            guard let id = r["databaseId"] as? Int, let status = r["status"] as? String, let url = r["url"] as? String else { return nil }
+            let conclusion = (r["conclusion"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            return Run(id: id, repo: repo, workflow: r["workflowName"] as? String ?? "Workflow", title: r["displayTitle"] as? String ?? "",
+                       branch: r["headBranch"] as? String ?? "", status: status, conclusion: conclusion,
+                       updated: (r["updatedAt"] as? String).flatMap(iso.date(from:)), url: url)
+        }
+    }
+
+    // MARK: Docker
+
+    nonisolated static func dockerContainers() -> (Docker, [Container]) {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let candidates = ["/usr/local/bin/docker", "/opt/homebrew/bin/docker", "\(home)/.docker/bin/docker",
+                          "/Applications/Docker.app/Contents/Resources/bin/docker"]
+        guard let docker = candidates.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else { return (.notInstalled, []) }
+        guard let out = run(docker, ["ps", "--format", "{{json .}}"], timeout: 3) else { return (.notRunning, []) }
+        return (.ready, parseContainers(out))
+    }
+
+    nonisolated static func parseContainers(_ text: String) -> [Container] {
+        text.split(separator: "\n").compactMap { line in
+            guard let data = line.data(using: .utf8), let r = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let id = r["ID"] as? String else { return nil }
+            return Container(id: id, name: r["Names"] as? String ?? id, image: r["Image"] as? String ?? "",
+                             status: r["Status"] as? String ?? "", ports: r["Ports"] as? String ?? "")
+        }
     }
 
     // MARK: Running tools

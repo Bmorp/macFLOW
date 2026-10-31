@@ -661,6 +661,11 @@ private struct DeveloperSection: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(alignment: .leading, spacing: FlowTone.Space.s) {
                             ForEach(dev.repos) { r in repo(r) }
+                            if dev.github == .ready, !dev.runs.isEmpty {
+                                Text("CI AND DEPLOYMENTS").font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking)
+                                    .foregroundStyle(FlowTone.inkTertiary).padding(.top, FlowTone.Space.s)
+                                ForEach(dev.runs.prefix(5)) { r in runRow(r) }
+                            }
                         }
                         .scrollTicks(pitch: 50)
                     }
@@ -669,21 +674,22 @@ private struct DeveloperSection: View {
             VStack(spacing: FlowTone.Space.s) {
                 ToneTile {
                     VStack(alignment: .leading, spacing: 6) {
-                        ToneHeader(symbol: "server.rack", title: "Local servers", trailing: "\(dev.servers.count)")
-                        if dev.servers.isEmpty {
+                        ToneHeader(symbol: "server.rack", title: "Running locally", trailing: "\(dev.servers.count + dev.containers.count)")
+                        if dev.servers.isEmpty && dev.containers.isEmpty {
                             Text("Nothing listening on a development port").font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary)
                         }
-                        ForEach(dev.servers.prefix(4)) { s in
+                        ForEach(dev.servers.prefix(4)) { s in ServerRow(server: s) }
+                        ForEach(dev.containers.prefix(3)) { c in
                             HStack(spacing: FlowTone.Space.s) {
-                                Circle().fill(FlowTone.good).frame(width: 6, height: 6)
-                                Text(verbatim: ":\(s.port)").font(FlowTone.mono).foregroundStyle(FlowTone.ink)
-                                Text(s.process).font(FlowTone.label).foregroundStyle(FlowTone.inkSecondary).lineLimit(1)
+                                Image(systemName: "shippingbox.fill").font(.system(size: 10)).foregroundStyle(FlowTone.accent)
+                                Text(c.name).font(FlowTone.mono).foregroundStyle(FlowTone.ink).lineLimit(1)
+                                Text(c.image).font(FlowTone.label).foregroundStyle(FlowTone.inkTertiary).lineLimit(1)
                                 Spacer(minLength: 0)
-                                if let url = s.url {
-                                    Button("Open") { NSWorkspace.shared.open(url) }
-                                        .buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.accent)
-                                }
                             }
+                            .help(c.status + (c.ports.isEmpty ? "" : " · " + c.ports))
+                        }
+                        if dev.docker == .notRunning {
+                            Text("Docker is installed but isn't running").font(.system(size: 11)).foregroundStyle(FlowTone.inkTertiary)
                         }
                     }
                 }
@@ -744,6 +750,26 @@ private struct DeveloperSection: View {
         }
     }
 
+    private func runRow(_ r: DevStatus.Run) -> some View {
+        Button { if let u = URL(string: r.url) { NSWorkspace.shared.open(u) } } label: {
+            HStack(spacing: FlowTone.Space.s) {
+                Image(systemName: r.running ? "circle.dotted" : r.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(r.running ? FlowTone.caution : r.passed ? FlowTone.good : FlowTone.bad)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(r.workflow).font(FlowTone.title).foregroundStyle(FlowTone.ink).lineLimit(1)
+                    Text("\(r.repo.split(separator: "/").last.map(String.init) ?? r.repo) · \(r.branch)\(r.title.isEmpty ? "" : " · " + r.title)")
+                        .font(.system(size: 11)).foregroundStyle(FlowTone.inkTertiary).lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Text(r.running ? "Running" : (r.updated.map { $0.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated)) } ?? ""))
+                    .font(FlowTone.mono).foregroundStyle(r.running ? FlowTone.caution : FlowTone.inkTertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .help("Open on GitHub")
+    }
+
     private func repo(_ r: DevStatus.Repo) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: FlowTone.Space.s) {
@@ -766,6 +792,31 @@ private struct DeveloperSection: View {
             Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: r.path)]) }
             Button("Stop Watching") { DevStatus.shared.forget(r.path) }
         }
+    }
+}
+
+private struct ServerRow: View {
+    let server: DevStatus.Server
+    @State private var hover = false
+
+    var body: some View {
+        HStack(spacing: FlowTone.Space.s) {
+            Circle().fill(FlowTone.good).frame(width: 6, height: 6)
+            Text(verbatim: ":\(server.port)").font(FlowTone.mono).foregroundStyle(FlowTone.ink)
+            Text(server.process).font(FlowTone.label).foregroundStyle(FlowTone.inkSecondary).lineLimit(1)
+            Spacer(minLength: 0)
+            if hover {
+                Button("Stop") { DevStatus.shared.stop(server) }
+                    .buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.bad)
+                    .help("Stop \(server.process) (asks first)")
+            }
+            if let url = server.url {
+                Button("Open") { NSWorkspace.shared.open(url) }
+                    .buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.accent)
+            }
+        }
+        .contentShape(Rectangle())
+        .onHover { hover = $0 }
     }
 }
 

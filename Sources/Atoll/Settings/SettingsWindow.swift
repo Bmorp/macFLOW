@@ -163,6 +163,7 @@ private struct GeneralPane: View {
                 Text("Island")
             } footer: {
                 Text("Swipe down on the notch to open it, sideways to move between activities, and up to close. Over Now Playing, scroll to change the volume.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -172,6 +173,7 @@ private struct GeneralPane: View {
                 Text("Motion")
             } footer: {
                 Text("Springs become short fades. Mac Flow also follows Reduce Motion in System Settings › Accessibility.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section {
@@ -193,6 +195,7 @@ private struct GeneralPane: View {
                 Text("Workspace")
             } footer: {
                 Text("Off, pulling down on Home opens Today, Inbox and Brief instead. “What's Live” opens Developer from a Claude session and Devices from music or a call.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section("Keyboard") {
@@ -264,6 +267,7 @@ private struct ClaudeSection: View {
             Text("Claude")
         } footer: {
             Text("Mac Flow reads only the status files Claude keeps for open sessions — their names, folders and whether they’re working. Your conversations are never read. Answers use Claude Code with every tool turned off, signed in to your own account.")
+                .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -301,6 +305,7 @@ private struct ActivitiesPane: View {
                     Text("Activities")
                 } footer: {
                     Text("Timers and Keep Awake always appear while they’re running.")
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -310,6 +315,7 @@ private struct ActivitiesPane: View {
                     Text("Notifications")
                 } footer: {
                     Text("Only what's important interrupts: a meeting starting, Claude needing you, a low battery. The rest wait in the Workspace's Overview.")
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Section("Alerts") {
@@ -340,6 +346,7 @@ private struct ActivitiesPane: View {
                     Text("Glance")
                 } footer: {
                     Text("Forecasts from Open-Meteo. Only the location is sent.")
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -378,6 +385,7 @@ private struct SearchPane: View {
                     Text("Search")
                 } footer: {
                     Text("Try “26.2 mi in km”, “$40 to €”, “time in Tokyo”, “remind me to call Sam at 5pm”, or “timer 10”. Currency uses European Central Bank rates.")
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -405,6 +413,7 @@ private struct SearchPane: View {
                     Text("Clipboard")
                 } footer: {
                     Text("Passwords and other items marked private by password managers are never saved. History stays on this Mac.")
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -416,6 +425,7 @@ private struct SearchPane: View {
                     Text("Shelf")
                 } footer: {
                     Text("The shelf keeps references to files. Nothing is moved or copied.")
+                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

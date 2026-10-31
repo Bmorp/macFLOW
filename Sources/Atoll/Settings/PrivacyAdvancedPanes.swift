@@ -19,6 +19,7 @@ struct PrivacyPane: View {
                 Text("Clipboard")
             } footer: {
                 Text("Kept on this Mac only, and only while this is on. Passwords and anything an app marks as private or temporary are never kept.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -29,24 +30,33 @@ struct PrivacyPane: View {
                 Text("Notifications")
             } footer: {
                 Text("A history of what the island told you, so nothing is lost while it's busy or you're focusing. It lives in memory and is gone when Mac Flow quits.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Section {
+                ForEach(AIProviders.all) { p in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(p.name)
+                            Spacer()
+                            Text(stateText(p.state)).foregroundStyle(p.state == .ready ? Color.green : .secondary)
+                        }
+                        Text(p.usedFor).font(.caption).foregroundStyle(.secondary)
+                        if case .unavailable(let why) = p.state { Text(why).font(.caption).foregroundStyle(.secondary) }
+                        if let setup = p.setup { Button(setup.title) { setup.run() } }
+                    }
+                    .padding(.vertical, 2)
+                }
                 Picker("Keep Flow's Memory For", selection: $prefs.brainRetentionDays) {
                     ForEach([7, 30, 90, 365], id: \.self) { Text("\($0) days").tag($0) }
                 }
-                LabeledContent("Language Model") {
-                    Text(Mind.shared.isAvailable ? "Apple, on this Mac" : "Not available").foregroundStyle(.secondary)
-                }
-                if !Mind.shared.isAvailable {
-                    Text(Mind.shared.unavailableReason).font(.caption).foregroundStyle(.secondary)
-                }
                 Button("Flow Settings…") { SettingsRouter.shared.page = .brain }
             } header: {
-                Text("Flow")
+                Text("AI")
             } footer: {
-                Text("What Flow may see (apps, window titles, on-screen text) is chosen in Flow's settings. It runs on this Mac; nothing is sent anywhere.")
+                Text("Flow runs on this Mac and sends nothing anywhere; what it may see is chosen in Flow's settings. Ask Claude sends only the question you type, through your own Claude account, and Claude can't act on your Mac.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -64,11 +74,21 @@ struct PrivacyPane: View {
                 Text("Developer")
             } footer: {
                 Text("Mac Flow reads Git status in the repositories listed here, the ports local processes listen on, and — through your own GitHub CLI login — reviews requested from you. It never writes to a repository.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .formStyle(.grouped)
-        .onAppear { DevStatus.shared.refresh() }
+        .onAppear { DevStatus.shared.refresh(); ClaudeAsk.shared.refreshSignIn() }
+    }
+
+    private func stateText(_ s: AIProviderStatus.State) -> String {
+        switch s {
+        case .ready: "Ready"
+        case .unavailable: "Not available"
+        case .signedOut: "Not signed in"
+        case .checking: "Checking…"
+        }
     }
 
     private var githubStatus: String {
@@ -108,6 +128,7 @@ struct AdvancedPane: View {
                 Text("Island Engine")
             } footer: {
                 Text("Draws the island's shape and springs in Core Animation, so it stays smooth while the app is busy, and lets gestures follow your fingers. Turn it off to use the original renderer.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -121,6 +142,7 @@ struct AdvancedPane: View {
                 Text("Refresh")
             } footer: {
                 Text("Readings are taken only while something on screen shows them.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -137,6 +159,7 @@ struct AdvancedPane: View {
                 Text("Diagnostics")
             } footer: {
                 Text("A plain-text summary to paste into an issue on GitHub. It has no personal data: no file names, no clipboard, nothing Flow knows.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
@@ -144,6 +167,7 @@ struct AdvancedPane: View {
                 Button("Reset All Settings…", role: .destructive) { confirmReset = true }
             } footer: {
                 Text("Every setting goes back to how it was on day one. Your tasks, clipboard history and what Flow learned are kept.")
+                    .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
