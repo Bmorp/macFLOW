@@ -110,8 +110,12 @@ struct BrainPlace: View {
                     }
                 }
                 .padding(.horizontal, inset)
-                .padding(.vertical, 8)
+                .padding(.top, 14)
+                .padding(.bottom, 12)
             }
+            .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.09),
+                                         .init(color: .black, location: 0.92), .init(color: .clear, location: 1)],
+                                 startPoint: .top, endPoint: .bottom))
             .onChange(of: agent.messages.last?.text) { _, _ in
                 if let id = agent.messages.last?.id { withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id, anchor: .bottom) } }
             }

@@ -172,13 +172,20 @@ struct TasksPlace: View {
 
     @ViewBuilder private func list(_ sections: [TaskStore.Section]) -> some View {
         if sections.isEmpty {
-            Text(emptyLine)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(DS.Ink.tertiary)
-                .padding(.leading, 36)
-                .padding(.top, 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel(emptyLine)
+            VStack(spacing: 8) {
+                Image(systemName: tasks.segment == .today && store.doneToday > 0 ? "checkmark.circle.fill" : "checklist")
+                    .font(.system(size: 26, weight: .light))
+                    .foregroundStyle(tasks.segment == .today && store.doneToday > 0 ? TaskStyle.tint : DS.Ink.tertiary)
+                Text(emptyLine)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(DS.Ink.secondary)
+                Text("Type above, or press ⌘N")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(DS.Ink.tertiary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.bottom, 18)
+            .accessibilityElement(children: .combine)
         } else {
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {

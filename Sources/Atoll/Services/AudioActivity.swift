@@ -54,7 +54,7 @@ final class AudioActivity: ObservableObject {
         watchCameras()
         // New cameras are rare; a slow sweep catches them without a per-second cost.
         let t = Timer(timeInterval: 10, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.watchCameras() }
+            DispatchQueue.main.async { self?.watchCameras() }
         }
         t.tolerance = 3
         RunLoop.main.add(t, forMode: .common)
@@ -114,7 +114,7 @@ final class AudioActivity: ObservableObject {
         // While audio runs, which app is playing can change without the device stopping.
         if detailTimer == nil {
             let t = Timer(timeInterval: 4, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refreshAudio() }
+                DispatchQueue.main.async { self?.refreshAudio() }
             }
             t.tolerance = 1
             RunLoop.main.add(t, forMode: .common)

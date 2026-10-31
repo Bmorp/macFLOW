@@ -375,7 +375,7 @@ private struct DayColumn: View {
                     }
                     .scrollBounceBehavior(.basedOnSize)
                     // The list runs on under the footer: fade it rather than cut it.
-                    .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.82), .init(color: .clear, location: 1)],
+                    .mask(LinearGradient(stops: [.init(color: .black, location: 0), .init(color: .black, location: 0.66), .init(color: .clear, location: 1)],
                                          startPoint: .top, endPoint: .bottom))
                     .onAppear {
                         // Start at what's next, not at what's already over.

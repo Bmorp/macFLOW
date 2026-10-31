@@ -400,7 +400,7 @@ struct TodayStrip: View {
     var body: some View {
         let list = Self.next(store.list(.today), excluding: active.task?.id)
         let open = store.list(.today).filter(\.isOpen).count
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
             Button { model.select(.tasks) } label: {
                 HStack(spacing: 4) {
                     Text("TODAY").font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(DS.Ink.tertiary)
@@ -438,6 +438,7 @@ struct TodayStrip: View {
             }
             Spacer(minLength: 0)
         }
+        .padding(.top, 6)
     }
 }
 

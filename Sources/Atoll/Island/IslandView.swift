@@ -78,7 +78,9 @@ struct IslandView: View {
                     // The island's places (Home and each live activity's page) are built once and kept, like tabs:
                     // hovering or switching only reveals one. Building Home fresh — two dozen buttons, each with focus,
                     // tooltip and accessibility machinery — cost ~25 ms; an activity page ~15 ms. Now it's near zero.
-                    ForEach(places, id: \.self) { place in
+                    // Snapshots draw only the place on show: offscreen rendering doesn't keep a 0.001 opacity, so parked
+                    // places would bleed through.
+                    ForEach(RenderMode.snapshot ? places.filter { display.mode == .expanded($0) } : places, id: \.self) { place in
                         let on = display.mode == .expanded(place)
                         IslandPresentation(model: model, mode: .expanded(place),
                                            size: on ? size : model.spec(for: .expanded(place)).size,

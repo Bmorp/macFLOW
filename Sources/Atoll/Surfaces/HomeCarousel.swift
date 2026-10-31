@@ -39,6 +39,21 @@ struct HomeCarousel: View {
 
     var body: some View {
         let items = items
+        if RenderMode.snapshot {
+            // A row wider than its frame is centred; a leading ZStack starts it at the first item, as the strip does.
+            ZStack(alignment: .leading) {
+                Color.clear
+                HStack(spacing: Self.spacing) { ForEach(items) { cell($0) } }
+                    .padding(.horizontal, 6).padding(.vertical, 8)
+                    .fixedSize()
+            }
+            .clipped()
+        } else {
+            strip(items)
+        }
+    }
+
+    private func strip(_ items: [Item]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Self.spacing) {
                 ForEach(items) { item in

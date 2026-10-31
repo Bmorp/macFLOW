@@ -32,7 +32,9 @@ struct HomeView: View {
     /// Everything between the status row and the Claude strip. The island sizes Home as `DS.Size.homeHeight` plus
     /// this much more: `momentHeight` is that difference, so the island's own arithmetic keeps working.
     static let bodyHeight: CGFloat = 4 + heroHeight + dockHeight
-    @MainActor static var momentHeight: CGFloat { bodyHeight - DS.Size.homeHeight }
+    @MainActor static var momentHeight: CGFloat { bodyHeight - DS.Size.homeHeight + (showsClaude ? 0 : footRoom) }
+    /// Air under the carousel for the sheet's grabber when the Claude strip isn't there to hold it.
+    static let footRoom: CGFloat = 10
 
     private var inset: CGFloat { IslandModel.expandedFlare + 18 }
 
@@ -67,6 +69,7 @@ struct HomeView: View {
                 .padding(.horizontal, inset)
                 .frame(height: Self.dockHeight - (Self.showsClaude ? 12 : 0))
 
+            if !Self.showsClaude { Color.clear.frame(height: Self.footRoom) }
             if Self.showsClaude {
                 ClaudeStrip { model.collapse() }
                     .padding(.horizontal, inset)

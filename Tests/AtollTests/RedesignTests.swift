@@ -81,8 +81,10 @@ struct HomeHeroTests {
     }
 
     @Test func homeKeepsTheIslandsArithmetic() {
-        // The island sizes Home as homeHeight + momentHeight (+ the Claude strip): that must add up to the layout's body.
-        #expect(DS.Size.homeHeight + HomeView.momentHeight == HomeView.bodyHeight)
+        // The island sizes Home as homeHeight + momentHeight (+ the Claude strip): that must add up to the layout's body,
+        // plus the air left under the carousel for the grabber when there's no Claude strip.
+        let foot = HomeView.showsClaude ? 0 : HomeView.footRoom
+        #expect(DS.Size.homeHeight + HomeView.momentHeight == HomeView.bodyHeight + foot)
         #expect(HomeView.bodyHeight == 4 + HomeView.heroHeight + HomeView.dockHeight)
     }
 }
