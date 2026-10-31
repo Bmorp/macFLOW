@@ -129,14 +129,22 @@ struct SpringToken: Hashable, Sendable {
 enum Motion {
     /// The springs themselves.
     enum Token {
-        /// The shape opening — quick, with a whisper of overshoot so it feels thrown rather than slid.
-        static let open = SpringToken(response: 0.3, damping: 0.8, reduced: 0.2)
-        /// The shape closing — critically damped and immediate: no bounce, no wait.
-        static let close = SpringToken(response: 0.26, damping: 1, reduced: 0.18)
-        /// One open state turning into another.
-        static let morph = SpringToken(response: 0.3, damping: 0.88, reduced: 0.2)
-        static let split = SpringToken(response: 0.45, damping: 0.72, reduced: 0.2)
-        static let hover = SpringToken(response: 0.22, damping: 0.8, reduced: 0.12)
+        // The brief's motion presets (durations are how long each takes to settle):
+        //   quick interaction 120–180 ms · content 180–260 ms · panel expansion 380–480 ms ·
+        //   workspace expansion 400–550 ms · dismissal 250–350 ms; damping 0.82–0.90, no visible bounce.
+        /// The shape growing out of the notch: about 430 ms, settling without a bounce you can see.
+        static let open = SpringToken(response: 0.42, damping: 0.86, reduced: 0.2)
+        /// The shape going back into the notch: about 300 ms, no bounce, no wait.
+        static let close = SpringToken(response: 0.3, damping: 0.92, reduced: 0.18)
+        /// One open state turning into another (a place, an activity).
+        static let morph = SpringToken(response: 0.36, damping: 0.88, reduced: 0.2)
+        /// The island opening up into the Smart Workspace: about 500 ms.
+        static let workspace = SpringToken(response: 0.48, damping: 0.88, reduced: 0.22)
+        static let split = SpringToken(response: 0.45, damping: 0.86, reduced: 0.2)
+        /// Quick interaction: hover, press. About 150 ms.
+        static let hover = SpringToken(response: 0.18, damping: 0.86, reduced: 0.12)
+        /// Content inside a surface changing (a crossfade, a section): about 220 ms.
+        static let content = SpringToken(response: 0.24, damping: 0.9, reduced: 0.15)
         /// The duo cross-fade spring.
         static let duo = SpringToken(response: 0.5, damping: 0.86, reduced: 0.2)
     }
@@ -145,7 +153,7 @@ enum Motion {
     static var close: Animation { Token.close.animation }
     /// When a closing island swaps its open content for the compact one: once the close spring has done
     /// most of its travel, so the content shrinks with the shape and gives way just before it lands.
-    static let closeSwap: Double = 0.17
+    static let closeSwap: Double = 0.2
     static var morph: Animation { Token.morph.animation }
     static var expand: Animation { open }
     static var collapse: Animation { close }

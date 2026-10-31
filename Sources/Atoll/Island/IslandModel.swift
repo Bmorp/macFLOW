@@ -503,7 +503,8 @@ final class IslandModel {
         let target = expansionTarget(focus)
         guard mode != .expanded(target) else { return }
         switchDirection = 0
-        animate(mode == .compact || mode == .alert ? Motion.Token.open : Motion.Token.morph) {
+        let token = target == .workspace ? Motion.Token.workspace : mode == .compact || mode == .alert ? Motion.Token.open : Motion.Token.morph
+        animate(token) {
             mode = .expanded(target)
             hovering = false
             alert = nil
@@ -559,7 +560,7 @@ final class IslandModel {
             switchDirection = 0
         }
         // No haptic: a click or a key already says it, and the content sliding over shows it (HapticEvent.tabSelected).
-        animate(Motion.Token.morph) { mode = .expanded(focus) }
+        animate(focus == .workspace ? Motion.Token.workspace : Motion.Token.morph) { mode = .expanded(focus) }
     }
 
     /// Two-finger swipe between the island's places while it's open.

@@ -6,16 +6,30 @@ import SwiftUI
 @MainActor
 enum ScrollClaims {
     private static var claims: Set<String> = []
+    private static var verticalClaims: Set<String> = []
 
     /// Whether something under the pointer is handling sideways scrolls.
     static var horizontal: Bool { !claims.isEmpty }
+    /// Whether a list under the pointer scrolls up and down itself, so two fingers there scroll it rather than
+    /// pull the island open or push it closed.
+    static var vertical: Bool { !verticalClaims.isEmpty }
 
     static func set(_ id: String, _ claiming: Bool) {
         if claiming { claims.insert(id) } else { claims.remove(id) }
     }
+
+    static func setVertical(_ id: String, _ claiming: Bool) {
+        if claiming { verticalClaims.insert(id) } else { verticalClaims.remove(id) }
+    }
 }
 
 extension View {
+    /// Claims up-and-down scrolls while the pointer is over this list.
+    func claimsVerticalScroll(_ id: String) -> some View {
+        onHover { ScrollClaims.setVertical(id, $0) }
+            .onDisappear { ScrollClaims.setVertical(id, false) }
+    }
+
     /// Claims sideways scrolls while the pointer is over this view.
     func claimsHorizontalScroll(_ id: String) -> some View {
         onHover { ScrollClaims.set(id, $0) }

@@ -47,6 +47,12 @@ enum WorkspaceSection: String, CaseIterable, Identifiable {
 final class WorkspaceModel: ObservableObject {
     static let shared = WorkspaceModel()
     @Published var section: WorkspaceSection = .overview
+
+    func step(_ delta: Int) {
+        let all = WorkspaceSection.allCases
+        guard let i = all.firstIndex(of: section) else { return }
+        section = all[min(all.count - 1, max(0, i + delta))]
+    }
 }
 
 extension IslandModel {
@@ -88,7 +94,7 @@ struct WorkspacePlace: View {
             .padding(.bottom, FlowTone.Space.m)
         }
         .frame(width: size.width, height: size.height, alignment: .top)
-        .animation(Access.reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.9), value: ws.section)
+        .animation(Access.reduceMotion ? nil : Motion.Token.content.animation, value: ws.section)
     }
 
     private var sidebar: some View {
@@ -675,9 +681,13 @@ private struct IntelligenceSection: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                TintPill(title: "Search Apps and Files", symbol: "magnifyingglass", tint: FlowTone.accent) { model.openSearch() }
             }
             Spacer(minLength: 0)
+            HStack(spacing: FlowTone.Space.s) {
+                TintPill(title: "Today, Inbox and Brief", symbol: "rectangle.portrait.bottomhalf.inset.filled", tint: FlowTone.accent) { model.open(.sheet) }
+                TintPill(title: "Search", symbol: "magnifyingglass", tint: FlowTone.accent) { model.openSearch() }
+                Text("⌘K").font(FlowTone.mono).foregroundStyle(FlowTone.inkTertiary)
+            }
         }
     }
 

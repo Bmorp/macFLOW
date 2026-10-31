@@ -37,25 +37,25 @@ struct SpringSolverTests {
 
     @Test func coefficientsFollowResponseAndDamping() {
         // m = 1: k = (2π/response)², c = 4πζ/response (the table in the engine design).
-        let open = SpringSolver(Motion.Token.open)
-        #expect(abs(open.stiffness - 438.6) < 0.1)
-        #expect(abs(open.dampingCoefficient - 33.51) < 0.01)
-        let close = SpringSolver(Motion.Token.close)
-        #expect(abs(close.stiffness - 584.0) < 0.1)
-        #expect(abs(close.dampingCoefficient - 48.33) < 0.01)
+        for token in [Motion.Token.open, Motion.Token.close, Motion.Token.morph, Motion.Token.workspace] {
+            let s = SpringSolver(token)
+            #expect(abs(s.stiffness - pow(2 * .pi / token.response, 2)) < 0.01)
+            #expect(abs(s.dampingCoefficient - 4 * .pi * token.damping / token.response) < 0.01)
+        }
     }
 
-    @Test func underdampedOvershootsCriticalDoesNot() {
-        let open = MotionCurve.spring(SpringSolver(Motion.Token.open))
-        let close = MotionCurve.spring(SpringSolver(Motion.Token.close))
-        var openPeak = 0.0, closePeak = 0.0
-        for i in 0...600 {
-            let t = Double(i) / 600
-            openPeak = max(openPeak, open.evaluate(from: 0, to: 100, v0: 0, at: t).value)
-            closePeak = max(closePeak, close.evaluate(from: 0, to: 100, v0: 0, at: t).value)
+    /// The brief: no visible bounce. Opening may overshoot by a hair; closing by less than half a point in 100.
+    @Test func springsSettleWithoutAVisibleBounce() {
+        func peak(_ token: SpringToken) -> Double {
+            let curve = MotionCurve.spring(SpringSolver(token))
+            return (0...600).map { curve.evaluate(from: 0, to: 100, v0: 0, at: Double($0) / 600).value }.max() ?? 0
         }
-        #expect(openPeak > 100.5)
-        #expect(closePeak <= 100.0001)
+        #expect(peak(Motion.Token.open) < 101.5)
+        #expect(peak(Motion.Token.close) < 100.5)
+        #expect(peak(Motion.Token.workspace) < 101)
+        for token in [Motion.Token.open, Motion.Token.close, Motion.Token.morph, Motion.Token.workspace, Motion.Token.hover] {
+            #expect((0.82...0.92).contains(token.damping))
+        }
     }
 
     /// Velocity is the true derivative of position (it carries an interrupted morph into the next one).

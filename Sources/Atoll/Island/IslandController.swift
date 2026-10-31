@@ -437,6 +437,10 @@ final class IslandController {
             if ended { scrollConsumed = false }
             return
         }
+        if model.isOpen, ScrollClaims.vertical, abs(scrollY) > abs(scrollX) {
+            if ended { scrollConsumed = false }
+            return
+        }
         if let engine, followWithFinger(e, engine, ended: ended) { return }
         if ended {
             scrollConsumed = false
@@ -453,11 +457,12 @@ final class IslandController {
         case .expanded(.controls):
             break
         case .expanded(.glance) where engine == nil && scrollY > 44 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
-            // Pull Home down: the sheet.
+            // Pull Home down: the Smart Workspace.
             scrollConsumed = true
-            model.open(.sheet)
+            model.openWorkspace(.overview)
             HapticEngine.shared.play(.gestureCommitted)
-        case .expanded(.sheet) where engine == nil && scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
+        case .expanded(.sheet) where engine == nil && scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed,
+             .expanded(.workspace) where engine == nil && scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
             // Push it back up: Home.
             scrollConsumed = true
             model.select(.glance)
@@ -557,8 +562,8 @@ final class IslandController {
             }
             switch place {
             case .glance:
-                return scrollY > 0 ? (.toSheet, .expanded(.sheet), true) : (.close, .compact, false)
-            case .sheet:
+                return scrollY > 0 ? (.toSheet, .expanded(.workspace), true) : (.close, .compact, false)
+            case .sheet, .workspace:
                 return scrollY < 0 ? (.toHome, .expanded(.glance), true) : nil
             case .activity(.nowPlaying):
                 return nil
@@ -610,7 +615,7 @@ final class IslandController {
         engine.endInteractive(velocity: v, commit: commit, springBack: g.springBack) {
             switch g.kind {
             case .pullOpen: model.expand(sticky: true)
-            case .toSheet: model.open(.sheet)
+            case .toSheet: model.openWorkspace(.overview)
             case .toHome: model.select(.glance)
             case .close: model.collapse()
             case .tabs(let direction): model.cycleFocus(direction)

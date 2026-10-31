@@ -387,6 +387,19 @@ final class IslandManager {
             perform(.settings)
             return true
         }
+        // ⌘K: command search, from anywhere in the open island.
+        if cmd, e.charactersIgnoringModifiers?.lowercased() == "k" {
+            if model.mode != .search { model.openSearch() }
+            return true
+        }
+        let typing = c.panel.firstResponder is NSText
+        if model.mode == .expanded(.workspace), !typing, !cmd {
+            switch e.keyCode {
+            case 125: WorkspaceModel.shared.step(1); return true    // down
+            case 126: WorkspaceModel.shared.step(-1); return true   // up
+            default: break
+            }
+        }
 
         if model.mode == .expanded(.sheet), e.keyCode == 53 {
             model.select(.glance)
@@ -436,7 +449,13 @@ final class IslandManager {
         }
 
         if e.keyCode == 53 {
-            model.collapse()
+            // Out of the workspace, back to Home first; from anywhere else, closed.
+            if model.mode == .expanded(.workspace) { model.select(.glance) } else { model.collapse() }
+            return true
+        }
+        // ← → move between the island's places, as two fingers sideways do.
+        if !typing, !cmd, case .expanded = model.mode, model.tabs.count > 1, e.keyCode == 123 || e.keyCode == 124 {
+            model.cycleFocus(e.keyCode == 124 ? 1 : -1)
             return true
         }
         if e.keyCode == 49, model.focus == .activity(.shelf), !(c.panel.firstResponder is NSText) {

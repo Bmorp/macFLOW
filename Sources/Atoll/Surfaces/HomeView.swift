@@ -78,7 +78,7 @@ struct HomeView: View {
             }
         }
         .frame(width: model.expandedSize(.glance).width, alignment: .top)
-        .overlay(alignment: .bottom) { SheetGrabber { model.open(.sheet) }.padding(.bottom, 4) }
+        .overlay(alignment: .bottom) { SheetGrabber { model.openWorkspace(.overview) }.padding(.bottom, 4) }
         .background(alignment: .top) { ArtField(clearTop: model.notch.height / max(1, model.expandedSize(.glance).height), strength: 0.42, ambient: true) }
         .onReceive(FocusTimer.shared.$phase.combineLatest(FocusTimer.shared.$label)) { phase, label in
             let next = phase == .idle ? nil : label

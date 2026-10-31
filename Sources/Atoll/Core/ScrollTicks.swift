@@ -4,8 +4,22 @@ extension View {
     /// Put on the content of a vertical ScrollView: a detent each time another `pitch` points (a row) scrolls past
     /// the top, so two fingers feel the list go by. The engine thins a flick to its ends and plays nothing for scrolls
     /// a finger didn't make (keyboard selection, a programmatic jump).
+    /// The list also claims up-and-down scrolls while the pointer is over it, so two fingers scroll the list rather
+    /// than pull or push the island.
     func scrollTicks(pitch: CGFloat, event: HapticEvent = .listRow) -> some View {
-        background(alignment: .top) { ScrollTicker(pitch: pitch, event: event) }
+        modifier(ScrollTicksModifier(pitch: pitch, event: event))
+    }
+}
+
+private struct ScrollTicksModifier: ViewModifier {
+    let pitch: CGFloat
+    let event: HapticEvent
+    @State private var id = UUID().uuidString
+
+    func body(content: Content) -> some View {
+        content
+            .background(alignment: .top) { ScrollTicker(pitch: pitch, event: event) }
+            .claimsVerticalScroll(id)
     }
 }
 
