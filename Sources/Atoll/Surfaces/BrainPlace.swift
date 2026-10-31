@@ -109,6 +109,7 @@ struct BrainPlace: View {
                         row(m).id(m.id)
                     }
                 }
+                .scrollTicks(pitch: 36)
                 .padding(.horizontal, inset)
                 .padding(.top, 14)
                 .padding(.bottom, 12)

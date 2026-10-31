@@ -342,6 +342,7 @@ struct ClaudeAnswerPanel: View {
                     .lineSpacing(3)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .scrollTicks(pitch: 40)
             }
         case .signedOut:
             Text("Sign in to Claude once to get answers right here. Until then, your question opens in Claude.")

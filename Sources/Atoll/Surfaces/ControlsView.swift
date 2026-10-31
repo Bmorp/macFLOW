@@ -161,14 +161,18 @@ struct ControlSlider: View {
                     if drag == nil { startValue = value }
                     // Relative drag (like Control Center): grab anywhere, move by the distance travelled.
                     let next = min(1, max(0, startValue + Double(g.translation.width / w)))
-                    if HapticEvent.reachedEnd(from: drag ?? startValue, to: next) { HapticEngine.shared.play(.sliderEnd) }
+                    if let (e, n) = HapticEvent.along(from: drag ?? startValue, to: next, count: 16, step: .sliderStep, end: .sliderEnd) {
+                        HapticEngine.shared.play(e, steps: n)
+                    }
                     drag = next
                     onChange(next)
                 }
                 .onEnded { _ in drag = nil })
             .background(ScrollCatcher { dy in
                 let next = min(1, max(0, value + dy * 0.006))
-                if HapticEvent.reachedEnd(from: scrolled.last ?? value, to: next) { HapticEngine.shared.play(.sliderEnd) }
+                if let (e, n) = HapticEvent.along(from: scrolled.last ?? value, to: next, count: 16, step: .sliderStep, end: .sliderEnd) {
+                    HapticEngine.shared.play(e, steps: n)
+                }
                 scrolled.last = next
                 onChange(next)
             })

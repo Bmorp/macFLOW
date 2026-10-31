@@ -389,18 +389,19 @@ final class IslandController {
             scrollConsumed = true
             cancelExpand()
             model.expand(sticky: true)
-            Haptics.snap()
+            HapticEngine.shared.play(.gestureCommitted)
         case .expanded(.controls):
             break
         case .expanded(.glance) where scrollY > 44 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
             // Pull Home down: the sheet.
             scrollConsumed = true
             model.open(.sheet)
-            Haptics.snap()
+            HapticEngine.shared.play(.gestureCommitted)
         case .expanded(.sheet) where scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
             // Push it back up: Home.
             scrollConsumed = true
             model.select(.glance)
+            HapticEngine.shared.play(.gestureCommitted)
         case .expanded(.rewind) where abs(scrollX) >= abs(scrollY):
             // Two fingers sideways scrub through the day: a moment per 12 points of travel.
             rewindTravel += dx
@@ -415,9 +416,11 @@ final class IslandController {
             if abs(scrollX) > 46, abs(scrollX) > abs(scrollY) * 1.6 {
                 scrollConsumed = true
                 model.cycleFocus(scrollX < 0 ? 1 : -1)
+                HapticEngine.shared.play(.gestureCommitted)
             } else if scrollY < -28, abs(scrollY) > abs(scrollX) * 1.6 {
                 scrollConsumed = true
                 model.collapse()
+                HapticEngine.shared.play(.gestureCommitted)
             }
         default:
             break
@@ -430,7 +433,9 @@ final class IslandController {
         let old = volume.muted ? 0 : volume.volume
         let new = min(1, max(0, old + Double(fingerTravel) * 0.0045))
         guard abs(new - old) > 0.0005 else { return }
-        if (new == 0 || new == 1) && old != new { Haptics.snap() }
+        if let (e, n) = HapticEvent.along(from: old, to: new, count: 16, step: .volumeStep, end: .sliderEnd) {
+            HapticEngine.shared.play(e, steps: n)
+        }
         IslandManager.shared.noteOwnVolumeChange()
         volume.set(new)
         model.flashInlineVolume()

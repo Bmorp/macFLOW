@@ -207,6 +207,7 @@ struct TasksPlace: View {
                         }
                     }
                     .padding(.bottom, 16)
+                    .scrollTicks(pitch: Self.pitch)
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 // The list runs on under the footer: let it go rather than cut it.

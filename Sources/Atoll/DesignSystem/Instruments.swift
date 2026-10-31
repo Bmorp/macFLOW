@@ -169,7 +169,9 @@ struct ProgressLine: View {
                     guard onSeek != nil else { return }
                     let next = min(max(0, g.location.x / w), 1)
                     // Felt while dragging into either end; the press itself is the trackpad's click.
-                    if let old = drag, HapticEvent.reachedEnd(from: old, to: next) { HapticEngine.shared.play(.seekEnd) }
+                    if let old = drag, let (e, n) = HapticEvent.along(from: old, to: next, count: 20, step: .seekStep, end: .seekEnd) {
+                        HapticEngine.shared.play(e, steps: n)
+                    }
                     drag = next
                 }
                 .onEnded { _ in if let d = drag { onSeek?(d) }; drag = nil },

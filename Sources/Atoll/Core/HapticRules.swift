@@ -3,6 +3,8 @@ import Foundation
 extension HapticChannel {
     /// The Dock companion rising under the pointer.
     static let dock = HapticChannel("dock")
+    /// A list in the island scrolling past its rows.
+    static let list = HapticChannel("list")
 }
 
 /// A haptic rule: what an event feels like. `cue == nil` means the event is deliberately silent.
@@ -31,8 +33,10 @@ enum HapticEvent: String, CaseIterable, Sendable {
     case islandLanded, gestureCommitted, tabSelected, alertArrived, rubberBandLimit
     // Drops
     case dropTargetEntered, dropAccepted
-    // Ranges
-    case sliderEnd, seekEnd
+    // Ranges, and the steps along them
+    case sliderEnd, seekEnd, sliderStep, seekStep, volumeStep
+    // Lists scrolled by two fingers
+    case listRow
     // Rewind
     case rewindMoment, rewindLandmark, rewindEnd, rewindAcceleratorLevel
     // StandBy
@@ -55,6 +59,20 @@ enum HapticEvent: String, CaseIterable, Sendable {
         new != old && (new <= 0 || new >= 1)
     }
 
+    /// How many of a range's `count` equal steps a move from `old` to `new` crossed (0…1 values).
+    static func steps(from old: Double, to new: Double, count: Int) -> Int {
+        let c = Double(count)
+        return abs(Int((min(1, max(0, new)) * c).rounded(.down)) - Int((min(1, max(0, old)) * c).rounded(.down)))
+    }
+
+    /// The haptic for moving along a stepped range: its end on arrival, otherwise one detent standing for every step
+    /// crossed (the engine thins them by speed). Nil when nothing was crossed.
+    static func along(from old: Double, to new: Double, count: Int, step: HapticEvent, end: HapticEvent) -> (HapticEvent, Int)? {
+        if reachedEnd(from: old, to: new) { return (end, 1) }
+        let n = steps(from: old, to: new, count: count)
+        return n > 0 ? (step, n) : nil
+    }
+
     var rule: HapticRule {
         switch self {
         case .islandLanded:
@@ -75,6 +93,14 @@ enum HapticEvent: String, CaseIterable, Sendable {
             HapticRule(.edge, .slider, why: "A Control Center slider or the island's volume reached 0 or 100%, by drag or by scroll.")
         case .seekEnd:
             HapticRule(.edge, .seek, why: "The seek bar reached the start or the end of the track.")
+        case .sliderStep:
+            HapticRule(.detent, .slider, why: "A slider crossed one of its sixteen steps (macOS's own volume steps), by drag or by scroll. Thinned by speed.")
+        case .seekStep:
+            HapticRule(.detent, .seek, why: "Scrubbing the seek bar crossed a twentieth of the track. Thinned by speed.")
+        case .volumeStep:
+            HapticRule(.detent, .slider, why: "Two fingers on the open player moved the volume a step. Thinned by speed.")
+        case .listRow:
+            HapticRule(.detent, .list, why: "Scrolling a list in the island brought the next row to the top. Thinned by speed; a flick only ticks at its ends.")
         case .rewindMoment:
             HapticRule(.detent, .rewind, why: "The playhead moved to another moment. Thinned by speed, so a fast scrub never buzzes.")
         case .rewindLandmark:

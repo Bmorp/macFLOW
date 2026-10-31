@@ -282,6 +282,7 @@ struct FlowSheet: View {
                             FlowAskCard(item: item, onLeave: { model.collapse() })
                         }
                     }
+                    .scrollTicks(pitch: 96)
                 }
             }
         }

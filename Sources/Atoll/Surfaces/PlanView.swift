@@ -371,6 +371,7 @@ private struct DayColumn: View {
                             }
                         }
                         .padding(.bottom, 14)
+                        .scrollTicks(pitch: 34)
                         .animation(Motion.morph, value: items.map { "\($0.id)\($0.start.timeIntervalSince1970)" })
                     }
                     .scrollBounceBehavior(.basedOnSize)

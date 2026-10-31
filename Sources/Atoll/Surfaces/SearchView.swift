@@ -217,6 +217,7 @@ struct SearchView: View {
                 .padding(.bottom, 8)
                 .padding(.leading, inset)
                 .padding(.trailing, search.showsPreview ? 0 : inset)
+                .scrollTicks(pitch: SearchModel.rowHeight)
             }
             .onChange(of: search.selection) { _, s in
                 guard ids.indices.contains(s) else { return }
