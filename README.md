@@ -35,6 +35,22 @@ controls you need. A thin light in the activity's colour traces its lower edge w
 It moves as one object. The content is laid out at its final size and scales with the shape, growing out of the notch
 and shrinking back into it. No blur, no fades, no reflow.
 
+## What's new in 9.0
+
+- **Smart Workspace.** Pull down on Home (or press ⊞) for a larger surface: an overview of everything live, the
+  Mac's health (CPU, memory pressure, network, heat), devices and audio, a searchable clipboard, and a developer
+  view with your repositories' branches and changes, local servers, GitHub Actions runs and reviews waiting on you.
+- **Flow Tasks.** Real tasks with natural-language capture (`t review deck tomorrow 3pm 45m #launch`), Today,
+  Upcoming and Someday, and two-way sync with Reminders so they reach your iPhone and Watch.
+- **A Brain that learns.** Suggestions that learn from every accept and dismiss, questions asked only where Flow is
+  unsure, task-length estimates, and a "What Flow learned" page you can edit.
+- **Haptics you can feel.** Crisp taps from the trackpad's own motor as you scroll lists, step sliders, swipe the
+  carousel and commit gestures.
+- **Motion.** The island's shape and springs run in Core Animation, and two-finger gestures follow your fingers.
+- **Activity stack and notifications.** Everything running in one row; finished work stays until you dismiss it;
+  notifications are kept in a history and wait quietly while you focus.
+- **Command centre.** In ⌘K: `servers`, `devices`, `latest pdf`, `focus mode`, `stop 3000`, and more.
+
 ## Watch: one day with Mac Flow
 
 <p align="center">

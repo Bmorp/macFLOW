@@ -418,8 +418,9 @@ struct TodayStrip: View {
                 // The same rhythm as a list of tasks: a row to add one, and a quiet line saying the day is clear.
                 Button { model.select(.tasks) } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "plus.circle.fill").font(.system(size: 17)).foregroundStyle(TaskStyle.tint)
-                        Text("Add a task").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.primary)
+                        Image(systemName: "plus").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.tertiary)
+                            .frame(width: 20)
+                        Text("Add a task").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.secondary)
                         Spacer(minLength: 0)
                     }
                     .frame(height: 28)
@@ -429,6 +430,7 @@ struct TodayStrip: View {
                 .accessibilityLabel("Add a task")
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.circle").font(.system(size: 17, weight: .light)).foregroundStyle(DS.Ink.tertiary)
+                        .frame(width: 20)
                     Text("Nothing due today").font(.system(size: 13, weight: .medium)).foregroundStyle(DS.Ink.tertiary)
                 }
                 .frame(height: 28)

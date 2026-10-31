@@ -18,7 +18,7 @@ APP_NAME="Mac Flow"
 EXEC_NAME="MacFlow"     # CFBundleExecutable
 BIN_NAME="Atoll"        # the Swift package product
 DMG_NAME="MacFlow"
-VERSION="${VERSION:-8.1.0}"   # the release base: CI bumps the last number for each release after it
+VERSION="${VERSION:-9.0.0}"   # the release base: CI bumps the last number for each release after it
 BUILD_NUMBER="${BUILD_NUMBER:-$(date +%Y%m%d%H%M)}"
 if [ -z "${SIGN_ID:-}" ]; then
     if security find-identity -p codesigning 2>/dev/null | grep -q '"Mac Flow Local"'; then
