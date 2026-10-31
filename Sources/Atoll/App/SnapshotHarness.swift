@@ -401,6 +401,36 @@ enum SnapshotHarness {
                     PrismAsk(eyebrow: "Flow asks", title: "Do you like music while coding?", why: "I’ll suggest it at the right moment — or never",
                              options: ["Yes", "Sometimes", "No"].map { .init(title: $0, run: {}) }, secondary: .init(title: "Don’t ask again", run: {}))
                 }.padding(20))),
+            ("72-live-kit", CGSize(width: 640, height: 300), AnyView(
+                HStack(alignment: .top, spacing: 28) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        LiveTag(text: "Focus", tint: DS.Palette.orange, dot: true)
+                        LiveFigure(value: "24:18", size: 44, countsDown: true)
+                        LiveTrack(fraction: 0.38, tint: DS.Palette.orange, leading: "6:42", trailing: "−18:18")
+                        HStack(spacing: 8) {
+                            TintPill(title: "Pause", symbol: "pause.fill", tint: DS.Palette.orange, prominent: true) {}
+                            TintPill(title: "+5 min", tint: DS.Palette.orange) {}
+                        }
+                    }
+                    .frame(width: 250)
+                    VStack(spacing: 14) {
+                        HStack(spacing: 14) {
+                            ForEach([(0.92, "L"), (0.88, "R"), (0.64, "Case")], id: \.1) { v, l in
+                                VStack(spacing: 4) {
+                                    ArcGauge(value: v, tint: DS.Palette.green, lineWidth: 5) {
+                                        Text("\(Int(v * 100))").font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    }
+                                    .frame(width: 54, height: 54)
+                                    Text(l).font(DS.Kit.meta).foregroundStyle(DS.Ink.secondary)
+                                }
+                            }
+                        }
+                        BarSpark(values: [0.1, 0.2, 0.5, 0.8, 0.9, 0.6, 0.3, 0.7, 1, 0.8, 0.4, 0.2], tint: Color(red: 0.62, green: 0.52, blue: 1), highlight: 8)
+                            .frame(width: 220, height: 54)
+                    }
+                }
+                .padding(22)
+                .background(TintGlow(tint: DS.Palette.orange)))),
         ]
         let labs2: [(String, CGSize, AnyView)] = [
             ("71-ribbon-sizes", CGSize(width: 420, height: 220), AnyView(
