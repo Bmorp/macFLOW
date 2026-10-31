@@ -36,7 +36,7 @@ final class SystemStats: ObservableObject {
         users += 1
         guard timer == nil else { return }
         sample()
-        let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: max(1, Prefs.shared.statsInterval), repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.sample() }
         }
         t.tolerance = 0.5

@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// What a developer has going on, read from the Mac itself: the Git repositories you're working in (the folders your
 /// Claude sessions are in, and ones seen before), servers listening on local ports, and — when the GitHub CLI is
@@ -80,6 +80,33 @@ final class DevStatus: ObservableObject {
                 shared.loading = false
             }
         }
+    }
+
+    /// Asks for a folder and watches it if it's a Git repository.
+    func chooseRepository() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Watch"
+        panel.message = "Choose a folder inside a Git repository"
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let path = url.path
+        Task.detached(priority: .userInitiated) {
+            guard let root = Self.run("/usr/bin/git", ["-C", path, "rev-parse", "--show-toplevel"])?
+                .trimmingCharacters(in: .whitespacesAndNewlines), !root.isEmpty else { return }
+            await MainActor.run {
+                let shared = DevStatus.shared
+                shared.knownRepos = Array(Set(shared.knownRepos + [root])).sorted()
+                shared.refresh(force: true)
+            }
+        }
+    }
+
+    /// Stops reading a repository (until a Claude session works in it again).
+    func forget(_ path: String) {
+        knownRepos.removeAll { $0 == path }
+        repos.removeAll { $0.path == path }
     }
 
     func debugSet(repos: [Repo], servers: [Server], reviews: [PullRequest], github: GitHub) {

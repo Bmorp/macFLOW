@@ -49,7 +49,7 @@ final class NoticeLog: ObservableObject {
 
     /// While a focus block runs or you're on a call, only what's important interrupts; the rest waits here.
     func shouldHold(_ n: Notice) -> Bool {
-        guard n.canWait, n.importance < .important, !RenderMode.snapshot else { return false }
+        guard Prefs.shared.quietDuringFocus, n.canWait, n.importance < .important, !RenderMode.snapshot else { return false }
         return FocusTimer.shared.phase == .running || ActivityCenter.shared.call != nil
     }
 

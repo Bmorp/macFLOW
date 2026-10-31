@@ -102,7 +102,8 @@ enum Access {
         return s
     }
 
-    static var reduceMotion: Bool { current.reduceMotion }
+    /// The system's Reduce Motion, or Mac Flow's own (Settings › General › Motion).
+    static var reduceMotion: Bool { current.reduceMotion || UserDefaults.standard.bool(forKey: "motionReduced") }
     static var increaseContrast: Bool { current.increaseContrast }
 }
 

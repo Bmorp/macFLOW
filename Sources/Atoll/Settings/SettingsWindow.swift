@@ -5,7 +5,7 @@ import AVFoundation
 
 /// Atoll's control panel: a sidebar of places, with an Overview of what the Brain understands at the top.
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case overview, general, permissions, brain, activities, search, widgets, standby, dock, about
+    case overview, general, permissions, privacy, brain, activities, search, widgets, standby, dock, advanced, about
     var id: String { rawValue }
 
     var title: String {
@@ -13,6 +13,8 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .overview: "Overview"
         case .general: "General"
         case .permissions: "Permissions"
+        case .privacy: "Privacy & Data"
+        case .advanced: "Advanced"
         case .brain: "Flow"
         case .activities: "Live Activities"
         case .search: "Search"
@@ -28,6 +30,8 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .overview: "square.grid.2x2"
         case .general: "gearshape"
         case .permissions: "hand.raised"
+        case .privacy: "lock.shield"
+        case .advanced: "wrench.and.screwdriver"
         case .brain: "sparkles"
         case .activities: "capsule.inset.filled"
         case .search: "magnifyingglass"
@@ -40,9 +44,10 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 
     static let sections: [(String?, [SettingsPage])] = [
         (nil, [.overview]),
-        ("Mac Flow", [.general, .permissions, .brain, .activities, .search]),
+        ("Mac Flow", [.general, .activities, .search, .brain]),
         ("Extras", [.widgets, .standby, .dock]),
-        (nil, [.about]),
+        ("Privacy", [.permissions, .privacy]),
+        (nil, [.advanced, .about]),
     ]
 }
 
@@ -93,6 +98,8 @@ private struct SettingsRoot: View {
         case .overview: OverviewPane()
         case .general: GeneralPane()
         case .permissions: PermissionsPane()
+        case .privacy: PrivacyPane()
+        case .advanced: AdvancedPane()
         case .brain: BrainPane()
         case .activities: ActivitiesPane()
         case .search: SearchPane()
@@ -156,6 +163,36 @@ private struct GeneralPane: View {
                 Text("Island")
             } footer: {
                 Text("Swipe down on the notch to open it, sideways to move between activities, and up to close. Over Now Playing, scroll to change the volume.")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Section {
+                Toggle("Reduce Motion in Mac Flow", isOn: $prefs.motionReduced)
+            } header: {
+                Text("Motion")
+            } footer: {
+                Text("Springs become short fades. Mac Flow also follows Reduce Motion in System Settings › Accessibility.")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Section {
+                Toggle("Pull Down on Home for the Workspace", isOn: $prefs.pullOpensWorkspace)
+                Picker("Workspace Opens On", selection: $prefs.workspaceOpensOn) {
+                    Text("What's Live").tag(0)
+                    Text("Where You Left It").tag(1)
+                    Text("Overview").tag(2)
+                }
+                ForEach(WorkspaceSection.allCases.filter { $0 != .overview && $0 != .settings }) { s in
+                    Toggle("Show \(s.title)", isOn: Binding(
+                        get: { !prefs.hiddenWorkspaceSections.contains(s.rawValue) },
+                        set: { on in
+                            prefs.hiddenWorkspaceSections.removeAll { $0 == s.rawValue }
+                            if !on { prefs.hiddenWorkspaceSections.append(s.rawValue) }
+                        }))
+                }
+            } header: {
+                Text("Workspace")
+            } footer: {
+                Text("Off, pulling down on Home opens Today, Inbox and Brief instead. “What's Live” opens Developer from a Claude session and Devices from music or a call.")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Section("Keyboard") {
@@ -228,6 +265,7 @@ private struct ClaudeSection: View {
         } footer: {
             Text("Mac Flow reads only the status files Claude keeps for open sessions — their names, folders and whether they’re working. Your conversations are never read. Answers use Claude Code with every tool turned off, signed in to your own account.")
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         .onAppear { ask.refreshSignIn() }
     }
@@ -264,6 +302,15 @@ private struct ActivitiesPane: View {
                 } footer: {
                     Text("Timers and Keep Awake always appear while they’re running.")
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Section {
+                    Toggle("Hold Notifications During Focus and Calls", isOn: $prefs.quietDuringFocus)
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Only what's important interrupts: a meeting starting, Claude needing you, a low battery. The rest wait in the Workspace's Overview.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Section("Alerts") {
                     Toggle("Volume", isOn: $prefs.volumeAlerts)
@@ -293,6 +340,7 @@ private struct ActivitiesPane: View {
                     Text("Glance")
                 } footer: {
                     Text("Forecasts from Open-Meteo. Only the location is sent.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -331,6 +379,7 @@ private struct SearchPane: View {
                 } footer: {
                     Text("Try “26.2 mi in km”, “$40 to €”, “time in Tokyo”, “remind me to call Sam at 5pm”, or “timer 10”. Currency uses European Central Bank rates.")
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Section {
                     Toggle("Keep Clipboard History", isOn: $prefs.clipboardEnabled)
@@ -357,6 +406,7 @@ private struct SearchPane: View {
                 } footer: {
                     Text("Passwords and other items marked private by password managers are never saved. History stays on this Mac.")
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Section {
                     LabeledContent("Files on Shelf", value: "\(shelf.items.count)")
@@ -366,6 +416,7 @@ private struct SearchPane: View {
                     Text("Shelf")
                 } footer: {
                     Text("The shelf keeps references to files. Nothing is moved or copied.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

@@ -48,8 +48,14 @@ final class WorkspaceModel: ObservableObject {
     static let shared = WorkspaceModel()
     @Published var section: WorkspaceSection = .overview
 
+    /// The sections on show: Overview and Settings always, the rest unless hidden in Settings.
+    var visible: [WorkspaceSection] {
+        let hidden = Set(Prefs.shared.hiddenWorkspaceSections)
+        return WorkspaceSection.allCases.filter { $0 == .overview || $0 == .settings || !hidden.contains($0.rawValue) }
+    }
+
     func step(_ delta: Int) {
-        let all = WorkspaceSection.allCases
+        let all = visible
         guard let i = all.firstIndex(of: section) else { return }
         section = all[min(all.count - 1, max(0, i + delta))]
     }
@@ -58,7 +64,17 @@ final class WorkspaceModel: ObservableObject {
 extension IslandModel {
     /// Opens the workspace on a section (by default, the one that fits the island's primary activity).
     func openWorkspace(_ section: WorkspaceSection? = nil) {
-        WorkspaceModel.shared.section = section ?? .fitting(primary)
+        let ws = WorkspaceModel.shared
+        if let section {
+            ws.section = section
+        } else {
+            switch Prefs.shared.workspaceOpensOn {
+            case 1: break                                 // where you left it
+            case 2: ws.section = .overview
+            default: ws.section = .fitting(primary)
+            }
+        }
+        if !ws.visible.contains(ws.section) { ws.section = .overview }
         open(.workspace)
     }
 }
@@ -99,7 +115,7 @@ struct WorkspacePlace: View {
 
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(WorkspaceSection.allCases) { s in
+            ForEach(ws.visible) { s in
                 let on = ws.section == s
                 Button { ws.section = s } label: {
                     HStack(spacing: FlowTone.Space.s) {
@@ -115,7 +131,7 @@ struct WorkspacePlace: View {
                 }
                 .buttonStyle(PressStyle(scale: 0.97))
                 .accessibilityAddTraits(on ? .isSelected : [])
-                .keyboardShortcut(KeyEquivalent(Character("\((WorkspaceSection.allCases.firstIndex(of: s) ?? 0) + 1)")), modifiers: .command)
+                .keyboardShortcut(KeyEquivalent(Character("\(((ws.visible.firstIndex(of: s) ?? 0) + 1) % 10)")), modifiers: .command)
             }
             Spacer(minLength: 0)
         }
@@ -438,6 +454,9 @@ private struct DevicesSection: View {
                     ToneHeader(symbol: "dot.radiowaves.right", title: "Bluetooth")
                     if bluetooth.isEmpty {
                         Text("No Bluetooth devices connected").font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary)
+                        TintPill(title: "Bluetooth Settings…", symbol: "dot.radiowaves.right", tint: FlowTone.accent) {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings") { NSWorkspace.shared.open(url) }
+                        }
                     }
                     ForEach(bluetooth, id: \.name) { d in
                         VStack(alignment: .leading, spacing: 6) {
@@ -519,6 +538,16 @@ private struct ClipboardSection: View {
             }
         } else {
             VStack(alignment: .leading, spacing: FlowTone.Space.s) {
+                HStack(spacing: FlowTone.Space.s) {
+                    Circle().fill(FlowTone.good).frame(width: 6, height: 6)
+                    Text("Keeping what you copy, on this Mac only · \(history.items.count) items")
+                        .font(.system(size: 11)).foregroundStyle(FlowTone.inkTertiary)
+                    Spacer(minLength: 0)
+                    Button("Clear Unpinned") { history.clearUnpinned() }
+                        .buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.inkSecondary)
+                    Button("Pause") { prefs.clipboardEnabled = false }
+                        .buttonStyle(.plain).font(FlowTone.label).foregroundStyle(FlowTone.accent)
+                }
                 HStack(spacing: FlowTone.Space.s) {
                     HStack(spacing: 6) {
                         Image(systemName: "magnifyingglass").font(.system(size: 11, weight: .semibold)).foregroundStyle(FlowTone.inkTertiary)
@@ -620,10 +649,14 @@ private struct DeveloperSection: View {
         HStack(alignment: .top, spacing: FlowTone.Space.s) {
             ToneTile {
                 VStack(alignment: .leading, spacing: FlowTone.Space.s) {
-                    ToneHeader(symbol: "arrow.triangle.branch", title: "Repositories", trailing: dev.loading ? "Reading…" : nil)
+                    HStack {
+                        ToneHeader(symbol: "arrow.triangle.branch", title: "Repositories", trailing: dev.loading ? "Reading…" : nil)
+                        GlyphButton(symbol: "plus", label: "Watch a Repository", size: 11, tint: FlowTone.inkSecondary, hit: 22) { dev.chooseRepository() }
+                    }
                     if dev.repos.isEmpty {
-                        Text("Repositories show up here once a Claude session works in one.")
+                        Text("Choose a project folder, or start a Claude session in one: its branch, changes and last commit show here.")
                             .font(FlowTone.body).foregroundStyle(FlowTone.inkTertiary).fixedSize(horizontal: false, vertical: true)
+                        TintPill(title: "Add Repository…", symbol: "folder.badge.plus", tint: FlowTone.accent) { dev.chooseRepository() }
                     }
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(alignment: .leading, spacing: FlowTone.Space.s) {
@@ -729,6 +762,10 @@ private struct DeveloperSection: View {
         .contentShape(Rectangle())
         .onTapGesture { NSWorkspace.shared.open(URL(fileURLWithPath: r.path)) }
         .help("Open in Finder")
+        .contextMenu {
+            Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: r.path)]) }
+            Button("Stop Watching") { DevStatus.shared.forget(r.path) }
+        }
     }
 }
 
@@ -801,20 +838,38 @@ private struct SettingsSection: View {
     @ObservedObject private var prefs = Prefs.shared
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FlowTone.Space.s) {
-            ToneTile {
-                VStack(alignment: .leading, spacing: 10) {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: FlowTone.Space.s) {
+                group("General") {
                     toggle("Haptic feedback", "Ticks under your fingers as you scroll and move things", $prefs.haptics)
+                    toggle("Reduce motion", "Springs become short fades", $prefs.motionReduced)
+                }
+                group("Notch") {
+                    toggle("Open on hover", "Rest the pointer on the notch to open Home", $prefs.expandOnHover)
+                    toggle("Pull down for the Workspace", "Off: Today, Inbox and Brief instead", $prefs.pullOpensWorkspace)
+                }
+                group("Notifications") {
+                    toggle("Hold during focus and calls", "Only what's important interrupts", $prefs.quietDuringFocus)
+                }
+                group("Privacy") {
                     toggle("Clipboard history", "Keep what you copy, on this Mac only", $prefs.clipboardEnabled)
-                    toggle("Images in clipboard history", "Screenshots and copied pictures too", $prefs.clipboardImages)
-                    toggle("Claude sessions", "Show Claude Code working and waiting", $prefs.claude)
                     toggle("Flow suggestions", "Let Flow offer the next step", $prefs.brainSuggestions)
-                    toggle("Weather", "Beside the notch on Home", $prefs.weatherEnabled)
+                }
+                HStack(spacing: FlowTone.Space.s) {
+                    TintPill(title: "All Settings…", symbol: "gearshape", tint: FlowTone.accent) { WindowManager.shared.showSettings() }
+                    TintPill(title: "Privacy & Data…", symbol: "lock.shield", tint: FlowTone.accent) { WindowManager.shared.showSettings(page: .privacy) }
                 }
             }
-            .fixedSize(horizontal: false, vertical: true)
-            TintPill(title: "All Settings…", symbol: "gearshape", tint: FlowTone.accent) { WindowManager.shared.showSettings() }
-            Spacer(minLength: 0)
+            .scrollTicks(pitch: 44)
+        }
+    }
+
+    private func group<Content: View>(_ title: String, @ViewBuilder _ content: () -> Content) -> some View {
+        let rows = content()
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased()).font(DS.Kit.eyebrow).tracking(DS.Kit.eyebrowTracking).foregroundStyle(FlowTone.inkTertiary)
+            ToneTile(padding: 12) { VStack(alignment: .leading, spacing: 10) { rows } }
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

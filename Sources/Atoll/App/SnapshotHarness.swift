@@ -389,6 +389,12 @@ enum SnapshotHarness {
         PlanClock.pinned = nil
         renderLabs(only: only, outDir: outDir)
         if only == nil { renderWindow(WelcomeView(onContinue: {}), size: CGSize(width: 500, height: 600), name: "50-welcome", outDir: outDir) }
+        if only?.contains(where: { "97-settings-privacy".hasPrefix($0) }) ?? true {
+            renderWindow(PrivacyPane().environment(\.colorScheme, .dark), size: CGSize(width: 620, height: 760), name: "97-settings-privacy", outDir: outDir)
+        }
+        if only?.contains(where: { "98-settings-advanced".hasPrefix($0) }) ?? true {
+            renderWindow(AdvancedPane().environment(\.colorScheme, .dark), size: CGSize(width: 620, height: 760), name: "98-settings-advanced", outDir: outDir)
+        }
         print("snapshots ok → \(outDir)")
     }
 

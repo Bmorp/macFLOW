@@ -457,9 +457,9 @@ final class IslandController {
         case .expanded(.controls):
             break
         case .expanded(.glance) where engine == nil && scrollY > 44 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
-            // Pull Home down: the Smart Workspace.
+            // Pull Home down: the Smart Workspace (or the Today sheet, if that's what you chose).
             scrollConsumed = true
-            model.openWorkspace(.overview)
+            if Prefs.shared.pullOpensWorkspace { model.openWorkspace() } else { model.open(.sheet) }
             HapticEngine.shared.play(.gestureCommitted)
         case .expanded(.sheet) where engine == nil && scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed,
              .expanded(.workspace) where engine == nil && scrollY < -36 && abs(scrollY) > abs(scrollX) * 1.6 && !scrollConsumed:
@@ -562,7 +562,7 @@ final class IslandController {
             }
             switch place {
             case .glance:
-                return scrollY > 0 ? (.toSheet, .expanded(.workspace), true) : (.close, .compact, false)
+                return scrollY > 0 ? (.toSheet, .expanded(Prefs.shared.pullOpensWorkspace ? .workspace : .sheet), true) : (.close, .compact, false)
             case .sheet, .workspace:
                 return scrollY < 0 ? (.toHome, .expanded(.glance), true) : nil
             case .activity(.nowPlaying):
@@ -615,7 +615,7 @@ final class IslandController {
         engine.endInteractive(velocity: v, commit: commit, springBack: g.springBack) {
             switch g.kind {
             case .pullOpen: model.expand(sticky: true)
-            case .toSheet: model.openWorkspace(.overview)
+            case .toSheet: if Prefs.shared.pullOpensWorkspace { model.openWorkspace() } else { model.open(.sheet) }
             case .toHome: model.select(.glance)
             case .close: model.collapse()
             case .tabs(let direction): model.cycleFocus(direction)

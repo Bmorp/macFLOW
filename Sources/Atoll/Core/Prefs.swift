@@ -74,6 +74,20 @@ final class Prefs: ObservableObject {
     // General
     @Published var expandOnHover = Prefs.bool("expandOnHover", true) { didSet { Self.d.set(expandOnHover, forKey: "expandOnHover") } }
     @Published var hoverDelay = Prefs.double("hoverDelay", 0.1) { didSet { Self.d.set(hoverDelay, forKey: "hoverDelay") } }
+    /// Mac Flow's own reduce-motion, on top of the system's (Access.reduceMotion reads both).
+    @Published var motionReduced = Prefs.bool("motionReduced", false) { didSet { Self.d.set(motionReduced, forKey: "motionReduced") } }
+    /// Two fingers down on Home: the Smart Workspace (or, off, the Today sheet).
+    @Published var pullOpensWorkspace = Prefs.bool("pullOpensWorkspace", true) { didSet { Self.d.set(pullOpensWorkspace, forKey: "pullOpensWorkspace") } }
+    /// Where the workspace opens: 0 the section that fits the live activity, 1 where you left it, 2 Overview.
+    @Published var workspaceOpensOn = Prefs.int("workspaceOpensOn", 0) { didSet { Self.d.set(workspaceOpensOn, forKey: "workspaceOpensOn") } }
+    /// Workspace sections you've hidden (Overview and Settings always show).
+    @Published var hiddenWorkspaceSections = (UserDefaults.standard.stringArray(forKey: "hiddenWorkspaceSections") ?? []) {
+        didSet { Self.d.set(hiddenWorkspaceSections, forKey: "hiddenWorkspaceSections") }
+    }
+    /// During a focus block or a call, only important notifications interrupt; the rest wait in history.
+    @Published var quietDuringFocus = Prefs.bool("quietDuringFocus", true) { didSet { Self.d.set(quietDuringFocus, forKey: "quietDuringFocus") } }
+    /// How often the system monitor samples while it's on screen, in seconds.
+    @Published var statsInterval = Prefs.double("statsInterval", 2) { didSet { Self.d.set(statsInterval, forKey: "statsInterval") } }
     @Published var haptics = Prefs.bool("hapticsOn", true) { didSet { Self.d.set(haptics, forKey: "hapticsOn") } }
     @Published var gestures = Prefs.bool("gestures", true) { didSet { Self.d.set(gestures, forKey: "gestures") } }
     @Published var displayMode = DisplayMode(rawValue: Prefs.int("displayMode", 0)) ?? .notchScreen { didSet { Self.d.set(displayMode.rawValue, forKey: "displayMode") } }
